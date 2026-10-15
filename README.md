@@ -31,7 +31,7 @@ Windows File Explorer is capable, but if you live on a Mac (or just prefer the F
 
 **Look closer** — **Quick Look** (`Space`) for images, text, CSV, PDF and video (with playback controls); editable text and CSV right in the preview. **Get Info** (`Ctrl+I`) with sizes, dates, kind, permissions, *open with* and preview.
 
-**Search** — Recursive search by name or file contents, with kind filters (images, documents, folders, audio / video).
+**Search** — Recursive search by name or file contents, with kind filters (images, documents, folders, audio / video), and saved searches that live in the sidebar like Finder smart folders.
 
 **Windows integration** — *More Options…* shows the **real Explorer context menu** (Send to, Git, 7-Zip, Properties…), open in Windows Terminal, run as administrator, set as desktop picture, rotate images, WSL distributions in the sidebar, network page, optional **default file manager** and an *Open in Windows Finder* entry in Explorer's right-click menu (per-user registry only, fully reversible).
 
@@ -81,7 +81,8 @@ The design and behaviour come from a reverse-engineering study of the macOS Find
 - [ ] Open icon set to replace the Apple-derived artwork (blocking a public release, see [`assets/NOTICE.md`](assets/NOTICE.md))
 - [ ] Signed installer / winget / Scoop packages
 - [ ] Column and gallery inspectors with more quick actions
-- [ ] Dragging a tab out into a window
+- [x] Reorder tabs by dragging
+- [x] Dragging a tab out into a window (drop it on the content area)
 - [ ] Optional Git status in lists
 - [ ] More languages (see *Contributing*)
 

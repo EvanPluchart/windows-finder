@@ -2,6 +2,7 @@
 mod apps;
 mod i18n;
 mod extras;
+mod recents;
 mod shellmenu;
 mod palette;
 mod editor;
@@ -56,7 +57,7 @@ actions!(
         MoveUp, MoveDown, MoveLeft, MoveRight, ExtendUp, ExtendDown, OpenSelection, GoParent, GoBack, GoForward,
         ToggleQuickLook, CloseQuickLook, ViewIcons, ViewList, ViewColumns, ViewGallery, ToggleHidden,
         NewFolder, RenameSelection, TrashSelection, CopySelection, CutSelection, PasteSelection, DuplicateSelection,
-        SelectAll, GoToFolder, FocusSearch, Refresh, Dismiss, GetInfo, ShowAllTabs, ConnectServer, NewWindow, UndoOp, RedoOp, OpenSettings, ToggleSidebar, TogglePathBar, ToggleStatusBar, ViewOptions, NewTab, CloseTab, NextTab, PrevTab, OpenPalette, ReopenTab, CopyPathAction,
+        SelectAll, GoToFolder, FocusSearch, Refresh, Dismiss, GetInfo, ShowAllTabs, ConnectServer, NewWindow, UndoOp, RedoOp, OpenSettings, ToggleSidebar, TogglePathBar, ToggleStatusBar, ViewOptions, NewTab, CloseTab, NextTab, PrevTab, OpenPalette, ReopenTab, CopyPathAction, NativeMenuAction,
     ]
 );
 
@@ -97,6 +98,7 @@ pub struct Finder {
     pub menu: Option<overlays::MenuState>,
     pub goto: Option<overlays::GoTo>,
     pub palette: Option<palette::Palette>,
+    pub last_size: (i32, i32),
     pub info: Option<info::InfoState>,
     pub confirm: Option<uninstall::Confirm>,
     pub zoom_dot_hover: bool,
@@ -201,6 +203,7 @@ impl Finder {
             menu: None,
             goto: None,
             palette: None,
+            last_size: (0, 0),
             info: None,
             confirm: None,
             zoom_dot_hover: false,
@@ -614,6 +617,7 @@ impl Render for Finder {
         };
         // Pendant une saisie (renommage, "Aller au dossier", recherche), les raccourcis du Finder se taisent.
         let typing = self.text_input_active(window, cx);
+        self.remember_window_size(window, cx);
 
         div()
             .key_context(if typing { "Finder TextInput" } else { "Finder" })
@@ -662,8 +666,10 @@ impl Render for Finder {
             }))
             .on_action(cx.listener(|this, _: &ViewOptions, _, cx| this.toggle_view_options(cx)))
             .on_action(cx.listener(|this, _: &OpenPalette, window, cx| this.open_palette(window, cx)))
+            .on_drop(cx.listener(|this, d: &tabs::TabDrag, window, cx| this.tab_to_window(d.from, window, cx)))
             .on_action(cx.listener(|this, _: &ReopenTab, _, cx| this.reopen_closed_tab(cx)))
             .on_action(cx.listener(|this, _: &CopyPathAction, _, cx| this.copy_path(cx)))
+            .on_action(cx.listener(|this, _: &NativeMenuAction, window, cx| this.native_menu(window, cx)))
             .on_action(cx.listener(|this, _: &NewTab, _, cx| this.new_tab(None, cx)))
             .on_action(cx.listener(|this, _: &CloseTab, window, cx| {
                 let i = this.active_tab;
@@ -830,6 +836,7 @@ fn main() {
             KeyBinding::new("ctrl-shift-p", OpenPalette, Some("Finder")),
             KeyBinding::new("ctrl-shift-t", ReopenTab, Some("Finder")),
             KeyBinding::new("ctrl-shift-c", CopyPathAction, Some(FIN)),
+            KeyBinding::new("shift-f10", NativeMenuAction, Some(FIN)),
             KeyBinding::new("ctrl-t", NewTab, Some("Finder")),
             KeyBinding::new("ctrl-w", CloseTab, Some("Finder")),
             KeyBinding::new("ctrl-tab", NextTab, Some("Finder")),
@@ -947,7 +954,8 @@ fn square_dwm_frame() {
 fn open_finder_window(cx: &mut App, start: Option<PathBuf>) -> gpui::WindowHandle<Finder> {
     // Decale legerement les fenetres suivantes pour qu'elles ne se superposent pas exactement.
     let n = cx.windows().len() as f32;
-    let mut bounds = Bounds::centered(None, size(px(1000.), px(640.)), cx);
+    let (sw, sh) = extras::saved_window_size();
+    let mut bounds = Bounds::centered(None, size(px(sw), px(sh)), cx);
     bounds.origin.x += px(26.0 * n.min(8.0));
     bounds.origin.y += px(26.0 * n.min(8.0));
     let handle = cx

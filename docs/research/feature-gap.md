@@ -4,7 +4,8 @@ Sources: [`windows-explorer.md`](windows-explorer.md), [`files-app.md`](files-ap
 
 | Feature (source) | Status | Notes |
 |---|---|---|
-| Tabs, reorder, duplicate, close others (Explorer, Files) | done | |
+| Tabs, duplicate, close others (Explorer, Files) | done | |
+| **Reorder tabs by dragging, drag a tab out to a new window** (Files, Finder) | **added** | |
 | **Reopen closed tab** (Files) | **added** | `Ctrl+Shift+T` |
 | Tab overview (Finder) | done | `Ctrl+Shift+A` |
 | Icon / List / Columns / Gallery (Explorer, Files) | done | Cards/Adaptive of Files = Gallery |
@@ -23,6 +24,8 @@ Sources: [`windows-explorer.md`](windows-explorer.md), [`files-app.md`](files-ap
 | **New text file** (Explorer « Nouveau ») | **added** | background menu |
 | **Extract 7z / rar / tar / tgz / iso** (Explorer 23H2, Files) | **added** | via the `tar` (bsdtar) shipped with Windows 11 |
 | Compress to ZIP (Explorer) | done | |
+| **Saved searches** (Finder smart folders) | **added** | « Enregistrer » in the search bar, listed in the sidebar; right-click to remove |
+| **Recents lists the real files** (Explorer Home) | **added** | newest first, resolved from the Recent folder |
 | Undo / redo (Explorer, Files) | done | `Ctrl+Z`, `Ctrl+Shift+Z` |
 | Conflict dialog + progress (Explorer, Files) | done | keep both / replace / skip / stop |
 | Tags (Files) | done | Finder colour tags |

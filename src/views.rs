@@ -508,14 +508,14 @@ impl Finder {
                 .border_r_1()
                 .border_color(rgb(theme::SEPARATOR))
                 .children(rows)
-        });
+        }).collect::<Vec<_>>();
         let show_preview = self.eff().preview;
-        let preview = self.selected_entry().filter(|e| !e.is_dir && show_preview).map(|e| self.render_preview_pane(e));
+        let preview = self.selected_entry().filter(|e| !e.is_dir && show_preview).map(|e| self.render_preview_pane(e, cx));
         div().id("columns").flex_1().min_h_0().flex().overflow_x_scroll().children(cols).children(preview)
     }
 
     /// Volet d'apercu de la vue colonnes : miniature, nom, type/taille, informations (312 pt).
-    fn render_preview_pane(&self, e: &Entry) -> impl IntoElement {
+    fn render_preview_pane(&self, e: &Entry, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .w(px(theme::PREVIEW_PANE_WIDTH))
             .flex_none()
@@ -540,6 +540,7 @@ impl Finder {
             )
             .child(div().pt(px(10.)).font_weight(gpui::FontWeight::SEMIBOLD).child(crate::i18n::t("Informations")))
             .child(info_row(crate::i18n::t("Modifi\u{e9}"), fs::format_date(e.modified)))
+            .child(self.quick_actions(e, cx))
     }
 
     pub fn render_gallery(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -563,7 +564,7 @@ impl Finder {
                     cx.listener(move |this, ev: &MouseDownEvent, _, cx| this.on_item_context(i, ev, cx)),
                 )
                 .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.select(i, cx)))
-        });
+        }).collect::<Vec<_>>();
 
         // Apercu central : cadre a fin contour 403x261 (texte en monospace, sinon miniature).
         let main = match self.selected_entry() {
@@ -583,7 +584,7 @@ impl Finder {
                         .flex()
                         .items_center()
                         .justify_center()
-                        .child(self.icon(&e.path, 240.0, true))
+                        .child(self.icon(&e.path, 336.0, true))
                         .into_any_element()
                 };
                 div().flex_1().min_w_0().flex().items_center().justify_center().p(px(32.)).child(
@@ -641,6 +642,7 @@ impl Finder {
                 )
                 .child(div().pt(px(10.)).font_weight(gpui::FontWeight::SEMIBOLD).child(crate::i18n::t("Informations")))
                 .child(info_row(crate::i18n::t("Modifi\u{e9}"), fs::format_date(e.modified)))
+                .child(self.quick_actions(e, cx))
         });
 
         div()
@@ -676,4 +678,40 @@ fn info_row(title: &'static str, value: String) -> impl IntoElement {
         .text_size(px(13.))
         .child(div().text_color(rgb(theme::TEXT_SECONDARY)).child(title))
         .child(value)
+}
+
+impl Finder {
+    /// Â« Actions rapides Â» du volet d'apercu (comme le Finder) : pivoter une image, ouvrir avec, plus d'options.
+    fn quick_actions(&self, e: &Entry, cx: &mut Context<Self>) -> impl IntoElement {
+        let image = matches!(fs::extension(&e.path).as_str(), "png" | "jpg" | "jpeg" | "bmp" | "gif" | "tif" | "tiff");
+        let pill = |id: &'static str, text: &'static str| {
+            div()
+                .id(id)
+                .px(px(10.))
+                .h(px(24.))
+                .flex()
+                .items_center()
+                .rounded_full()
+                .text_size(px(12.))
+                .bg(rgb(0xe9e9ec))
+                .hover(|s| s.bg(rgb(theme::HOVER)))
+                .cursor_pointer()
+                .child(crate::i18n::t(text))
+        };
+        div()
+            .pt(px(10.))
+            .flex()
+            .flex_col()
+            .gap(px(8.))
+            .child(div().font_weight(gpui::FontWeight::SEMIBOLD).child(crate::i18n::t("Actions rapides")))
+            .child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .gap(px(6.))
+                    .when(image, |d| d.child(pill("qa-rot", "Pivoter \u{e0} gauche").on_click(cx.listener(|this, _, _, cx| this.rotate_images(false, cx)))))
+                    .child(pill("qa-open", "Ouvrir avec\u{2026}").on_click(cx.listener(|this, _, _, _| this.open_with())))
+                    .child(pill("qa-more", "Plus d'options\u{2026}").on_click(cx.listener(|this, _, window, cx| this.native_menu(window, cx)))),
+            )
+    }
 }

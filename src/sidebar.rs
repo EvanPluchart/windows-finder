@@ -29,9 +29,8 @@ pub fn default_places() -> Vec<Place> {
     let home = crate::fs::home_dir();
     let item = |name: &str, glyph: &'static str, path: PathBuf| Place::Item { name: name.to_string().into(), glyph, path };
     let mut places = vec![Place::Header(crate::i18n::t("Favoris").into())];
-    let recent = std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("Microsoft/Windows/Recent"));
-    if let Some(r) = recent.filter(|r| r.is_dir() && crate::settings::sidebar_on("recents")) {
-        places.push(item(crate::i18n::t("R\u{e9}cents"), "clock", r));
+    if crate::settings::sidebar_on("recents") {
+        places.push(item(crate::i18n::t("R\u{e9}cents"), "clock", PathBuf::from(crate::recents::RECENTS)));
     }
     if crate::settings::sidebar_on("apps") {
         places.push(item(crate::i18n::t("Applications"), "applications", PathBuf::from(crate::fs::APPS)));
@@ -55,6 +54,10 @@ pub fn default_places() -> Vec<Place> {
     for p in crate::extras::pins() {
         let name = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| p.display().to_string());
         places.push(item(&name, "folder", p));
+    }
+
+    for (i, sv) in crate::extras::saved_searches().iter().enumerate() {
+        places.push(item(&sv.name, "magnifyingglass", PathBuf::from(format!("::search:{i}"))));
     }
 
     places.push(Place::Header(crate::i18n::t("Emplacements").into()));
@@ -189,11 +192,17 @@ impl Finder {
                             this.drop_external(p.paths().to_vec(), target.clone(), window.modifiers().control, cx)
                         }
                     }))
-                    .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.open_place(target.clone(), cx)))
+                    .cursor_pointer().on_click(cx.listener(move |this, _, window, cx| match crate::extras::saved_index(&target) {
+                        Some(i) => this.run_saved_search(i, window, cx),
+                        None => this.open_place(target.clone(), cx),
+                    }))
                     .on_mouse_down(MouseButton::Right, cx.listener({
                         let target = path.clone();
                         move |this, _, _, cx| {
-                            if crate::extras::pins().contains(&target) {
+                            if let Some(i) = crate::extras::saved_index(&target) {
+                                this.remove_saved_search(i, cx);
+                                this.show_notice(crate::i18n::t("Retir{e9} de la barre lat{e9}rale"), cx);
+                            } else if crate::extras::pins().contains(&target) {
                                 this.unpin(&target, cx);
                                 this.show_notice(crate::i18n::t("Retir\u{e9} de la barre lat\u{e9}rale"), cx);
                             }

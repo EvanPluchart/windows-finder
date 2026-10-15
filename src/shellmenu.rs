@@ -33,11 +33,11 @@ unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) 
     if matches!(msg, WM_INITMENUPOPUP | WM_DRAWITEM | WM_MEASUREITEM | WM_MENUCHAR) {
         if let Some(m3) = MENU3.with(|m| m.borrow().clone()) {
             let mut result = LRESULT(0);
-            if m3.HandleMenuMsg2(msg, wp, lp, Some(&mut result)).is_ok() {
+            if unsafe { m3.HandleMenuMsg2(msg, wp, lp, Some(&mut result)) }.is_ok() {
                 return result;
             }
         } else if let Some(m2) = MENU2.with(|m| m.borrow().clone()) {
-            if m2.HandleMenuMsg(msg, wp, lp).is_ok() {
+            if unsafe { m2.HandleMenuMsg(msg, wp, lp) }.is_ok() {
                 return LRESULT(0);
             }
         }

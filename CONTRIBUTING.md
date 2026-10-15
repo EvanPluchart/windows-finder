@@ -20,7 +20,8 @@ Useful test flags: first argument = start folder (`::apps`, `::pc`, `::trash`, `
 2. **Be fast.** Never block the UI thread on disk, shell or network; use `cx.background_executor()`.
 3. **Be safe with files.** Deletion goes to the Recycle Bin. Anything irreversible needs an in-app confirmation. Registry writes stay under `HKEY_CURRENT_USER` and are reversible.
 4. **Every visible string is translatable.** Write the French text in code (`crate::i18n::t("…")`, or `tf` for `{name}` templates) and add one line to `assets/i18n.txt`: `français ::: English ::: Español ::: Deutsch`. Constants cannot call `t`; translate where they are displayed.
-5. **Keep it small.** One feature per pull request, matching the surrounding style and comment density (comments explain why, in plain words).
+5. **Comments.** Existing comments are in French; write new ones in English or French, plain words, explaining why.
+6. **Keep it small.** One feature per pull request, matching the surrounding style and comment density (comments explain why, in plain words).
 
 ## Translations
 

@@ -141,3 +141,42 @@ pub fn unit(u: &'static str) -> &'static str {
         _ => "GB",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    fn placeholders(s: &str) -> BTreeSet<String> {
+        let mut out = BTreeSet::new();
+        let mut rest = s;
+        while let Some(i) = rest.find('{') {
+            let Some(j) = rest[i..].find('}') else { break };
+            out.insert(rest[i + 1..i + j].to_string());
+            rest = &rest[i + j + 1..];
+        }
+        out
+    }
+
+    #[test]
+    fn dictionary_lines_are_well_formed() {
+        let text = include_str!("../assets/i18n.txt");
+        for (n, line) in text.lines().enumerate().filter(|(_, l)| !l.trim().is_empty()) {
+            let parts: Vec<&str> = line.split(" ::: ").collect();
+            assert_eq!(parts.len(), 4, "line {} must be: français ::: English ::: Español ::: Deutsch", n + 1);
+            let wanted = placeholders(parts[0]);
+            for (k, lang) in parts.iter().enumerate().skip(1) {
+                assert!(!lang.trim().is_empty(), "line {} has an empty translation", n + 1);
+                // A translation may drop a plural suffix such as {0}, but must not invent or lose other placeholders.
+                let got = placeholders(lang);
+                assert!(got.is_subset(&wanted), "line {} column {}: unknown placeholder", n + 1, k + 1);
+                let missing: Vec<_> = wanted.difference(&got).filter(|p| p.parse::<usize>().is_err() && p.as_str() != "s").collect();
+                assert!(missing.is_empty(), "line {} column {}: missing placeholders {:?}", n + 1, k + 1, missing);
+            }
+        }
+    }
+
+    #[test]
+    fn plural_helpers_substitute_names() {
+        assert_eq!(super::tf("{0} sur {1}", &[("0", "2".into()), ("1", "5".into())]), "2 sur 5");
+    }
+}

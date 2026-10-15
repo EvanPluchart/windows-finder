@@ -77,6 +77,7 @@ pub fn display_name(p: &Path) -> String {
     match p.to_str() {
         Some(APPS) => crate::i18n::t("Applications").into(),
         Some(PC) => "Ce PC".into(),
+        Some("::recents") => crate::i18n::t("R\u{e9}cents").into(),
         Some("::trash") => crate::i18n::t("Corbeille").into(),
         Some("::net") => crate::i18n::t("R\u{e9}seau").into(),
         Some(s) if s.starts_with("::tag:") => s[6..].to_string(),
@@ -91,6 +92,9 @@ pub fn read_dir(path: &Path, show_hidden: bool) -> Vec<Entry> {
     }
     if path == Path::new(PC) {
         return crate::apps::drives();
+    }
+    if path == Path::new(crate::recents::RECENTS) {
+        return crate::recents::entries();
     }
     if path == Path::new(crate::netplaces::NET) {
         return crate::netplaces::entries();

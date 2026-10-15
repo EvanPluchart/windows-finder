@@ -769,6 +769,22 @@ impl Finder {
                 .child(chip(("sb-kind", 2), crate::i18n::t("Documents"), kind == 2, cx, |f| f.search_kind = 2))
                 .child(chip(("sb-kind", 3), crate::i18n::t("Dossiers"), kind == 3, cx, |f| f.search_kind = 3))
                 .child(chip(("sb-kind", 4), crate::i18n::t("Audio / vid\u{e9}o"), kind == 4, cx, |f| f.search_kind = 4))
+                .child(div().flex_1())
+                .child(
+                    div()
+                        .id("sb-save")
+                        .px(px(10.))
+                        .h(px(22.))
+                        .flex()
+                        .items_center()
+                        .rounded_full()
+                        .text_size(px(12.))
+                        .bg(rgb(0xe9e9ec))
+                        .hover(|s| s.bg(rgb(theme::HOVER)))
+                        .child(crate::i18n::t("Enregistrer"))
+                        .cursor_pointer()
+                        .on_click(cx.listener(|this, _, _, cx| this.save_current_search(cx))),
+                )
                 .into_any_element(),
         )
     }

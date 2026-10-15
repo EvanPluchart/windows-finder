@@ -25,6 +25,10 @@
 
 ## 2. Window anatomy (Windows 11)
 
+![File Explorer, Windows 11 24H2, details view](images/explorer-details.png)
+
+*Observed on the author's machine (French, dark mode): tab strip, navigation row with breadcrumb and search, command bar, navigation pane with Home pins, This PC, Network and Linux, details list, status bar with view switcher.*
+
 1. **Title bar + tab strip** (tabs since 22H2): "Ouvrir dans un nouvel onglet", "Ouvrir « %s » dans un groupe d’onglets", tab titles "%1 et %2 autres onglets".
 2. **Navigation row**: Back (Alt+←), Forward (Alt+→), Up (Alt+↑), Refresh (F5), **breadcrumb address bar** (click a chevron to list sibling folders — "liste des frères" / "liste des parents"; click the empty part to edit the path), **search box** ("Rechercher dans : %1").
 3. **Command bar**: *Nouveau* ▾, Cut, Copy, Paste, Rename, Share, Delete, *Trier* ▾, *Afficher* ▾, **…** overflow, **Détails** (pane toggle).

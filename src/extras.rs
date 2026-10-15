@@ -201,3 +201,131 @@ impl WideNull for std::ffi::OsStr {
         self.encode_wide().chain(std::iter::once(0)).collect()
     }
 }
+
+/// Taille de fenetre memorisee (reglage `win_size` = "largeur x hauteur"), 1000 x 640 par defaut.
+pub fn saved_window_size() -> (f32, f32) {
+    layout::get_setting("win_size")
+        .and_then(|s| {
+            let (w, h) = s.split_once('x')?;
+            Some((w.parse::<f32>().ok()?, h.parse::<f32>().ok()?))
+        })
+        .filter(|(w, h)| (640.0..=5000.0).contains(w) && (420.0..=3000.0).contains(h))
+        .unwrap_or((1000.0, 640.0))
+}
+
+impl Finder {
+    /// Enregistre la taille de la fenetre un instant apres le dernier redimensionnement.
+    pub fn remember_window_size(&mut self, window: &gpui::Window, cx: &mut Context<Self>) {
+        let vs = window.viewport_size();
+        let now = (f32::from(vs.width).round() as i32, f32::from(vs.height).round() as i32);
+        if now == self.last_size || now.0 < 100 {
+            return;
+        }
+        let first = self.last_size == (0, 0);
+        self.last_size = now;
+        if first {
+            return;
+        }
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(std::time::Duration::from_millis(600)).await;
+            this.update(cx, |f, _| {
+                layout::set_setting("win_size", &format!("{}x{}", f.last_size.0, f.last_size.1));
+            })
+            .ok();
+        })
+        .detach();
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Recherches enregistrees (equivalent des dossiers intelligents du Finder)
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Clone)]
+pub struct Saved {
+    pub name: String,
+    pub root: PathBuf,
+    pub query: String,
+    pub content: bool,
+    pub kind: u8,
+}
+
+fn searches_file() -> Option<PathBuf> {
+    std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("winfinder").join("searches.tsv"))
+}
+
+pub fn saved_searches() -> Vec<Saved> {
+    let Some(text) = searches_file().and_then(|f| std::fs::read_to_string(f).ok()) else { return Vec::new() };
+    text.lines()
+        .filter_map(|l| {
+            let p: Vec<&str> = l.split('\t').collect();
+            (p.len() == 5).then(|| Saved {
+                name: p[0].to_string(),
+                root: PathBuf::from(p[1]),
+                query: p[2].to_string(),
+                content: p[3] == "1",
+                kind: p[4].parse().unwrap_or(0),
+            })
+        })
+        .collect()
+}
+
+fn write_saved(list: &[Saved]) {
+    let Some(file) = searches_file() else { return };
+    if let Some(dir) = file.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let text: String = list
+        .iter()
+        .map(|s| format!("{}\t{}\t{}\t{}\t{}\n", s.name.replace('\t', " "), s.root.display(), s.query.replace('\t', " "), u8::from(s.content), s.kind))
+        .collect();
+    let _ = std::fs::write(file, text);
+}
+
+/// Numero de la recherche enregistree designee par un emplacement `::search:N` de la barre laterale.
+pub fn saved_index(path: &Path) -> Option<usize> {
+    path.to_str()?.strip_prefix("::search:")?.parse().ok()
+}
+
+impl Finder {
+    /// Enregistre la recherche en cours (dossier, texte, portee et type) dans la barre laterale.
+    pub fn save_current_search(&mut self, cx: &mut Context<Self>) {
+        let Some(query) = self.search_query().map(str::to_owned) else { return };
+        let mut list = saved_searches();
+        let name = query.clone();
+        list.retain(|s| !(s.root == self.cwd && s.query == query));
+        list.push(Saved { name, root: self.cwd.clone(), query, content: self.search_content, kind: self.search_kind });
+        write_saved(&list);
+        self.places = crate::sidebar::default_places();
+        self.show_notice(crate::i18n::t("Recherche enregistr\u{e9}e dans la barre lat\u{e9}rale"), cx);
+        cx.notify();
+    }
+
+    pub fn run_saved_search(&mut self, i: usize, window: &mut gpui::Window, cx: &mut Context<Self>) {
+        let Some(s) = saved_searches().into_iter().nth(i) else { return };
+        if !s.root.is_dir() {
+            self.show_notice(crate::i18n::t("Le dossier de cette recherche n'existe plus."), cx);
+            return;
+        }
+        self.close_search_silent();
+        self.navigate(s.root.clone(), true, cx);
+        self.search_content = s.content;
+        self.search_kind = s.kind;
+        self.open_search(window, cx);
+        if let Some(search) = &self.search {
+            let editor = search.editor.clone();
+            editor.update(cx, |e, cx| e.set_text(&s.query, cx));
+        }
+        self.run_search(cx);
+    }
+
+    pub fn remove_saved_search(&mut self, i: usize, cx: &mut Context<Self>) {
+        let mut list = saved_searches();
+        if i < list.len() {
+            list.remove(i);
+            write_saved(&list);
+            self.places = crate::sidebar::default_places();
+            cx.notify();
+        }
+    }
+}

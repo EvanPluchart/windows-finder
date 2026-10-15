@@ -137,6 +137,12 @@ impl Finder {
                 .px(px(26.))
                 .when(active, |d| d.bg(rgb(0xffffff)).text_color(rgb(theme::TEXT)).shadow_sm())
                 .when(!active, |d| d.text_color(rgb(theme::TEXT_SECONDARY)))
+                .on_drag(TabDrag { from: i, title: title.clone().into() }, |d, _, _, cx| {
+                    let title = d.title.clone();
+                    cx.new(|_| TabGhost(title))
+                })
+                .drag_over::<TabDrag>(|s, _, _, _| s.bg(rgb(0xd6d6dc)))
+                .on_drop(cx.listener(move |this, d: &TabDrag, _, cx| this.move_tab(d.from, i, cx)))
                 .child(crate::views::label(title))
                 .child(
                     div()
@@ -350,5 +356,67 @@ impl Finder {
                 .child(div().max_w(px(780.)).flex().flex_wrap().justify_center().gap(px(16.)).occlude().children(cards))
                 .into_any_element(),
         )
+    }
+}
+
+/// Valeur portee par le glisser d'un onglet (pour le reordonner).
+pub struct TabDrag {
+    pub from: usize,
+    pub title: gpui::SharedString,
+}
+
+/// Apercu qui suit le curseur pendant le glisser d'un onglet.
+pub struct TabGhost(gpui::SharedString);
+
+impl gpui::Render for TabGhost {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .px(px(16.))
+            .h(px(24.))
+            .flex()
+            .items_center()
+            .rounded(px(7.))
+            .bg(rgb(0xffffff))
+            .shadow_lg()
+            .text_size(px(13.))
+            .text_color(rgb(theme::TEXT))
+            .child(self.0.clone())
+    }
+}
+
+impl Finder {
+    /// Deplace l'onglet `from` a la place de l'onglet `to` ; l'onglet actif reste le meme.
+    pub fn move_tab(&mut self, from: usize, to: usize, cx: &mut Context<Self>) {
+        if from == to || from >= self.tabs.len() || to >= self.tabs.len() {
+            return;
+        }
+        self.save_active();
+        let active_cwd_ix = self.active_tab;
+        let tab = self.tabs.remove(from);
+        self.tabs.insert(to, tab);
+        self.active_tab = if active_cwd_ix == from {
+            to
+        } else if from < active_cwd_ix && to >= active_cwd_ix {
+            active_cwd_ix - 1
+        } else if from > active_cwd_ix && to <= active_cwd_ix {
+            active_cwd_ix + 1
+        } else {
+            active_cwd_ix
+        };
+        cx.notify();
+    }
+}
+
+impl Finder {
+    /// Ouvre l'onglet `i` dans une nouvelle fenetre (glisser un onglet hors de la barre d'onglets) et le ferme ici.
+    pub fn tab_to_window(&mut self, i: usize, window: &mut Window, cx: &mut Context<Self>) {
+        if self.tabs.len() < 2 || i >= self.tabs.len() {
+            return;
+        }
+        let p = if i == self.active_tab { self.cwd.clone() } else { self.tabs[i].cwd.clone() };
+        cx.defer(move |app| {
+            crate::open_finder_window(app, Some(p));
+        });
+        self.close_tab(i, window, cx);
     }
 }

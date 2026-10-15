@@ -10,21 +10,7 @@ use crate::symbols::sym;
 use crate::theme;
 use crate::{Finder, ViewMode};
 
-const FLUENT: &str = "Segoe Fluent Icons";
 
-fn fluent(glyph: &'static str, size: f32) -> Div {
-    // Boite carree a hauteur de ligne fixe : le glyphe est centre sur l'axe de la boite, pas sur sa ligne de texte.
-    div()
-        .font_family(FLUENT)
-        .text_size(px(size))
-        .size(px(size + 2.))
-        .line_height(px(size + 2.))
-        .flex_none()
-        .flex()
-        .items_center()
-        .justify_center()
-        .child(glyph)
-}
 
 /// Capsule blanche a fin contour, comme les groupes de boutons du Finder.
 fn capsule() -> Div {
@@ -120,22 +106,26 @@ impl Finder {
 
         let group = capsule().id("group-btn").px(px(10.)).gap(px(4.)).child(sym("square.grid.3x2-medium", 14., theme::TEXT)).child(sym("chevron.down-medium", 8., theme::TEXT_SECONDARY)).on_click(cx.listener(|this, _, _, cx| this.toggle_view_options(cx)));
 
+        let on = crate::settings::toolbar_on;
+        let share_btn = div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("square.and.arrow.up-medium", 14., theme::TEXT));
+        let tag_btn = div()
+            .id("tag-btn")
+            .w(px(38.))
+            .h(px(32.))
+            .flex()
+            .items_center()
+            .justify_center()
+            .rounded_full()
+            .hover(|s| s.bg(rgb(theme::HOVER)))
+            .child(sym("tag-medium", 14., theme::TEXT))
+            .on_click(cx.listener(|this, _, window, cx| this.toggle_tag_pop(window, cx)));
+        let more_btn = div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("ellipsis-medium", 14., theme::TEXT));
         let actions = capsule()
-            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("square.and.arrow.up-medium", 14., theme::TEXT)))
-            .child(
-                div()
-                    .id("tag-btn")
-                    .w(px(38.))
-                    .h(px(32.))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .rounded_full()
-                    .hover(|s| s.bg(rgb(theme::HOVER)))
-                    .child(sym("tag-medium", 14., theme::TEXT))
-                    .on_click(cx.listener(|this, _, window, cx| this.toggle_tag_pop(window, cx))),
-            )
-            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("ellipsis-medium", 14., theme::TEXT)));
+            .when(on("share"), |d| d.child(share_btn))
+            .when(on("tags"), |d| d.child(tag_btn))
+            .when(on("more"), |d| d.child(more_btn));
+        let show_actions = on("share") || on("tags") || on("more");
+
 
         // Recherche : bouton rond ; au clic il devient un champ de saisie (Ctrl+F), Echap le referme.
         let search = match &self.search {
@@ -192,10 +182,12 @@ impl Finder {
                     .child(title),
             )
             .child(div().flex_1().h_full())
-            .child(views)
-            .child(group)
-            .child(actions)
-            .child(search)
+            .children(on("views").then(|| views))
+            .children(on("group").then(|| group))
+            .children(show_actions.then(|| actions))
+            .children((on("search") || self.search.is_some()).then(|| search))
+            // Clic droit sur la barre d'outils : personnaliser (reglages).
+            .on_mouse_down(MouseButton::Right, cx.listener(|this, _, _, cx| this.toggle_settings(cx)))
             .on_mouse_down(MouseButton::Left, |ev, window, _| crate::sidebar::window_drag(ev, window))
     }
 }

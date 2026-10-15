@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use gpui::{
     AnyElement, App, Bounds, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement, ObjectFit,
     ParentElement, Pixels, Render, Size, StatefulInteractiveElement, Styled, Subscription, TitlebarOptions, Window,
-    WindowBackgroundAppearance, WindowBounds, WindowControlArea, WindowOptions, div, img, prelude::*, px, size,
+    WindowBackgroundAppearance, WindowBounds, WindowOptions, div, img, prelude::*, px, size,
 };
 use crate::theme::{rgb, rgba};
 
@@ -32,7 +32,7 @@ fn quick_look_size(e: &Entry, cx: &App) -> Size<Pixels> {
     } else if e.is_pdf() {
         (640.0, 800.0)
     } else if e.is_video() {
-        (760.0, 470.0)
+        (960.0, 600.0)
     } else {
         (480.0, 360.0)
     };
@@ -122,6 +122,13 @@ enum Body {
     Text(Entity<Editor>),
     Csv(Entity<CsvTable>),
     Pdf(PdfState),
+    Video(VideoState),
+}
+
+pub struct VideoState {
+    path: PathBuf,
+    video: Option<crate::video::Video>,
+    image: Option<std::sync::Arc<gpui::RenderImage>>,
 }
 
 pub struct PdfState {
@@ -138,6 +145,10 @@ pub struct QuickLook {
     shown: Option<PathBuf>,
     body: Body,
     body_path: Option<PathBuf>,
+    video_gen: u64,
+    volume: f64,
+    muted: bool,
+    last_move: std::time::Instant,
     subs: Vec<Subscription>,
     _observe: Subscription,
 }
@@ -151,6 +162,10 @@ impl QuickLook {
             focus: cx.focus_handle(),
             shown: None,
             body: Body::None,
+            video_gen: 0,
+            volume: 0.8,
+            muted: false,
+            last_move: std::time::Instant::now(),
             body_path: None,
             subs: Vec::new(),
             _observe: observe,
@@ -182,7 +197,7 @@ impl QuickLook {
         match &self.body {
             Body::Text(ed) => ed.read(cx).dirty,
             Body::Csv(t) => t.read(cx).dirty,
-            Body::None | Body::Pdf(_) => false,
+            Body::None | Body::Pdf(_) | Body::Video(_) => false,
         }
     }
 
@@ -190,7 +205,7 @@ impl QuickLook {
         match &self.body {
             Body::Text(ed) => ed.read(cx).is_focused(window),
             Body::Csv(t) => t.read(cx).is_editing(),
-            Body::None | Body::Pdf(_) => false,
+            Body::None | Body::Pdf(_) | Body::Video(_) => false,
         }
     }
 
@@ -201,6 +216,19 @@ impl QuickLook {
         self.body = Body::None;
         self.body_path = entry.map(|e| e.path.clone());
         let Some(e) = entry else { return };
+        if e.is_video() {
+            self.video_gen += 1;
+            let generation = self.video_gen;
+            let video = crate::video::Video::open(&e.path).ok();
+            if let Some(v) = &video {
+                v.set_volume(self.volume);
+                v.set_muted(self.muted);
+            }
+            self.last_move = std::time::Instant::now();
+            self.body = Body::Video(VideoState { path: e.path.clone(), video, image: None });
+            self.pump_video(generation, cx);
+            return;
+        }
         if e.is_pdf() {
             self.body = Body::Pdf(PdfState { path: e.path.clone(), page: 0, count: 0, image: None, loading: false });
             self.request_pdf(cx);
@@ -235,6 +263,36 @@ impl QuickLook {
             self.subs.push(cx.observe(&editor, |_, _, cx| cx.notify()));
             self.body = Body::Text(editor);
         }
+    }
+
+    /// Recupere les images decodees (~30 par seconde) tant que cette lecture est la courante.
+    fn pump_video(&mut self, generation: u64, cx: &mut Context<Self>) {
+        cx.spawn(async move |this, cx| loop {
+            cx.background_executor().timer(std::time::Duration::from_millis(33)).await;
+            let alive = this
+                .update(cx, |ql, cx| {
+                    if ql.video_gen != generation {
+                        return false;
+                    }
+                    let Body::Video(v) = &mut ql.body else { return false };
+                    if let Some(frame) = v.video.as_ref().and_then(|x| x.take_frame()) {
+                        let mut data = frame.data;
+                        for px in data.chunks_exact_mut(4) {
+                            px[3] = 255;
+                        }
+                        if let Some(buf) = image::RgbaImage::from_raw(frame.width, frame.height, data) {
+                            v.image = Some(std::sync::Arc::new(gpui::RenderImage::new(vec![image::Frame::new(buf)])));
+                        }
+                    }
+                    cx.notify();
+                    true
+                })
+                .unwrap_or(false);
+            if !alive {
+                break;
+            }
+        })
+        .detach();
     }
 
     /// Rend la page courante du PDF en arriere-plan.
@@ -304,12 +362,212 @@ impl Render for QuickLook {
             Body::Text(_) => Some("Cliquez pour modifier \u{b7} Ctrl+S enregistre"),
             Body::Csv(_) => Some("Cliquez sur une cellule pour modifier"),
             Body::Pdf(_) => Some("Pr\u{e9}c. / Suiv. pour changer de page"),
+            Body::Video(_) => None,
             Body::None => None,
         };
 
         let body = match &self.body {
             Body::Text(ed) => Some(div().size_full().child(ed.clone()).into_any_element()),
             Body::Csv(t) => Some(div().size_full().child(t.clone()).into_any_element()),
+            Body::Video(v) => {
+                let (pos, dur) = v.video.as_ref().map(|x| x.times()).unwrap_or((0.0, 0.0));
+                let playing = v.video.as_ref().map(|x| x.is_playing()).unwrap_or(false);
+                let frac = if dur > 0.0 { pos / dur } else { 0.0 };
+                let image = v.image.clone().or_else(|| self.finder.read(cx).icons.get(&v.path, 1920, true));
+                let clock = |s: f64| format!("{}:{:02}", (s as u64) / 60, (s as u64) % 60);
+                // Les commandes se masquent apres 2,5 s sans mouvement de souris pendant la lecture (comme macOS).
+                let show = !playing || self.last_move.elapsed() < std::time::Duration::from_millis(2500);
+                let (volume, muted) = (self.volume, self.muted);
+                let white = rgb(0xfffffe);
+                let dim = gpui::rgba(0xffffff4d);
+                let toggle = |this: &mut QuickLook| {
+                    if let Body::Video(v) = &this.body {
+                        if let Some(video) = &v.video {
+                            video.toggle();
+                        }
+                    }
+                };
+                let pill = div()
+                    .w(px(560.))
+                    .max_w_full()
+                    .h(px(44.))
+                    .px(px(14.))
+                    .flex()
+                    .items_center()
+                    .gap(px(10.))
+                    .rounded(px(14.))
+                    .bg(gpui::rgba(0x1c1c1ee6))
+                    .border_1()
+                    .border_color(gpui::rgba(0xffffff1f))
+                    .text_color(white)
+                    .text_size(px(12.))
+                    .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                    // Lecture / pause
+                    .child(
+                        div()
+                            .id("vid-toggle")
+                            .size(px(26.))
+                            .flex_none()
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .rounded_full()
+                            .hover(|s| s.bg(gpui::rgba(0xffffff26)))
+                            .child(if playing {
+                                div()
+                                    .flex()
+                                    .gap(px(3.))
+                                    .child(div().w(px(3.5)).h(px(13.)).rounded(px(1.)).bg(white))
+                                    .child(div().w(px(3.5)).h(px(13.)).rounded(px(1.)).bg(white))
+                                    .into_any_element()
+                            } else {
+                                div().font_family("Segoe UI Symbol").text_size(px(13.)).child("\u{25B6}\u{FE0E}").into_any_element()
+                            })
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                toggle(this);
+                                cx.notify();
+                                cx.stop_propagation();
+                            })),
+                    )
+                    .child(div().w(px(34.)).flex_none().child(clock(pos)))
+                    // Barre de progression : trait fin, repere rond a la position courante ; clic ou glisser = deplacement.
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .h(px(20.))
+                            .relative()
+                            .flex()
+                            .items_center()
+                            .child(div().w_full().h(px(4.)).rounded_full().bg(dim))
+                            .child(div().absolute().left_0().h(px(4.)).w(gpui::relative(frac as f32)).rounded_full().bg(white))
+                            .child(
+                                div()
+                                    .absolute()
+                                    .left(gpui::relative(frac as f32))
+                                    .ml(px(-5.))
+                                    .size(px(10.))
+                                    .rounded_full()
+                                    .bg(white)
+                                    .shadow_sm(),
+                            )
+                            .child(div().absolute().inset_0().flex().children((0..80usize).map(|i| {
+                                let seek = move |this: &mut QuickLook| {
+                                    if let Body::Video(v) = &this.body {
+                                        if let Some(video) = &v.video {
+                                            let (_, d) = video.times();
+                                            video.seek(d * (i as f64 + 0.5) / 80.0);
+                                        }
+                                    }
+                                };
+                                div()
+                                    .id(("vid-seg", i))
+                                    .flex_1()
+                                    .h_full()
+                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                        seek(this);
+                                        cx.notify();
+                                        cx.stop_propagation();
+                                    }))
+                                    .on_mouse_move(cx.listener(move |this, ev: &gpui::MouseMoveEvent, _, cx| {
+                                        if ev.pressed_button == Some(gpui::MouseButton::Left) {
+                                            seek(this);
+                                            cx.notify();
+                                        }
+                                    }))
+                            }))),
+                    )
+                    .child(div().w(px(40.)).flex_none().flex().justify_end().child(format!("-{}", clock((dur - pos).max(0.0)))))
+                    // Son : bouton muet + reglette de volume.
+                    .child(
+                        div()
+                            .id("vid-mute")
+                            .size(px(26.))
+                            .flex_none()
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .rounded_full()
+                            .hover(|s| s.bg(gpui::rgba(0xffffff26)))
+                            .font_family("Segoe Fluent Icons")
+                            .text_size(px(15.))
+                            .child(if muted || volume <= 0.0 { "\u{E74F}" } else if volume < 0.4 { "\u{E993}" } else if volume < 0.7 { "\u{E994}" } else { "\u{E995}" })
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.muted = !this.muted;
+                                if let Body::Video(v) = &this.body {
+                                    if let Some(video) = &v.video {
+                                        video.set_muted(this.muted);
+                                    }
+                                }
+                                cx.notify();
+                                cx.stop_propagation();
+                            })),
+                    )
+                    .child(div().w(px(72.)).flex_none().h(px(20.)).relative().flex().items_center().child(div().w_full().h(px(4.)).rounded_full().bg(dim)).child(
+                        div().absolute().left_0().h(px(4.)).w(gpui::relative(if muted { 0.0 } else { volume as f32 })).rounded_full().bg(white),
+                    ).child(div().absolute().inset_0().flex().children((0..10usize).map(|i| {
+                        let set = move |this: &mut QuickLook| {
+                            this.volume = (i as f64 + 1.0) / 10.0;
+                            this.muted = false;
+                            if let Body::Video(v) = &this.body {
+                                if let Some(video) = &v.video {
+                                    video.set_volume(this.volume);
+                                    video.set_muted(false);
+                                }
+                            }
+                        };
+                        div()
+                            .id(("vid-vol", i))
+                            .flex_1()
+                            .h_full()
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                set(this);
+                                cx.notify();
+                                cx.stop_propagation();
+                            }))
+                            .on_mouse_move(cx.listener(move |this, ev: &gpui::MouseMoveEvent, _, cx| {
+                                if ev.pressed_button == Some(gpui::MouseButton::Left) {
+                                    set(this);
+                                    cx.notify();
+                                }
+                            }))
+                    }))));
+                Some(
+                    div()
+                        .id("ql-video")
+                        .size_full()
+                        .relative()
+                        .bg(rgb(0x101012))
+                        .child(match image {
+                            Some(i) => img(i).size_full().object_fit(ObjectFit::Contain).into_any_element(),
+                            None => div().into_any_element(),
+                        })
+                        .on_mouse_move(cx.listener(|this, _, _, cx| {
+                            let was_hidden = this.last_move.elapsed() >= std::time::Duration::from_millis(2500);
+                            this.last_move = std::time::Instant::now();
+                            if was_hidden {
+                                cx.notify();
+                            }
+                        }))
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            toggle(this);
+                            cx.notify();
+                        }))
+                        .child(
+                            div()
+                                .absolute()
+                                .left_0()
+                                .right_0()
+                                .bottom(px(16.))
+                                .px(px(16.))
+                                .flex()
+                                .justify_center()
+                                .when(!show, |d| d.invisible())
+                                .child(pill),
+                        )
+                        .into_any_element(),
+                )
+            }
             Body::Pdf(s) => {
                 let (page, count, loading) = (s.page, s.count, s.loading);
                 let nav = |id: &'static str, label: &'static str, delta: i32, cx: &mut Context<Self>| {
@@ -456,6 +714,8 @@ impl Render for QuickLook {
                 div()
                     .h(px(TITLE_BAR))
                     .flex_none()
+                    // Glisser la barre de titre deplace la fenetre d'apercu.
+                    .on_mouse_down(gpui::MouseButton::Left, |ev, window, _| crate::sidebar::window_drag(ev, window))
                     .px(px(16.))
                     .flex()
                     .items_center()
@@ -468,16 +728,17 @@ impl Render for QuickLook {
                             .flex()
                             .items_center()
                             .justify_center()
-                            .bg(rgb(0x262626))
+                            .bg(rgb(0x262625))
                             .text_color(rgb(0xfffffe))
                             .font_family("Segoe Fluent Icons")
                             .text_size(px(8.))
                             .child("\u{E711}")
+                            .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
                             .on_click(cx.listener(|this, _, window, cx| this.close(window, cx))),
                     )
                     .child(div().font_weight(gpui::FontWeight::BOLD).child(title))
                     .when(dirty, |d| d.child(div().size(px(7.)).rounded_full().bg(rgb(0xf5a623))))
-                    .child(div().flex_1().h_full().window_control_area(WindowControlArea::Drag))
+                    .child(div().flex_1().h_full())
                     .children(hint.map(|h| div().text_size(px(11.)).text_color(rgb(theme::TEXT_SECONDARY)).child(h)))
                     .child(
                         div()
@@ -491,6 +752,7 @@ impl Render for QuickLook {
                             .hover(|s| s.bg(rgba(0x00000022)))
                             .text_size(px(12.))
                             .child("Ouvrir")
+                            .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
                             .on_click(move |_, _, _| {
                                 if let Some(p) = &open_path {
                                     let _ = std::process::Command::new("cmd")

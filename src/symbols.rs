@@ -15,7 +15,7 @@ macro_rules! sf {
 
 static PNGS: &[(&str, &[u8])] = sf![
     "clock", "house", "menubar.dock.rectangle", "doc", "arrow.down.circle", "photo", "music.note", "video", "icloud",
-    "internaldrive", "externaldrive", "app.dashed", "globe", "trash", "laptopcomputer", "folder", "list.bullet", "rectangle.split.3x1", "square.grid.3x1.below.line.grid.1x2",
+    "internaldrive", "externaldrive", "eject.fill", "applications", "app.dashed", "globe", "trash", "laptopcomputer", "folder", "list.bullet", "rectangle.split.3x1", "square.grid.3x1.below.line.grid.1x2",
     "square.grid.3x2", "square.and.arrow.up", "tag", "ellipsis", "magnifyingglass",
     "chevron.left-medium", "chevron.right-medium", "chevron.down-medium", "square.grid.2x2-medium", "xmark-medium",
     "list.bullet-medium", "rectangle.split.3x1-medium", "square.grid.3x1.below.line.grid.1x2-medium",
@@ -31,7 +31,7 @@ fn tinted(name: &str, color: u32, pt: f32) -> Entry {
         .entry((name.to_string(), color, (pt * 10.0) as u32))
         .or_insert_with(|| {
             let bytes = PNGS.iter().find(|(k, _)| *k == name)?.1;
-            let mut rgba = image::load_from_memory_with_format(bytes, image::ImageFormat::Png).ok()?.to_rgba8();
+            let rgba = image::load_from_memory_with_format(bytes, image::ImageFormat::Png).ok()?.to_rgba8();
             // Taille logique voulue, puis reduction de qualite (Lanczos) vers 2x cette taille : GPUI reduit mal les grandes
             // images (aliasing, flou), donc on fournit presque la taille finale.
             let (w0, h0) = rgba.dimensions();

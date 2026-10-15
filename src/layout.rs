@@ -8,7 +8,6 @@ pub type Layout = HashMap<String, (f32, f32)>;
 pub type Layouts = HashMap<PathBuf, Layout>;
 
 pub const CELL_W: f32 = 128.0;
-pub const CELL_H: f32 = 134.0;
 pub const PAD: f32 = 12.0;
 
 fn file() -> Option<PathBuf> {
@@ -52,13 +51,6 @@ pub fn load_view() -> Option<String> {
     text.lines().find_map(|l| l.strip_prefix("view=").map(|v| v.trim().to_string()))
 }
 
-pub fn save_view(name: &str) {
-    let Some(f) = settings_file() else { return };
-    if let Some(parent) = f.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    let _ = std::fs::write(f, format!("view={name}\n"));
-}
 
 /// Reglages simples `cle=valeur` dans settings.txt (conserves entre les lancements).
 pub fn get_setting(key: &str) -> Option<String> {

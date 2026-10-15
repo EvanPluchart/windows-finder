@@ -21,3 +21,5 @@ Animations d'ouverture/fermeture, mode plein ecran, autres types (video, texte, 
 
 ## Captures (sur le Mac, a envoyer par AirDrop dans reference\)
 ~/Desktop/finder-shots/ : view-{icon,list,column,gallery}-light.png (920x436 pt), sidebar-light.png, quicklook-{image,pdf}-light.png.
+
+Apercu video : lecture integree (MediaPlayer, image + son), commandes flottantes (lecture, progression, temps restant, muet, volume) qui se masquent apres 2,5 s ; la barre de titre deplace la fenetre.

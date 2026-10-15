@@ -111,6 +111,9 @@ impl Finder {
             return;
         }
         self.reload_select(&created);
+        if !created.is_empty() {
+            self.record(crate::undo::Op::Created(created.clone()));
+        }
         if let Some(e) = errors.first() {
             self.show_notice(format!("Duplication impossible \u{2014} {e}"), cx);
         }
@@ -129,6 +132,7 @@ impl Finder {
         let first = self.marked.iter().next().copied().unwrap_or(0);
         match ops::trash(&paths) {
             Ok(()) => {
+                self.record(crate::undo::Op::Trashed(paths.clone()));
                 self.cancel_rename_silent();
                 self.refresh_after_delete(first, cx);
                 self.show_notice(format!("{} \u{e9}l\u{e9}ment(s) d\u{e9}plac\u{e9}(s) dans la corbeille", paths.len()), cx);
@@ -142,7 +146,7 @@ impl Finder {
             self.run_search(cx);
             return;
         }
-        self.entries = crate::fs::read_dir(&self.cwd, self.show_hidden);
+        self.entries = self.load_entries();
         self.clear_selection();
         if !self.entries.is_empty() {
             self.set_single(near.min(self.entries.len() - 1));
@@ -157,6 +161,7 @@ impl Finder {
         }
         match ops::create_folder(&self.cwd) {
             Ok(path) => {
+                self.record(crate::undo::Op::Created(vec![path.clone()]));
                 self.close_search_silent();
                 self.reload_select(&[path]);
                 self.begin_rename(window, cx);
@@ -204,6 +209,9 @@ impl Finder {
         let new_name = r.editor.read(cx).text();
         match ops::rename(&r.path, &new_name) {
             Ok(new_path) => {
+                if new_path != r.path {
+                    self.record(crate::undo::Op::Rename { from: r.path.clone(), to: new_path.clone() });
+                }
                 self.reload_select(&[new_path]);
                 if self.search_query().is_some() {
                     self.run_search(cx);

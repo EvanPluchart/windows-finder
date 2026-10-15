@@ -7,12 +7,12 @@ use std::sync::Arc;
 
 use gpui::{
     Context, IntoElement, ParentElement, Pixels, Point, Render, RenderImage, SharedString, Styled, Window, div, img,
-    prelude::*, px, };
+    px, };
 use crate::theme::{rgb};
 
 use crate::fs::Entry;
 use crate::layout::{self, PAD};
-use crate::{ops, theme, Finder};
+use crate::{theme, Finder};
 
 /// Valeur portee par le glisser : les elements deplaces et celui saisi.
 pub struct DragPaths {
@@ -97,7 +97,7 @@ impl Finder {
 
     /// Nombre de colonnes de la grille automatique de la vue Icones.
     pub fn icon_cols(&self, width: f32) -> usize {
-        (((width - theme::SIDEBAR_WIDTH - 2.0 * PAD) / self.cell().0).floor() as usize).max(1)
+        (((width - self.sidebar_w - 2.0 * PAD) / self.cell().0).floor() as usize).max(1)
     }
 
     /// Titres de groupe (y, texte) de la vue Icones groupee ; vide sans regroupement ni en placement libre.
@@ -201,5 +201,32 @@ impl Finder {
             layout::save(&self.layouts);
         }
         cx.notify();
+    }
+}
+
+impl Finder {
+    /// Dossiers a ouverture automatique : un element glisse reste 1 s au-dessus d'un dossier, qui s'ouvre alors.
+    pub fn spring_tick(&mut self, folder: PathBuf, inside: bool, cx: &mut Context<Self>) {
+        if !inside {
+            if self.spring_target.as_ref() == Some(&folder) {
+                self.spring_target = None;
+            }
+            return;
+        }
+        if self.spring_target.as_ref() == Some(&folder) {
+            return;
+        }
+        self.spring_target = Some(folder.clone());
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(std::time::Duration::from_millis(1000)).await;
+            this.update(cx, |f, cx| {
+                if f.spring_target.as_ref() == Some(&folder) && cx.has_active_drag() {
+                    f.spring_target = None;
+                    f.navigate(folder.clone(), true, cx);
+                }
+            })
+            .ok();
+        })
+        .detach();
     }
 }

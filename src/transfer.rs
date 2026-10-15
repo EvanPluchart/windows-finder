@@ -31,6 +31,7 @@ pub struct Job {
     mode: Mode,
     idx: usize,
     created: Vec<PathBuf>,
+    moved: Vec<(PathBuf, PathBuf)>,
     errors: Vec<String>,
     /// Choix "appliquer a tous" memorise pour la suite du lot.
     apply_all: Option<Resolution>,
@@ -65,6 +66,7 @@ impl Finder {
             mode,
             idx: 0,
             created: Vec::new(),
+            moved: Vec::new(),
             errors: Vec::new(),
             apply_all: None,
             current: None,
@@ -115,6 +117,7 @@ impl Finder {
             }
 
             let mode = job.mode;
+            let src_for_undo = src.clone();
             cx.notify();
             cx.spawn(async move |this, cx| {
                 let t = target.clone();
@@ -125,7 +128,12 @@ impl Finder {
                 this.update(cx, |f, cx| {
                     if let Some(job) = f.job.as_mut() {
                         match result {
-                            Ok(()) => job.created.push(target),
+                            Ok(()) => {
+                                if mode == Mode::Move {
+                                    job.moved.push((src_for_undo.clone(), target.clone()));
+                                }
+                                job.created.push(target)
+                            }
                             Err(e) => job.errors.push(format!("{name} : {e}")),
                         }
                         job.idx += 1;
@@ -142,6 +150,11 @@ impl Finder {
     fn finish_job(&mut self, cx: &mut Context<Self>) {
         let Some(job) = self.job.take() else { return };
         self.conflict = None;
+        if !job.moved.is_empty() {
+            self.record(crate::undo::Op::Moves(job.moved.clone()));
+        } else if job.mode == Mode::Copy && !job.created.is_empty() {
+            self.record(crate::undo::Op::Created(job.created.clone()));
+        }
         self.reload_select(&job.created);
         let verb = if job.mode == Mode::Copy { "copi\u{e9}" } else { "d\u{e9}plac\u{e9}" };
         let dir = crate::fs::display_name(&job.dest);

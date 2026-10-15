@@ -54,3 +54,7 @@ Barre laterale : Applications (programmes du menu Demarrer, clic droit > Desinst
 Selection : taper le debut d'un nom selectionne l'element (1 s) ; glisser sur le fond de la vue Icones dessine un rectangle de selection.
 Onglets : Ctrl+T nouveau, Ctrl+W ferme, Ctrl+Tab / Ctrl+Maj+Tab bascule, clic milieu sur un emplacement = nouvel onglet. Mode sombre : suit Windows. Copie/deplacement : boite de conflit (Arreter, Ignorer, Garder les deux, Remplacer, Appliquer a tous) et progression.
 Options d'affichage (Ctrl+J) : par dossier (mode, tri, taille d'icones, espacement, texte, colonnes, dates relatives), 'Par defaut' / 'Restaurer'. Memorise dans %APPDATA%\winfinder\folders.tsv.
+Autres : Ctrl+, reglages ; Ctrl+Alt+S barre laterale, Ctrl+Alt+P barre de chemin, Ctrl+Alt+B barre d'etat ; Ctrl+J options d'affichage ; clic droit > Etiquettes, Compresser, Extraire ici, Renommer N elements ; PageSuiv/PagePrec dans l'apercu PDF.
+Ctrl+N nouvelle fenetre ; Ctrl+Z / Ctrl+Maj+Z annuler / retablir ; bord droit de la barre laterale : glisser = redimensionner (135-400), double-clic = masquer ; Corbeille : dans l'app (Remettre a sa place, Vider).
+Ctrl+K se connecter a un serveur (chemin reseau) ; Ctrl+Maj+A tous les onglets ; clic droit sur un onglet = menu (dupliquer, nouvelle fenetre, fermer les autres) ; clic droit sur la barre d'outils = personnaliser ; Options d'affichage : volet d'apercu (colonnes, galerie).
+Liste hierarchique : triangle ou fleche droite deplie un dossier, fleche gauche le replie.

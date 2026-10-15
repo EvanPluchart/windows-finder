@@ -4,7 +4,7 @@ use gpui::{
     AnyElement, ClickEvent, Context, InteractiveElement, IntoElement, MouseButton, MouseDownEvent, ParentElement,
     SharedString, StatefulInteractiveElement, Styled, div, prelude::*, px, uniform_list,
 };
-use crate::theme::{rgb, rgba};
+use crate::theme::rgb;
 
 use crate::fs::{self, Entry};
 use crate::theme;
@@ -23,7 +23,7 @@ pub(crate) fn label(text: impl Into<SharedString>) -> gpui::Div {
 /// Marge horizontale des lignes (liste, colonnes) par rapport aux bords du contenu.
 const ROW_MARGIN: f32 = 6.0;
 /// Colonne "Nom" : retrait du texte = padding (8) + icone (16) + espace (8).
-const NAME_INDENT: f32 = 32.0;
+const NAME_INDENT: f32 = 50.0;
 const COL_DATE: f32 = 160.0;
 const COL_SIZE: f32 = 90.0;
 const COL_KIND: f32 = 120.0;
@@ -130,6 +130,7 @@ impl Finder {
                 .gap(px(4.))
                 .text_size(px(12.))
                 .text_color(rgb(if active { theme::TEXT } else { theme::TEXT_SECONDARY }))
+                .when(key == crate::fs::SortKey::Name, |d| d.justify_between().pr(px(10.)))
                 .child(text)
                 .when(active, |d| {
                     d.child(
@@ -150,19 +151,35 @@ impl Finder {
                 div()
                     .h(px(theme::LIST_HEADER_HEIGHT))
                     .flex_none()
+                    .relative()
                     .px(px(ROW_MARGIN))
                     .flex()
                     .items_center()
                     .border_b_1()
                     .border_color(rgb(theme::SEPARATOR))
                     .child(head("Nom", SortKey::Name, cx).flex_1().min_w_0().pl(px(NAME_INDENT)))
+                    .children({
+                        // Filets verticaux entre les colonnes, de la droite vers la gauche.
+                        let mut off = ROW_MARGIN;
+                        let mut seps = Vec::new();
+                        for (on, w) in [(pr.col_kind, COL_KIND), (pr.col_size, COL_SIZE), (pr.col_created, COL_DATE), (pr.col_modified, COL_DATE)] {
+                            if on {
+                                off += w;
+                                seps.push(div().absolute().right(px(off)).top(px(7.)).w(px(1.)).h(px(14.)).bg(rgb(theme::SEPARATOR)));
+                            }
+                        }
+                        seps
+                    })
                     .when(pr.col_modified, |d| d.child(head("Date de modification", SortKey::Modified, cx).w(px(COL_DATE)).flex_none().px_2()))
                     .when(pr.col_created, |d| d.child(head("Date de création", SortKey::Created, cx).w(px(COL_DATE)).flex_none().px_2()))
                     .when(pr.col_size, |d| d.child(head("Taille", SortKey::Size, cx).w(px(COL_SIZE)).flex_none().px_2().justify_end()))
                     .when(pr.col_kind, |d| d.child(head("Type", SortKey::Kind, cx).w(px(COL_KIND)).flex_none().px_2())),
             )
             .child(self.background_handlers(
-                div().flex_1().min_h_0().child(
+                div().flex_1().min_h_0().on_drop(cx.listener(|this, p: &gpui::ExternalPaths, window, cx| {
+                    let cwd = this.cwd.clone();
+                    this.drop_external(p.paths().to_vec(), cwd, window.modifiers().control, cx);
+                })).child(
                     uniform_list(
                         "list",
                         self.display_rows().len().max(80),
@@ -223,6 +240,28 @@ impl Finder {
                     .flex()
                     .gap_2()
                     .items_center()
+                    .pl(px(8. + e.depth as f32 * 16.))
+                    // Triangle de depliage (dossiers) ou espace equivalent.
+                    .child(
+                        div()
+                            .id(("disc", i))
+                            .w(px(10.))
+                            .flex_none()
+                            .flex()
+                            .justify_center()
+                            .text_size(px(9.))
+                            .text_color(rgb(sub))
+                            .child(if e.is_dir && self.view == crate::ViewMode::List && self.search_query().is_none() {
+                                if self.expanded.contains(&e.path) { "\u{25BE}" } else { "\u{25B8}" }
+                            } else {
+                                ""
+                            })
+                            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                cx.stop_propagation();
+                                this.toggle_expand(i, cx);
+                            })),
+                    )
                     .child(self.icon(&e.path, 16.0, false))
                     .child(self.name_element(e))
                     .children(crate::tags::dots(&e.path, 9.))
@@ -245,6 +284,19 @@ impl Finder {
                         cx.stop_propagation();
                     },
                 ))
+            })
+            .when(e.is_dir, |d| {
+                let folder = e.path.clone();
+                d.on_drag_move::<crate::dragdrop::DragPaths>(cx.listener(move |this, ev: &gpui::DragMoveEvent<crate::dragdrop::DragPaths>, _, cx| {
+                    this.spring_tick(folder.clone(), ev.bounds.contains(&ev.event.position), cx)
+                }))
+            })
+            .when(e.is_dir, |d| {
+                let dest = e.path.clone();
+                d.on_drop(cx.listener(move |this, p: &gpui::ExternalPaths, window, cx| {
+                    this.drop_external(p.paths().to_vec(), dest.clone(), window.modifiers().control, cx);
+                    cx.stop_propagation();
+                }))
             })
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev, _, cx| this.on_item_context(i, ev, cx)))
@@ -325,6 +377,19 @@ impl Finder {
                         cx.stop_propagation();
                     }))
                 })
+                .when(e.is_dir, |d| {
+                    let folder = e.path.clone();
+                    d.on_drag_move::<DragPaths>(cx.listener(move |this, ev: &gpui::DragMoveEvent<DragPaths>, _, cx| {
+                        this.spring_tick(folder.clone(), ev.bounds.contains(&ev.event.position), cx)
+                    }))
+                })
+                .when(e.is_dir, |d| {
+                    let dest = e.path.clone();
+                    d.on_drop(cx.listener(move |this, p: &gpui::ExternalPaths, window, cx| {
+                        this.drop_external(p.paths().to_vec(), dest.clone(), window.modifiers().control, cx);
+                        cx.stop_propagation();
+                    }))
+                })
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                 .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev, _, cx| this.on_item_context(i, ev, cx)))
                 .on_click(cx.listener(move |this, ev: &ClickEvent, _, cx| this.on_item_click(i, ev, cx)))
@@ -341,6 +406,10 @@ impl Finder {
                 .min_h_0()
                 .overflow_y_scroll()
                 .track_scroll(&self.icon_scroll)
+                .on_drop(cx.listener(|this, p: &gpui::ExternalPaths, window, cx| {
+                    let cwd = this.cwd.clone();
+                    this.drop_external(p.paths().to_vec(), cwd, window.modifiers().control, cx);
+                }))
                 .on_mouse_down(
                     MouseButton::Left,
                     cx.listener(|this, ev: &MouseDownEvent, _, _| this.band_start(ev.position)),
@@ -440,7 +509,8 @@ impl Finder {
                 .border_color(rgb(theme::SEPARATOR))
                 .children(rows)
         });
-        let preview = self.selected_entry().filter(|e| !e.is_dir).map(|e| self.render_preview_pane(e));
+        let show_preview = self.eff().preview;
+        let preview = self.selected_entry().filter(|e| !e.is_dir && show_preview).map(|e| self.render_preview_pane(e));
         div().id("columns").flex_1().min_h_0().flex().overflow_x_scroll().children(cols).children(preview)
     }
 
@@ -532,7 +602,8 @@ impl Finder {
             None => div().flex_1(),
         };
 
-        let inspector = self.selected_entry().map(|e| {
+        let show_inspector = self.eff().preview;
+        let inspector = self.selected_entry().filter(|_| show_inspector).map(|e| {
             div()
                 .w(px(250.))
                 .flex_none()

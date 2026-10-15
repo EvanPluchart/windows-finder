@@ -34,6 +34,12 @@ pub enum MenuAction {
     OpenInTab,
     Tags,
     Compress,
+    OpenWith,
+    Reveal,
+    MakeAlias,
+    ShowOriginal,
+    PutBack,
+    EmptyTrash,
     Extract,
 }
 
@@ -54,6 +60,18 @@ impl Finder {
     fn menu_items(&self, on_item: bool) -> Vec<Option<(&'static str, MenuAction, bool)>> {
         let can_paste = self.clipboard.is_some();
         let single = self.selected_paths().len() == 1;
+        if self.in_trash() {
+            return if on_item {
+                vec![
+                    Some(("Remettre \u{e0} sa place", MenuAction::PutBack, true)),
+                    Some(("Lire les informations", MenuAction::Info, single)),
+                    None,
+                    Some(("Vider la corbeille\u{2026}", MenuAction::EmptyTrash, true)),
+                ]
+            } else {
+                vec![Some(("Vider la corbeille\u{2026}", MenuAction::EmptyTrash, true)), Some(("Actualiser", MenuAction::Refresh, true))]
+            };
+        }
         if crate::fs::is_virtual(&self.cwd) {
             let apps = self.cwd.to_str() == Some(crate::fs::APPS);
             return if on_item {
@@ -82,6 +100,14 @@ impl Finder {
                 Some(("Lire les informations", MenuAction::Info, single)),
                 Some(("\u{c9}tiquettes\u{2026}", MenuAction::Tags, true)),
                 Some(("Compresser", MenuAction::Compress, true)),
+                Some(("Cr\u{e9}er un raccourci", MenuAction::MakeAlias, true)),
+                Some(("Ouvrir avec\u{2026}", MenuAction::OpenWith, single && self.selected_entry().map(|e| !e.is_dir).unwrap_or(false))),
+                Some(("Afficher dans l'Explorateur", MenuAction::Reveal, single)),
+                Some((
+                    "Afficher l'original",
+                    MenuAction::ShowOriginal,
+                    single && self.selected_entry().map(|e| crate::fs::extension(&e.path) == "lnk").unwrap_or(false),
+                )),
                 Some((
                     "Extraire ici",
                     MenuAction::Extract,
@@ -115,6 +141,12 @@ impl Finder {
             MenuAction::Info => self.show_info(window, cx),
             MenuAction::Tags => self.toggle_tag_pop(window, cx),
             MenuAction::Compress => self.compress_selection(cx),
+            MenuAction::OpenWith => self.open_with(),
+            MenuAction::Reveal => self.reveal_in_explorer(),
+            MenuAction::MakeAlias => self.make_alias(cx),
+            MenuAction::ShowOriginal => self.show_original(cx),
+            MenuAction::PutBack => self.put_back(cx),
+            MenuAction::EmptyTrash => self.ask_empty_trash(cx),
             MenuAction::Extract => self.extract_selection(cx),
             MenuAction::Trash => self.trash_selection(cx),
             MenuAction::NewFolder => self.new_folder(window, cx),
@@ -229,6 +261,20 @@ impl Finder {
             self.resolve_conflict(crate::transfer::Resolution::Stop, cx);
             return;
         }
+        if self.tab_menu.take().is_some() {
+            cx.notify();
+            return;
+        }
+        if self.all_tabs {
+            self.all_tabs = false;
+            cx.notify();
+            return;
+        }
+        if self.settings_open {
+            self.settings_open = false;
+            cx.notify();
+            return;
+        }
         if self.bulk.take().is_some() {
             self.needs_focus = true;
             cx.notify();
@@ -334,9 +380,14 @@ fn suggestions_for(text: &str) -> Vec<PathBuf> {
 
 impl Finder {
     pub fn open_goto(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.open_goto_with(window, cx, None);
+    }
+
+    /// "Aller au dossier" prerempli ("Se connecter au serveur" : `\\\\`).
+    pub fn open_goto_with(&mut self, window: &mut Window, cx: &mut Context<Self>, preset: Option<&str>) {
         self.commit_rename(cx);
         self.menu = None;
-        let start = format!("{}\\", self.cwd.display().to_string().trim_end_matches('\\'));
+        let start = preset.map(str::to_owned).unwrap_or_else(|| format!("{}\\", self.cwd.display().to_string().trim_end_matches('\\')));
         let editor = cx.new(|cx| Editor::new(&start, true, cx));
         let sub = cx.subscribe_in(&editor, window, |this, _, ev: &EditorEvent, _, cx| match ev {
             EditorEvent::Commit => this.goto_commit(cx),
@@ -577,7 +628,7 @@ impl Finder {
         self.search_gen += 1;
         let generation = self.search_gen;
         if query.is_empty() {
-            self.entries = fs::read_dir(&self.cwd, self.show_hidden);
+            self.entries = self.load_entries();
             self.clear_selection();
             self.rebuild_columns();
             cx.notify();
@@ -585,8 +636,9 @@ impl Finder {
         }
         let root = self.cwd.clone();
         let hidden = self.show_hidden;
+        let (content, kind) = (self.search_content, self.search_kind);
         cx.spawn(async move |this, cx| {
-            let results = cx.background_executor().spawn(async move { fs::search(&root, &query, hidden, 3000) }).await;
+            let results = cx.background_executor().spawn(async move { fs::search(&root, &query, hidden, 3000, content, kind) }).await;
             this.update(cx, |f, cx| {
                 if f.search_gen == generation && f.search.is_some() {
                     f.entries = results;
@@ -601,5 +653,53 @@ impl Finder {
             .ok();
         })
         .detach();
+    }
+}
+
+impl Finder {
+    /// Barre de criteres sous la barre d'outils pendant une recherche : portee du texte et type d'element.
+    pub fn render_search_bar(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+        self.search.as_ref()?;
+        let chip = |id: (&'static str, usize), label: &'static str, on: bool, cx: &mut Context<Self>, f: fn(&mut Finder)| {
+            div()
+                .id(id)
+                .px(px(10.))
+                .h(px(22.))
+                .flex()
+                .items_center()
+                .rounded_full()
+                .text_size(px(12.))
+                .text_color(rgb(if on { theme::SELECTION_TEXT } else { theme::TEXT }))
+                .when(on, |d| d.bg(rgb(theme::SELECTION)))
+                .when(!on, |d| d.bg(rgb(0xe9e9ec)).hover(|s| s.bg(rgb(0xe0e0e4))))
+                .child(label)
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    f(this);
+                    this.run_search(cx);
+                    cx.notify();
+                }))
+        };
+        let (content, kind) = (self.search_content, self.search_kind);
+        let label = |t: &'static str| div().text_size(px(12.)).text_color(rgb(theme::TEXT_SECONDARY)).child(t);
+        Some(
+            div()
+                .flex_none()
+                .h(px(32.))
+                .px(px(14.))
+                .flex()
+                .items_center()
+                .gap(px(6.))
+                .child(label("Chercher"))
+                .child(chip(("sb-name", 0), "Noms", !content, cx, |f| f.search_content = false))
+                .child(chip(("sb-name", 1), "Noms et contenu", content, cx, |f| f.search_content = true))
+                .child(div().w(px(10.)))
+                .child(label("Type"))
+                .child(chip(("sb-kind", 0), "Tous", kind == 0, cx, |f| f.search_kind = 0))
+                .child(chip(("sb-kind", 1), "Images", kind == 1, cx, |f| f.search_kind = 1))
+                .child(chip(("sb-kind", 2), "Documents", kind == 2, cx, |f| f.search_kind = 2))
+                .child(chip(("sb-kind", 3), "Dossiers", kind == 3, cx, |f| f.search_kind = 3))
+                .child(chip(("sb-kind", 4), "Audio / vid\u{e9}o", kind == 4, cx, |f| f.search_kind = 4))
+                .into_any_element(),
+        )
     }
 }

@@ -9,6 +9,8 @@ use crate::{apps, theme, Finder};
 
 pub struct Confirm {
     pub name: String,
+    /// Vrai : confirmation de "Vider la corbeille" (sinon : desinstallation).
+    pub empty_trash: bool,
 }
 
 impl Finder {
@@ -26,13 +28,17 @@ impl Finder {
             return;
         }
         if let Some(e) = self.selected_entry() {
-            self.confirm = Some(Confirm { name: e.name.to_string() });
+            self.confirm = Some(Confirm { name: e.name.to_string(), empty_trash: false });
             cx.notify();
         }
     }
 
     pub fn run_uninstall(&mut self, cx: &mut Context<Self>) {
         let Some(c) = self.confirm.take() else { return };
+        if c.empty_trash {
+            self.empty_trash(cx);
+            return;
+        }
         self.show_notice(format!("Recherche du programme de d\u{e9}sinstallation de \u{ab} {} \u{bb}\u{2026}", c.name), cx);
         let name = c.name.clone();
         cx.spawn(async move |this, cx| {
@@ -105,11 +111,11 @@ impl Finder {
                                 .text_size(px(15.))
                                 .font_weight(gpui::FontWeight::SEMIBOLD)
                                 .text_color(rgb(theme::TEXT))
-                                .child(format!("D\u{e9}sinstaller \u{ab} {} \u{bb} ?", c.name)),
+                                .child(if c.empty_trash { "Vider la corbeille ?".to_string() } else { format!("D\u{e9}sinstaller \u{ab} {} \u{bb} ?", c.name) }),
                         )
                         .child(
                             div().text_size(px(13.)).text_color(rgb(theme::TEXT_SECONDARY)).child(
-                                "Le programme de d\u{e9}sinstallation officiel va s'ouvrir et pourra demander une confirmation.",
+                                if c.empty_trash { "Les \u{e9}l\u{e9}ments de la corbeille seront supprim\u{e9}s d\u{e9}finitivement. Cette action est irr\u{e9}versible." } else { "Le programme de d\u{e9}sinstallation officiel va s'ouvrir et pourra demander une confirmation." },
                             ),
                         )
                         .child(
@@ -122,7 +128,7 @@ impl Finder {
                                     cx.notify();
                                 })))
                                 .child(
-                                    button("confirm-ok", "D\u{e9}sinstaller", true)
+                                    button("confirm-ok", if c.empty_trash { "Vider" } else { "D\u{e9}sinstaller" }, true)
                                         .on_click(cx.listener(|this, _, _, cx| this.run_uninstall(cx))),
                                 ),
                         ),

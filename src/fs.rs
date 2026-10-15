@@ -11,6 +11,8 @@ pub struct Entry {
     pub size: u64,
     pub modified: Option<SystemTime>,
     pub created: Option<SystemTime>,
+    /// Niveau d'imbrication en vue Liste hierarchique (0 = dossier courant).
+    pub depth: u16,
     pub kind: SharedString,
     /// Dossier d'origine (resultats de recherche seulement).
     pub hint: Option<SharedString>,
@@ -75,6 +77,7 @@ pub fn display_name(p: &Path) -> String {
     match p.to_str() {
         Some(APPS) => "Applications".into(),
         Some(PC) => "Ce PC".into(),
+        Some("::trash") => "Corbeille".into(),
         Some(s) if s.starts_with("::tag:") => s[6..].to_string(),
         _ => p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| p.display().to_string()),
     }
@@ -87,6 +90,9 @@ pub fn read_dir(path: &Path, show_hidden: bool) -> Vec<Entry> {
     }
     if path == Path::new(PC) {
         return crate::apps::drives();
+    }
+    if path == Path::new(crate::trash::TRASH) {
+        return crate::trash::entries();
     }
     if let Some(tag) = path.to_str().and_then(|s| s.strip_prefix("::tag:")) {
         return crate::tags::entries(tag);
@@ -120,6 +126,7 @@ pub fn read_dir(path: &Path, show_hidden: bool) -> Vec<Entry> {
                 size: if is_dir { 0 } else { meta.len() },
                 modified: meta.modified().ok(),
                 created: meta.created().ok(),
+                depth: 0,
                 hint: None,
             })
         })
@@ -294,7 +301,20 @@ pub fn home_dir() -> PathBuf {
 
 /// Recherche recursive par nom (sous-chaine, insensible a la casse) dans `root`.
 /// Ignore les liens symboliques (pas de boucle), plafonne le nombre de resultats et de dossiers visites.
-pub fn search(root: &Path, query: &str, show_hidden: bool, max_results: usize) -> Vec<Entry> {
+/// Filtre de type de la recherche : 0 tous, 1 images, 2 documents, 3 dossiers, 4 audio / video.
+fn kind_matches(kind: u8, path: &Path, is_dir: bool) -> bool {
+    let ext = extension(path);
+    match kind {
+        1 => !is_dir && matches!(ext.as_str(), "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "svg" | "heic" | "tiff"),
+        2 => !is_dir && matches!(ext.as_str(), "pdf" | "doc" | "docx" | "txt" | "md" | "rtf" | "odt" | "xls" | "xlsx" | "csv" | "ppt" | "pptx"),
+        3 => is_dir,
+        4 => !is_dir && matches!(ext.as_str(), "mp3" | "wav" | "flac" | "m4a" | "aac" | "ogg" | "mp4" | "mkv" | "mov" | "avi" | "webm" | "wmv" | "m4v"),
+        _ => true,
+    }
+}
+
+/// Recherche recursive par nom (et, si `content`, dans le texte des fichiers de moins de 2 Mo).
+pub fn search(root: &Path, query: &str, show_hidden: bool, max_results: usize, content: bool, kind: u8) -> Vec<Entry> {
     let needle = query.to_lowercase();
     let mut results: Vec<Entry> = Vec::new();
     let mut stack = vec![root.to_path_buf()];
@@ -318,7 +338,14 @@ pub fn search(root: &Path, query: &str, show_hidden: bool, max_results: usize) -
             if ft.is_dir() {
                 stack.push(path.clone());
             }
-            if name.to_lowercase().contains(&needle) {
+            let by_name = name.to_lowercase().contains(&needle);
+            let by_content = !by_name
+                && content
+                && !ft.is_dir()
+                && matches!(extension(&path).as_str(), "txt" | "md" | "rs" | "toml" | "json" | "yaml" | "yml" | "js" | "ts" | "tsx" | "css" | "html" | "xml" | "py" | "c" | "h" | "cpp" | "log" | "csv" | "ini" | "sh" | "ps1")
+                && e.metadata().map(|m| m.len() <= 2_000_000).unwrap_or(false)
+                && std::fs::read(&path).map(|b| String::from_utf8_lossy(&b).to_lowercase().contains(&needle)).unwrap_or(false);
+            if (by_name || by_content) && kind_matches(kind, &path, ft.is_dir()) {
                 let Ok(meta) = e.metadata() else { continue };
                 let rel = dir.strip_prefix(root).ok().map(|p| p.display().to_string()).filter(|s| !s.is_empty());
                 results.push(Entry {
@@ -329,6 +356,7 @@ pub fn search(root: &Path, query: &str, show_hidden: bool, max_results: usize) -
                     size: if ft.is_dir() { 0 } else { meta.len() },
                     modified: meta.modified().ok(),
                 created: meta.created().ok(),
+                depth: 0,
                     hint: rel.map(Into::into),
                 });
                 if results.len() >= max_results {

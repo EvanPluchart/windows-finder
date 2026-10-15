@@ -81,3 +81,63 @@ impl Finder {
 fn fs_ext(p: &Path) -> String {
     crate::fs::extension(p)
 }
+
+impl Finder {
+    /// "Ouvrir avec..." : la fenetre de choix d'application de Windows.
+    pub fn open_with(&mut self) {
+        if let Some(e) = self.selected_entry().filter(|e| !e.is_dir) {
+            let _ = std::process::Command::new("rundll32.exe").arg("shell32.dll,OpenAs_RunDLL").arg(&e.path).spawn();
+        }
+    }
+
+    /// Montre l'element dans une fenetre de l'Explorateur Windows.
+    pub fn reveal_in_explorer(&mut self) {
+        use std::os::windows::process::CommandExt;
+        if let Some(e) = self.selected_entry() {
+            let arg = format!("/select,\"{}\"", e.path.display());
+            let _ = std::process::Command::new("explorer.exe").raw_arg(arg).spawn();
+        }
+    }
+
+    /// Cree un raccourci (.lnk) vers l'element selectionne, a cote de lui.
+    pub fn make_alias(&mut self, cx: &mut Context<Self>) {
+        if self.read_only_place(cx) {
+            return;
+        }
+        let Some(src) = self.selected_entry().map(|e| e.path.clone()) else { return };
+        let name = src.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "element".into());
+        let dir = src.parent().map(Path::to_path_buf).unwrap_or_else(|| self.cwd.clone());
+        let dest = ops::unique_path(&dir, &format!("{name} - Raccourci.lnk"));
+        let script = format!(
+            "$s=(New-Object -ComObject WScript.Shell).CreateShortcut({}); $s.TargetPath={}; $s.Save()",
+            ps_quote(&dest),
+            ps_quote(&src)
+        );
+        cx.spawn(async move |this, cx| {
+            let result = cx.background_executor().spawn(async move { run_ps(script) }).await;
+            this.update(cx, |f, cx| match result {
+                Ok(()) => {
+                    f.reload_select(&[dest]);
+                    f.show_notice("Raccourci cr\u{e9}\u{e9}", cx);
+                }
+                Err(e) => f.show_notice(format!("Raccourci impossible \u{2014} {e}"), cx),
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    /// "Afficher l'original" pour un raccourci : ouvre le dossier de sa cible et la selectionne.
+    pub fn show_original(&mut self, cx: &mut Context<Self>) {
+        let Some(lnk) = self.selected_entry().map(|e| e.path.clone()) else { return };
+        match crate::apps::link_target(&lnk) {
+            Some(target) if target.exists() => {
+                if let Some(dir) = target.parent().map(Path::to_path_buf) {
+                    self.navigate(dir, true, cx);
+                    self.reload_select(&[target]);
+                }
+            }
+            _ => self.show_notice("L'original est introuvable.", cx),
+        }
+    }
+}

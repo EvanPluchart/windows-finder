@@ -141,6 +141,9 @@ impl Finder {
                 let new_name = ed.read(cx).text();
                 match ops::rename(&path, &new_name) {
                     Ok(new_path) => {
+                        if new_path != path {
+                            this.record(crate::undo::Op::Rename { from: path.clone(), to: new_path.clone() });
+                        }
                         this.reload_select(&[new_path]);
                         this.show_info(window, cx);
                     }

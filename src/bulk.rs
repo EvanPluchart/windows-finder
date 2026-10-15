@@ -120,6 +120,12 @@ impl Finder {
                 }
             }
         }
+        if !done.is_empty() {
+            let pairs: Vec<(PathBuf, PathBuf)> = bulk.paths.iter().cloned().zip(done.iter().cloned()).filter(|(a, b)| a != b).collect();
+            if pairs.len() == done.len() {
+                self.record(crate::undo::Op::Moves(pairs));
+            }
+        }
         self.reload_select(&done);
         if let Some(e) = errors.first() {
             self.show_notice(format!("Renommage incomplet \u{2014} {e}"), cx);

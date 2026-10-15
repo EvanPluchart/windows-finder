@@ -85,10 +85,6 @@ pub fn get(path: &Path) -> Vec<Tag> {
     store().lock().unwrap().get(path).cloned().unwrap_or_default()
 }
 
-pub fn any_tagged() -> bool {
-    !store().lock().unwrap().is_empty()
-}
-
 /// Ajoute `tag` a tous les chemins, ou le retire de tous s'ils l'ont deja tous.
 pub fn toggle(paths: &[PathBuf], tag: &Tag) {
     let mut m = store().lock().unwrap();
@@ -142,6 +138,7 @@ pub fn entries(name: &str) -> Vec<Entry> {
                 size: if is_dir { 0 } else { meta.len() },
                 modified: meta.modified().ok(),
                 created: meta.created().ok(),
+                depth: 0,
                 hint: p.parent().map(|d| crate::fs::display_name(d).into()),
             })
         })

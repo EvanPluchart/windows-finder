@@ -62,7 +62,7 @@ pub fn render_page(path: &Path, index: u32, width: u32) -> Option<(Arc<RenderIma
     }
     match render(path, index, width) {
         Ok(r) => Some(r),
-        Err(e) => {
+        Err(_) => {
             None
         }
     }

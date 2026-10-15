@@ -25,6 +25,7 @@ pub struct Prefs {
     pub text: u8,
     pub item_info: bool,
     pub rel_dates: bool,
+    pub preview: bool,
     pub col_modified: bool,
     pub col_created: bool,
     pub col_size: bool,
@@ -43,6 +44,7 @@ impl Default for Prefs {
             text: 13,
             item_info: false,
             rel_dates: true,
+            preview: true,
             col_modified: true,
             col_created: false,
             col_size: true,
@@ -54,9 +56,9 @@ impl Default for Prefs {
 impl Prefs {
     fn encode(&self) -> String {
         format!(
-            "view={};sort={};grp={};asc={};icon={};space={};text={};info={};rel={};cm={};cc={};cs={};ck={}",
+            "view={};sort={};grp={};asc={};icon={};space={};text={};info={};rel={};pv={};cm={};cc={};cs={};ck={}",
             self.view, self.sort, self.group, self.asc as u8, self.icon_size, self.spacing, self.text, self.item_info as u8,
-            self.rel_dates as u8, self.col_modified as u8, self.col_created as u8, self.col_size as u8, self.col_kind as u8
+            self.rel_dates as u8, self.preview as u8, self.col_modified as u8, self.col_created as u8, self.col_size as u8, self.col_kind as u8
         )
     }
 
@@ -75,6 +77,7 @@ impl Prefs {
                 "text" => p.text = v.parse().unwrap_or(13),
                 "info" => p.item_info = b,
                 "rel" => p.rel_dates = b,
+                "pv" => p.preview = b,
                 "cm" => p.col_modified = b,
                 "cc" => p.col_created = b,
                 "cs" => p.col_size = b,
@@ -376,7 +379,9 @@ impl Finder {
                 let texts = [11u32, 12, 13, 14, 16];
                 body = body
                     .child(header("Taille du texte"))
-                    .child(slider("vo-text", texts.iter().map(|&s| (s, s == p.text as u32)).collect(), cx, |p, v| p.text = v as u8));
+                    .child(slider("vo-text", texts.iter().map(|&s| (s, s == p.text as u32)).collect(), cx, |p, v| p.text = v as u8))
+                    .child(rule())
+                    .child(check("vo-preview", "Afficher le volet d'aper\u{e7}u", p.preview, cx, |p| p.preview = !p.preview));
             }
         }
 

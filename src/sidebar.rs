@@ -11,11 +11,11 @@ use crate::theme::{rgb};
 use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
 use windows::core::PCWSTR;
 
+use crate::layout;
 use crate::theme;
 use crate::views::label;
 use crate::Finder;
 
-const FLUENT: &str = "Segoe Fluent Icons";
 /// Bleu des icones de la barre laterale (accent du Finder).
 const ACCENT: u32 = 0x2f7df4;
 
@@ -33,7 +33,9 @@ pub fn default_places() -> Vec<Place> {
     if let Some(r) = recent.filter(|r| r.is_dir()) {
         places.push(item("R\u{e9}cents", "clock", r));
     }
-    places.push(item("Applications", "app.dashed", PathBuf::from(crate::fs::APPS)));
+    if crate::settings::sidebar_on("apps") {
+        places.push(item("Applications", "applications", PathBuf::from(crate::fs::APPS)));
+    }
     places.push(item("Bureau", "menubar.dock.rectangle", home.join("Desktop")));
     places.push(item("Documents", "doc", home.join("Documents")));
     places.push(item("T\u{e9}l\u{e9}chargements", "arrow.down.circle", home.join("Downloads")));
@@ -57,13 +59,17 @@ pub fn default_places() -> Vec<Place> {
             places.push(item(&label, if removable { "externaldrive" } else { "internaldrive" }, root));
         }
     }
-    places.push(item("R\u{e9}seau", "globe", PathBuf::from("::net")));
-    places.push(item("Corbeille", "trash", PathBuf::from("::trash")));
+    if crate::settings::sidebar_on("net") {
+        places.push(item("R\u{e9}seau", "globe", PathBuf::from("::net")));
+        places.push(item("Corbeille", "trash", PathBuf::from("::trash")));
+    }
 
-    places.push(Place::Header("\u{c9}tiquettes".into()));
-    for (name, _, hex) in crate::tags::PALETTE {
-        let glyph: &'static str = Box::leak(format!("dot:{hex:06x}").into_boxed_str());
-        places.push(item(name, glyph, PathBuf::from(format!("::tag:{name}"))));
+    if crate::settings::sidebar_on("tags") {
+        places.push(Place::Header("\u{c9}tiquettes".into()));
+        for (name, _, hex) in crate::tags::PALETTE {
+            let glyph: &'static str = Box::leak(format!("dot:{hex:06x}").into_boxed_str());
+            places.push(item(name, glyph, PathBuf::from(format!("::tag:{name}"))));
+        }
     }
     places
 }
@@ -117,7 +123,7 @@ impl Finder {
                         } else {
                             crate::symbols::sym(
                                 glyph,
-                                13.,
+                                if *glyph == "applications" { 8.5 } else { 13. },
                                 if matches!(*glyph, "house" | "laptopcomputer" | "internaldrive" | "externaldrive" | "globe" | "trash") {
                                     0x6e6e73
                                 } else {
@@ -127,11 +133,37 @@ impl Finder {
                         }),
                     )
                     .child(label(name.clone()).flex_1().min_w_0())
+                    .when(*glyph == "externaldrive", |d| {
+                        let root = path.clone();
+                        d.child(
+                            div()
+                                .id(("eject", i))
+                                .size(px(18.))
+                                .flex_none()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .rounded(px(4.))
+                                .hover(|s| s.bg(rgb(0xd0d0d6)))
+                                .child(crate::symbols::sym("eject.fill", 7., 0x8e8e93))
+                                .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    cx.stop_propagation();
+                                    this.eject_drive(root.clone(), cx);
+                                })),
+                        )
+                    })
                     .drag_over::<crate::dragdrop::DragPaths>(|s, _, _, _| s.bg(rgb(0xc4daf9)))
                     .on_drop(cx.listener({
                         let target = target.clone();
                         move |this, p: &crate::dragdrop::DragPaths, window, cx| {
                             this.drop_into(p, target.clone(), window.modifiers().control, cx)
+                        }
+                    }))
+                    .on_drop(cx.listener({
+                        let target = target.clone();
+                        move |this, p: &gpui::ExternalPaths, window, cx| {
+                            this.drop_external(p.paths().to_vec(), target.clone(), window.modifiers().control, cx)
                         }
                     }))
                     .on_click(cx.listener(move |this, _, _, cx| this.open_place(target.clone(), cx)))
@@ -151,7 +183,8 @@ impl Finder {
         // filet #D3D4D8 a droite). Les coins arrondis de la fenetre la decoupent. Rangee du haut de 52 pt,
         // comme la barre d'outils, pour que boutons de fenetre et capsules soient sur le meme axe.
         div()
-            .w(px(theme::SIDEBAR_WIDTH))
+            .w(px(self.sidebar_w))
+            .relative()
             .flex_none()
             .h_full()
             .flex()
@@ -172,6 +205,25 @@ impl Finder {
                     .on_mouse_down(gpui::MouseButton::Left, |ev, window, _| window_drag(ev, window)),
             )
             .child(div().id("sidebar").flex_1().min_h_0().overflow_y_scroll().px(px(10.)).pb(px(8.)).children(rows))
+            // Poignee de redimensionnement sur le bord droit (glisser ; double-clic = masquer la barre laterale).
+            .child(
+                div()
+                    .id("sidebar-resize")
+                    .absolute()
+                    .top_0()
+                    .bottom_0()
+                    .right(px(-3.))
+                    .w(px(7.))
+                    .cursor(gpui::CursorStyle::ResizeLeftRight)
+                    .on_drag(SidebarResize, |_, _, _, cx| cx.new(|_| SidebarResize))
+                    .on_click(cx.listener(|this, ev: &gpui::ClickEvent, _, cx| {
+                        if ev.click_count() >= 2 {
+                            this.show_sidebar = false;
+                            layout::set_setting("sidebar", "0");
+                            cx.notify();
+                        }
+                    })),
+            )
     }
 
     /// Barre de chemin cliquable + ligne d'etat ("N elements, X Go disponible(s)").
@@ -292,4 +344,30 @@ pub fn drive_info(root: &Path) -> (String, bool) {
     let text = String::from_utf16_lossy(&label).trim_end_matches('\0').to_string();
     let name = if ok && !text.is_empty() { text } else { "Disque local".to_string() };
     (format!("{name} ({letter}:)"), removable)
+}
+
+impl Finder {
+    /// Ejecte un disque amovible (verbe "Eject" du shell Windows).
+    pub fn eject_drive(&mut self, root: PathBuf, cx: &mut Context<Self>) {
+        use std::os::windows::process::CommandExt;
+        let letter = root.to_string_lossy().chars().next().unwrap_or('E');
+        let script = format!("(New-Object -ComObject Shell.Application).Namespace(17).ParseName('{letter}:').InvokeVerb('Eject')");
+        let _ = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+            .creation_flags(0x0800_0000)
+            .spawn();
+        self.show_notice(format!("\u{c9}jection du disque {letter}: demand\u{e9}e"), cx);
+        // La liste des disques est relue peu apres.
+        self.places = default_places();
+        cx.notify();
+    }
+}
+
+/// Valeur portee par le glisser de la poignee de la barre laterale (apercu vide).
+pub struct SidebarResize;
+
+impl gpui::Render for SidebarResize {
+    fn render(&mut self, _: &mut gpui::Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size(px(0.))
+    }
 }

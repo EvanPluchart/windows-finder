@@ -73,7 +73,7 @@ pub fn entries() -> Vec<Entry> {
             let is_dir = content.is_dir();
             let name = info.original.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| fname.clone());
             out.push(Entry {
-                kind: if is_dir { "Dossier".into() } else { crate::fs::kind_label(&info.original) },
+                kind: if is_dir { crate::i18n::t("Dossier").into() } else { crate::fs::kind_label(&info.original) },
                 name: SharedString::from(name),
                 path: content,
                 is_dir,
@@ -124,9 +124,9 @@ impl Finder {
         }
         self.reload_select(&[]);
         if let Some(e) = errors.first() {
-            self.show_notice(format!("Restauration incompl\u{e8}te \u{2014} {e}"), cx);
+            self.show_notice(crate::i18n::tf(crate::i18n::t("Restauration incompl\u{e8}te \u{2014} {e}"), &[("e", (e).to_string())]), cx);
         } else if ok > 0 {
-            self.show_notice(format!("{ok} \u{e9}l\u{e9}ment(s) remis \u{e0} leur place"), cx);
+            self.show_notice(crate::i18n::tf(crate::i18n::t("{ok} \u{e9}l\u{e9}ment(s) remis \u{e0} leur place"), &[("ok", (ok).to_string())]), cx);
         }
         cx.notify();
     }
@@ -151,7 +151,7 @@ impl Finder {
         if self.in_trash() {
             self.reload_select(&[]);
         }
-        self.show_notice(format!("Corbeille vid\u{e9}e ({removed} \u{e9}l\u{e9}ment(s) supprim\u{e9}(s))"), cx);
+        self.show_notice(crate::i18n::tf(crate::i18n::t("Corbeille vid\u{e9}e ({removed} \u{e9}l\u{e9}ment(s) supprim\u{e9}(s))"), &[("removed", (removed).to_string())]), cx);
         cx.notify();
     }
 

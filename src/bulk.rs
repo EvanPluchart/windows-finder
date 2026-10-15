@@ -49,7 +49,7 @@ impl Bulk {
                         }
                     }
                     _ => {
-                        let base = if a.trim().is_empty() { "Sans titre".to_string() } else { a.trim().to_string() };
+                        let base = if a.trim().is_empty() { crate::i18n::t("Sans titre").to_string() } else { a.trim().to_string() };
                         let n = start + i as u32;
                         match self.kind {
                             0 => format!("{base} {n}"),
@@ -128,9 +128,9 @@ impl Finder {
         }
         self.reload_select(&done);
         if let Some(e) = errors.first() {
-            self.show_notice(format!("Renommage incomplet \u{2014} {e}"), cx);
+            self.show_notice(crate::i18n::tf(crate::i18n::t("Renommage incomplet \u{2014} {e}"), &[("e", (e).to_string())]), cx);
         } else {
-            self.show_notice(format!("{} \u{e9}l\u{e9}ments renomm\u{e9}s", done.len()), cx);
+            self.show_notice(crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ments renomm\u{e9}s"), &[("0", (done.len()).to_string())]), cx);
         }
         cx.notify();
     }
@@ -204,20 +204,20 @@ impl Finder {
 
         let mut form = div().flex().flex_col().gap(px(10.)).child(seg(
             "bk-mode",
-            vec![("Remplacer", mode == 0), ("Ajouter", mode == 1), ("Format", mode == 2)],
+            vec![(crate::i18n::t("Remplacer"), mode == 0), (crate::i18n::t("Ajouter"), mode == 1), (crate::i18n::t("Format"), mode == 2)],
             cx,
             |b, i| b.mode = i as u8,
         ));
         match mode {
             0 => {
                 form = form
-                    .child(field("bk-a", "Rechercher", bulk.a.clone(), cx))
-                    .child(field("bk-b", "Remplacer par", bulk.b.clone(), cx));
+                    .child(field("bk-a", crate::i18n::t("Rechercher"), bulk.a.clone(), cx))
+                    .child(field("bk-b", crate::i18n::t("Remplacer par"), bulk.b.clone(), cx));
             }
             1 => {
-                form = form.child(field("bk-a", "Texte \u{e0} ajouter", bulk.a.clone(), cx)).child(seg(
+                form = form.child(field("bk-a", crate::i18n::t("Texte \u{e0} ajouter"), bulk.a.clone(), cx)).child(seg(
                     "bk-pos",
-                    vec![("Avant le nom", !after), ("Apr\u{e8}s le nom", after)],
+                    vec![(crate::i18n::t("Avant le nom"), !after), (crate::i18n::t("Apr\u{e8}s le nom"), after)],
                     cx,
                     |b, i| b.after = i == 1,
                 ));
@@ -226,12 +226,12 @@ impl Finder {
                 form = form
                     .child(seg(
                         "bk-kind",
-                        vec![("Nom + index", kind == 0), ("Nom + compteur", kind == 1), ("Nom + date", kind == 2)],
+                        vec![(crate::i18n::t("Nom + index"), kind == 0), (crate::i18n::t("Nom + compteur"), kind == 1), (crate::i18n::t("Nom + date"), kind == 2)],
                         cx,
                         |b, i| b.kind = i as u8,
                     ))
-                    .child(field("bk-a", "Nom personnalis\u{e9}", bulk.a.clone(), cx))
-                    .child(field("bk-b", "Commencer \u{e0} (num\u{e9}ro)", bulk.b.clone(), cx));
+                    .child(field("bk-a", crate::i18n::t("Nom personnalis\u{e9}"), bulk.a.clone(), cx))
+                    .child(field("bk-b", crate::i18n::t("Commencer \u{e0} (num\u{e9}ro)"), bulk.b.clone(), cx));
             }
         }
 
@@ -263,21 +263,21 @@ impl Finder {
                                 .text_size(px(15.))
                                 .font_weight(gpui::FontWeight::SEMIBOLD)
                                 .text_color(rgb(theme::TEXT))
-                                .child(format!("Renommer {} \u{e9}l\u{e9}ments", bulk.paths.len())),
+                                .child(crate::i18n::tf(crate::i18n::t("Renommer {0} \u{e9}l\u{e9}ments"), &[("0", (bulk.paths.len()).to_string())])),
                         )
                         .child(form)
-                        .child(div().text_size(px(12.)).text_color(rgb(theme::TEXT_SECONDARY)).child(format!("Exemple : {preview}")))
+                        .child(div().text_size(px(12.)).text_color(rgb(theme::TEXT_SECONDARY)).child(crate::i18n::tf(crate::i18n::t("Exemple : {preview}"), &[("preview", (preview).to_string())])))
                         .child(
                             div()
                                 .flex()
                                 .justify_end()
                                 .gap(px(8.))
-                                .child(button("bk-cancel", "Annuler", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
+                                .child(button("bk-cancel", crate::i18n::t("Annuler"), false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                     this.bulk = None;
                                     this.needs_focus = true;
                                     cx.notify();
                                 })))
-                                .child(button("bk-ok", "Renommer", true).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.apply_bulk(cx)))),
+                                .child(button("bk-ok", crate::i18n::t("Renommer"), true).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.apply_bulk(cx)))),
                         ),
                 )
                 .into_any_element(),

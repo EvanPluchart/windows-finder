@@ -59,9 +59,9 @@ impl Finder {
         self.clipboard = Some(Clip { paths, cut });
         self.show_notice(
             if cut {
-                format!("{n} \u{e9}l\u{e9}ment(s) coup\u{e9}(s) \u{2014} collez-les avec Ctrl+V")
+                crate::i18n::tf(crate::i18n::t("{n} \u{e9}l\u{e9}ment(s) coup\u{e9}(s) \u{2014} collez-les avec Ctrl+V"), &[("n", (n).to_string())])
             } else {
-                format!("{n} \u{e9}l\u{e9}ment(s) copi\u{e9}(s)")
+                crate::i18n::tf(crate::i18n::t("{n} \u{e9}l\u{e9}ment(s) copi\u{e9}(s)"), &[("n", (n).to_string())])
             },
             cx,
         );
@@ -115,7 +115,7 @@ impl Finder {
             self.record(crate::undo::Op::Created(created.clone()));
         }
         if let Some(e) = errors.first() {
-            self.show_notice(format!("Duplication impossible \u{2014} {e}"), cx);
+            self.show_notice(crate::i18n::tf(crate::i18n::t("Duplication impossible \u{2014} {e}"), &[("e", (e).to_string())]), cx);
         }
         cx.notify();
     }
@@ -135,7 +135,7 @@ impl Finder {
                 self.record(crate::undo::Op::Trashed(paths.clone()));
                 self.cancel_rename_silent();
                 self.refresh_after_delete(first, cx);
-                self.show_notice(format!("{} \u{e9}l\u{e9}ment(s) d\u{e9}plac\u{e9}(s) dans la corbeille", paths.len()), cx);
+                self.show_notice(crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ment(s) d\u{e9}plac\u{e9}(s) dans la corbeille"), &[("0", (paths.len()).to_string())]), cx);
             }
             Err(e) => self.show_notice(e, cx),
         }
@@ -166,7 +166,7 @@ impl Finder {
                 self.reload_select(&[path]);
                 self.begin_rename(window, cx);
             }
-            Err(e) => self.show_notice(format!("Cr\u{e9}ation impossible : {e}"), cx),
+            Err(e) => self.show_notice(crate::i18n::tf(crate::i18n::t("Cr\u{e9}ation impossible : {e}"), &[("e", (e).to_string())]), cx),
         }
     }
 

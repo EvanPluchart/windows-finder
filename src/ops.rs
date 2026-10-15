@@ -47,7 +47,7 @@ pub fn copy_recursive(src: &Path, dst: &Path) -> io::Result<()> {
     if src.is_dir() {
         // Copier un dossier dans lui-meme bouclerait a l'infini.
         if dst.starts_with(src) {
-            return Err(io::Error::other("Impossible de copier un dossier dans lui-m\u{ea}me"));
+            return Err(io::Error::other(crate::i18n::t("Impossible de copier un dossier dans lui-m\u{ea}me")));
         }
         std::fs::create_dir_all(dst)?;
         for entry in std::fs::read_dir(src)? {
@@ -63,7 +63,7 @@ pub fn copy_recursive(src: &Path, dst: &Path) -> io::Result<()> {
 /// Deplace : renommage direct, sinon (autre volume) copie puis suppression de la source.
 pub fn move_path(src: &Path, dst: &Path) -> io::Result<()> {
     if dst.starts_with(src) && src.is_dir() {
-        return Err(io::Error::other("Impossible de d\u{e9}placer un dossier dans lui-m\u{ea}me"));
+        return Err(io::Error::other(crate::i18n::t("Impossible de d\u{e9}placer un dossier dans lui-m\u{ea}me")));
     }
     match std::fs::rename(src, dst) {
         Ok(()) => Ok(()),
@@ -93,7 +93,7 @@ pub fn trash(paths: &[PathBuf]) -> Result<(), String> {
     };
     let code = unsafe { SHFileOperationW(&mut op) };
     if code != 0 || op.fAnyOperationsAborted.as_bool() {
-        return Err(format!("La corbeille a refus\u{e9} l'op\u{e9}ration (code {code})"));
+        return Err(crate::i18n::tf(crate::i18n::t("La corbeille a refus\u{e9} l'op\u{e9}ration (code {code})"), &[("code", (code).to_string())]));
     }
     Ok(())
 }
@@ -108,13 +108,13 @@ pub fn create_folder(dir: &Path) -> io::Result<PathBuf> {
 pub fn validate_name(name: &str) -> Result<(), String> {
     let name = name.trim();
     if name.is_empty() {
-        return Err("Le nom ne peut pas \u{ea}tre vide".into());
+        return Err(crate::i18n::t("Le nom ne peut pas \u{ea}tre vide").into());
     }
     if let Some(c) = name.chars().find(|c| "<>:\"/\\|?*".contains(*c) || c.is_control()) {
-        return Err(format!("Le caract\u{e8}re \u{ab} {c} \u{bb} n'est pas autoris\u{e9} dans un nom"));
+        return Err(crate::i18n::tf(crate::i18n::t("Le caract\u{e8}re \u{ab} {c} \u{bb} n'est pas autoris\u{e9} dans un nom"), &[("c", (c).to_string())]));
     }
     if name.ends_with('.') || name.ends_with(' ') {
-        return Err("Le nom ne peut pas finir par un point ou une espace".into());
+        return Err(crate::i18n::t("Le nom ne peut pas finir par un point ou une espace").into());
     }
     Ok(())
 }
@@ -129,9 +129,9 @@ pub fn rename(path: &Path, new_name: &str) -> Result<PathBuf, String> {
     // Sous Windows la casse seule peut changer ("a" -> "A") : exists() serait vrai, on l'autorise.
     let only_case = target.to_string_lossy().to_lowercase() == path.to_string_lossy().to_lowercase();
     if target.exists() && !only_case {
-        return Err(format!("\u{ab} {new_name} \u{bb} existe d\u{e9}j\u{e0} dans ce dossier"));
+        return Err(crate::i18n::tf(crate::i18n::t("\u{ab} {new_name} \u{bb} existe d\u{e9}j\u{e0} dans ce dossier"), &[("new_name", (new_name).to_string())]));
     }
-    std::fs::rename(path, &target).map_err(|e| format!("Renommage impossible : {e}"))?;
+    std::fs::rename(path, &target).map_err(|e| crate::i18n::tf(crate::i18n::t("Renommage impossible : {e}"), &[("e", (e).to_string())]))?;
     crate::tags::rename_path(path, &target);
     Ok(target)
 }

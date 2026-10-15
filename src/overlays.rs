@@ -44,6 +44,14 @@ pub enum MenuAction {
     CopyPath,
     Settings,
     GoTo,
+    NewTextFile,
+    Terminal,
+    Pin,
+    Wallpaper,
+    RotateLeft,
+    RotateRight,
+    RunAdmin,
+    MoreOptions,
 }
 
 pub struct MenuState {
@@ -74,22 +82,22 @@ impl Finder {
             let any = !self.selected_paths().is_empty() && !crate::fs::is_virtual(&self.cwd);
             let single = self.selected_paths().len() == 1;
             return vec![
-                Some(("Copier le chemin", MenuAction::CopyPath, any)),
-                Some(("Compresser", MenuAction::Compress, any)),
-                Some(("Cr\u{e9}er un raccourci", MenuAction::MakeAlias, any)),
+                Some((crate::i18n::t("Copier le chemin"), MenuAction::CopyPath, any)),
+                Some((crate::i18n::t("Compresser"), MenuAction::Compress, any)),
+                Some((crate::i18n::t("Cr\u{e9}er un raccourci"), MenuAction::MakeAlias, any)),
                 None,
-                Some(("Ouvrir avec\u{2026}", MenuAction::OpenWith, single && self.selected_entry().map(|e| !e.is_dir).unwrap_or(false))),
-                Some(("Afficher dans l'Explorateur", MenuAction::Reveal, single)),
+                Some((crate::i18n::t("Ouvrir avec\u{2026}"), MenuAction::OpenWith, single && self.selected_entry().map(|e| !e.is_dir).unwrap_or(false))),
+                Some((crate::i18n::t("Afficher dans l'Explorateur"), MenuAction::Reveal, single)),
             ];
         }
         if kind == 2 {
             return vec![
-                Some(("Nouveau dossier", MenuAction::NewFolder, !crate::fs::is_virtual(&self.cwd))),
-                Some(("Lire les informations", MenuAction::Info, self.selected_paths().len() == 1)),
-                Some(("Actualiser", MenuAction::Refresh, true)),
-                Some(("Aller au dossier\u{2026}", MenuAction::GoTo, true)),
+                Some((crate::i18n::t("Nouveau dossier"), MenuAction::NewFolder, !crate::fs::is_virtual(&self.cwd))),
+                Some((crate::i18n::t("Lire les informations"), MenuAction::Info, self.selected_paths().len() == 1)),
+                Some((crate::i18n::t("Actualiser"), MenuAction::Refresh, true)),
+                Some((crate::i18n::t("Aller au dossier\u{2026}"), MenuAction::GoTo, true)),
                 None,
-                Some(("R\u{e9}glages\u{2026}", MenuAction::Settings, true)),
+                Some((crate::i18n::t("R\u{e9}glages\u{2026}"), MenuAction::Settings, true)),
             ];
         }
         let can_paste = self.clipboard.is_some();
@@ -97,67 +105,76 @@ impl Finder {
         if self.in_trash() {
             return if on_item {
                 vec![
-                    Some(("Remettre \u{e0} sa place", MenuAction::PutBack, true)),
-                    Some(("Lire les informations", MenuAction::Info, single)),
+                    Some((crate::i18n::t("Remettre \u{e0} sa place"), MenuAction::PutBack, true)),
+                    Some((crate::i18n::t("Lire les informations"), MenuAction::Info, single)),
                     None,
-                    Some(("Vider la corbeille\u{2026}", MenuAction::EmptyTrash, true)),
+                    Some((crate::i18n::t("Vider la corbeille\u{2026}"), MenuAction::EmptyTrash, true)),
                 ]
             } else {
-                vec![Some(("Vider la corbeille\u{2026}", MenuAction::EmptyTrash, true)), Some(("Actualiser", MenuAction::Refresh, true))]
+                vec![Some((crate::i18n::t("Vider la corbeille\u{2026}"), MenuAction::EmptyTrash, true)), Some((crate::i18n::t("Actualiser"), MenuAction::Refresh, true))]
             };
         }
         if crate::fs::is_virtual(&self.cwd) {
             let apps = self.cwd.to_str() == Some(crate::fs::APPS);
             return if on_item {
-                let mut v = vec![Some(("Ouvrir", MenuAction::Open, true)), Some(("Lire les informations", MenuAction::Info, single))];
+                let mut v = vec![Some((crate::i18n::t("Ouvrir"), MenuAction::Open, true)), Some((crate::i18n::t("Lire les informations"), MenuAction::Info, single))];
                 if apps {
                     v.push(None);
-                    v.push(Some(("D\u{e9}sinstaller\u{2026}", MenuAction::Uninstall, single)));
+                    v.push(Some((crate::i18n::t("D\u{e9}sinstaller\u{2026}"), MenuAction::Uninstall, single)));
                 }
                 v
             } else {
-                vec![Some(("Actualiser", MenuAction::Refresh, true))]
+                vec![Some((crate::i18n::t("Actualiser"), MenuAction::Refresh, true))]
             };
         }
         if on_item {
             vec![
-                Some(("Ouvrir", MenuAction::Open, true)),
-                Some(("Ouvrir dans un nouvel onglet", MenuAction::OpenInTab, single && self.selected_entry().map(|e| e.is_dir).unwrap_or(false))),
-                Some(("Aper\u{e7}u rapide", MenuAction::QuickLook, true)),
+                Some((crate::i18n::t("Ouvrir"), MenuAction::Open, true)),
+                Some((crate::i18n::t("Ouvrir dans un nouvel onglet"), MenuAction::OpenInTab, single && self.selected_entry().map(|e| e.is_dir).unwrap_or(false))),
+                Some((crate::i18n::t("Aper\u{e7}u rapide"), MenuAction::QuickLook, true)),
                 None,
-                Some(("Copier", MenuAction::Copy, true)),
-                Some(("Couper", MenuAction::Cut, true)),
-                Some(("Coller", MenuAction::Paste, can_paste)),
-                Some(("Dupliquer", MenuAction::Duplicate, true)),
+                Some((crate::i18n::t("Copier"), MenuAction::Copy, true)),
+                Some((crate::i18n::t("Couper"), MenuAction::Cut, true)),
+                Some((crate::i18n::t("Coller"), MenuAction::Paste, can_paste)),
+                Some((crate::i18n::t("Dupliquer"), MenuAction::Duplicate, true)),
                 None,
-                Some((if single { "Renommer" } else { "Renommer les éléments…" }, MenuAction::Rename, true)),
-                Some(("Lire les informations", MenuAction::Info, single)),
-                Some(("\u{c9}tiquettes\u{2026}", MenuAction::Tags, true)),
-                Some(("Compresser", MenuAction::Compress, true)),
-                Some(("Cr\u{e9}er un raccourci", MenuAction::MakeAlias, true)),
-                Some(("Ouvrir avec\u{2026}", MenuAction::OpenWith, single && self.selected_entry().map(|e| !e.is_dir).unwrap_or(false))),
-                Some(("Afficher dans l'Explorateur", MenuAction::Reveal, single)),
+                Some((if single { crate::i18n::t("Renommer") } else { crate::i18n::t("Renommer les éléments…") }, MenuAction::Rename, true)),
+                Some((crate::i18n::t("Lire les informations"), MenuAction::Info, single)),
+                Some((crate::i18n::t("\u{c9}tiquettes\u{2026}"), MenuAction::Tags, true)),
+                Some((crate::i18n::t("Compresser"), MenuAction::Compress, true)),
+                Some((crate::i18n::t("Cr\u{e9}er un raccourci"), MenuAction::MakeAlias, true)),
+                Some((crate::i18n::t("Ouvrir avec\u{2026}"), MenuAction::OpenWith, single && self.selected_entry().map(|e| !e.is_dir).unwrap_or(false))),
+                Some((crate::i18n::t("Afficher dans l'Explorateur"), MenuAction::Reveal, single)),
                 Some((
-                    "Afficher l'original",
+                    crate::i18n::t("Afficher l'original"),
                     MenuAction::ShowOriginal,
                     single && self.selected_entry().map(|e| crate::fs::extension(&e.path) == "lnk").unwrap_or(false),
                 )),
                 Some((
-                    "Extraire ici",
+                    crate::i18n::t("Extraire ici"),
                     MenuAction::Extract,
-                    single && self.selected_entry().map(|e| crate::fs::extension(&e.path) == "zip").unwrap_or(false),
+                    single && self.selected_entry().map(|e| crate::archive::is_archive(&e.path)).unwrap_or(false),
                 )),
-                Some(("Mettre \u{e0} la corbeille", MenuAction::Trash, true)),
+                Some((crate::i18n::t("Ouvrir dans le Terminal"), MenuAction::Terminal, single)),
+                Some((crate::i18n::t("Ajouter \u{e0} la barre lat\u{e9}rale"), MenuAction::Pin, single && self.selected_entry().map(|e| e.is_dir).unwrap_or(false))),
+                Some((crate::i18n::t("D\u{e9}finir comme fond d'\u{e9}cran"), MenuAction::Wallpaper, single && self.selected_entry().map(|e| matches!(crate::fs::extension(&e.path).as_str(), "png" | "jpg" | "jpeg" | "bmp")).unwrap_or(false))),
+                Some((crate::i18n::t("Pivoter \u{e0} gauche"), MenuAction::RotateLeft, self.selected_entry().map(|e| matches!(crate::fs::extension(&e.path).as_str(), "png" | "jpg" | "jpeg" | "bmp" | "gif" | "tif" | "tiff")).unwrap_or(false))),
+                Some((crate::i18n::t("Pivoter \u{e0} droite"), MenuAction::RotateRight, self.selected_entry().map(|e| matches!(crate::fs::extension(&e.path).as_str(), "png" | "jpg" | "jpeg" | "bmp" | "gif" | "tif" | "tiff")).unwrap_or(false))),
+                Some((crate::i18n::t("Ex\u{e9}cuter en tant qu'administrateur"), MenuAction::RunAdmin, single && self.selected_entry().map(|e| matches!(crate::fs::extension(&e.path).as_str(), "exe" | "bat" | "cmd" | "msi" | "ps1")).unwrap_or(false))),
+                Some((crate::i18n::t("Plus d'options\u{2026}"), MenuAction::MoreOptions, true)),
+                Some((crate::i18n::t("Mettre \u{e0} la corbeille"), MenuAction::Trash, true)),
                 None,
-                Some(("Nouveau dossier", MenuAction::NewFolder, true)),
+                Some((crate::i18n::t("Nouveau dossier"), MenuAction::NewFolder, true)),
             ]
         } else {
             vec![
-                Some(("Nouveau dossier", MenuAction::NewFolder, true)),
+                Some((crate::i18n::t("Nouveau dossier"), MenuAction::NewFolder, true)),
+                Some((crate::i18n::t("Nouveau fichier texte"), MenuAction::NewTextFile, true)),
+                Some((crate::i18n::t("Ouvrir dans le Terminal"), MenuAction::Terminal, true)),
                 None,
-                Some(("Coller", MenuAction::Paste, can_paste)),
-                Some(("Actualiser", MenuAction::Refresh, true)),
-                Some(("Ranger les icônes", MenuAction::CleanUp, self.view == crate::ViewMode::Icons && self.layouts.contains_key(&self.cwd))),
+                Some((crate::i18n::t("Coller"), MenuAction::Paste, can_paste)),
+                Some((crate::i18n::t("Actualiser"), MenuAction::Refresh, true)),
+                Some((crate::i18n::t("Ranger les icônes"), MenuAction::CleanUp, self.view == crate::ViewMode::Icons && self.layouts.contains_key(&self.cwd))),
             ]
         }
     }
@@ -187,10 +204,18 @@ impl Finder {
 ");
                 if !text.is_empty() {
                     cx.write_to_clipboard(gpui::ClipboardItem::new_string(text));
-                    self.show_notice("Chemin copi\u{e9}", cx);
+                    self.show_notice(crate::i18n::t("Chemin copi\u{e9}"), cx);
                 }
             }
             MenuAction::Settings => self.toggle_settings(cx),
+            MenuAction::NewTextFile => self.new_text_file(cx),
+            MenuAction::Terminal => self.open_terminal(),
+            MenuAction::Pin => self.pin_selection(cx),
+            MenuAction::Wallpaper => self.set_wallpaper(cx),
+            MenuAction::RotateLeft => self.rotate_images(false, cx),
+            MenuAction::RotateRight => self.rotate_images(true, cx),
+            MenuAction::RunAdmin => self.run_as_admin(),
+            MenuAction::MoreOptions => self.native_menu(window, cx),
             MenuAction::GoTo => self.open_goto(window, cx),
             MenuAction::Trash => self.trash_selection(cx),
             MenuAction::NewFolder => self.new_folder(window, cx),
@@ -488,7 +513,7 @@ impl Finder {
                 self.reload_select(&[target]);
             }
         } else {
-            self.show_notice(format!("Dossier introuvable : {}", text.trim()), cx);
+            self.show_notice(crate::i18n::tf(crate::i18n::t("Dossier introuvable : {0}"), &[("0", (text.trim()).to_string())]), cx);
         }
         cx.notify();
     }
@@ -544,7 +569,7 @@ impl Finder {
                         .border_color(rgb(0xd9d9de))
                         .shadow_lg()
                         .occlude()
-                        .child(div().text_size(px(13.)).child("Aller au dossier :"))
+                        .child(div().text_size(px(13.)).child(crate::i18n::t("Aller au dossier :")))
                         .child(
                             div()
                                 .h(px(30.))
@@ -571,7 +596,7 @@ impl Finder {
                                         .bg(rgb(0xffffff))
                                         .border_1()
                                         .border_color(rgb(0xd0d0d6))
-                                        .child("Annuler")
+                                        .child(crate::i18n::t("Annuler"))
                                         .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                             this.goto = None;
                                             this.needs_focus = true;
@@ -588,7 +613,7 @@ impl Finder {
                                         .rounded(px(7.))
                                         .bg(rgb(theme::SELECTION))
                                         .text_color(rgb(0xfffffe))
-                                        .child("Aller")
+                                        .child(crate::i18n::t("Aller"))
                                         .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.goto_commit(cx))),
                                 ),
                         ),
@@ -623,7 +648,7 @@ impl Finder {
         }
         let editor = cx.new(|cx| {
             let mut e = Editor::new("", true, cx);
-            e.set_placeholder("Rechercher");
+            e.set_placeholder(crate::i18n::t("Rechercher"));
             e
         });
         let sub = cx.subscribe_in(&editor, window, |this, _, ev: &EditorEvent, _, cx| match ev {
@@ -733,16 +758,16 @@ impl Finder {
                 .flex()
                 .items_center()
                 .gap(px(6.))
-                .child(label("Chercher"))
-                .child(chip(("sb-name", 0), "Noms", !content, cx, |f| f.search_content = false))
-                .child(chip(("sb-name", 1), "Noms et contenu", content, cx, |f| f.search_content = true))
+                .child(label(crate::i18n::t("Chercher")))
+                .child(chip(("sb-name", 0), crate::i18n::t("Noms"), !content, cx, |f| f.search_content = false))
+                .child(chip(("sb-name", 1), crate::i18n::t("Noms et contenu"), content, cx, |f| f.search_content = true))
                 .child(div().w(px(10.)))
-                .child(label("Type"))
-                .child(chip(("sb-kind", 0), "Tous", kind == 0, cx, |f| f.search_kind = 0))
-                .child(chip(("sb-kind", 1), "Images", kind == 1, cx, |f| f.search_kind = 1))
-                .child(chip(("sb-kind", 2), "Documents", kind == 2, cx, |f| f.search_kind = 2))
-                .child(chip(("sb-kind", 3), "Dossiers", kind == 3, cx, |f| f.search_kind = 3))
-                .child(chip(("sb-kind", 4), "Audio / vid\u{e9}o", kind == 4, cx, |f| f.search_kind = 4))
+                .child(label(crate::i18n::t("Type")))
+                .child(chip(("sb-kind", 0), crate::i18n::t("Tous"), kind == 0, cx, |f| f.search_kind = 0))
+                .child(chip(("sb-kind", 1), crate::i18n::t("Images"), kind == 1, cx, |f| f.search_kind = 1))
+                .child(chip(("sb-kind", 2), crate::i18n::t("Documents"), kind == 2, cx, |f| f.search_kind = 2))
+                .child(chip(("sb-kind", 3), crate::i18n::t("Dossiers"), kind == 3, cx, |f| f.search_kind = 3))
+                .child(chip(("sb-kind", 4), crate::i18n::t("Audio / vid\u{e9}o"), kind == 4, cx, |f| f.search_kind = 4))
                 .into_any_element(),
         )
     }

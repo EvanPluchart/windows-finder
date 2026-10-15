@@ -17,7 +17,7 @@ impl Finder {
     /// Vrai (avec une pastille d'explication) si l'emplacement courant est virtuel : pas de modification de fichiers.
     pub fn read_only_place(&mut self, cx: &mut Context<Self>) -> bool {
         if crate::fs::is_virtual(&self.cwd) {
-            self.show_notice("Cet emplacement est en lecture seule.", cx);
+            self.show_notice(crate::i18n::t("Cet emplacement est en lecture seule."), cx);
             return true;
         }
         false
@@ -39,7 +39,7 @@ impl Finder {
             self.empty_trash(cx);
             return;
         }
-        self.show_notice(format!("Recherche du programme de d\u{e9}sinstallation de \u{ab} {} \u{bb}\u{2026}", c.name), cx);
+        self.show_notice(crate::i18n::tf(crate::i18n::t("Recherche du programme de d\u{e9}sinstallation de \u{ab} {0} \u{bb}\u{2026}"), &[("0", (c.name).to_string())]), cx);
         let name = c.name.clone();
         cx.spawn(async move |this, cx| {
             let lookup = name.clone();
@@ -47,12 +47,10 @@ impl Finder {
             this.update(cx, |f, cx| match cmd {
                 Some(cmd) => {
                     apps::launch(&cmd);
-                    f.show_notice(format!("D\u{e9}sinstallation de \u{ab} {name} \u{bb} lanc\u{e9}e"), cx);
+                    f.show_notice(crate::i18n::tf(crate::i18n::t("D\u{e9}sinstallation de \u{ab} {name} \u{bb} lanc\u{e9}e"), &[("name", (name).to_string())]), cx);
                 }
                 None => f.show_notice(
-                    format!(
-                        "Aucun programme de d\u{e9}sinstallation pour \u{ab} {name} \u{bb} \u{2014} voir Param\u{e8}tres > Applications"
-                    ),
+                    crate::i18n::tf(crate::i18n::t("Aucun programme de d\u{e9}sinstallation pour \u{ab} {name} \u{bb} \u{2014} voir Param\u{e8}tres > Applications"), &[("name", (name).to_string())]),
                     cx,
                 ),
             })
@@ -111,11 +109,11 @@ impl Finder {
                                 .text_size(px(15.))
                                 .font_weight(gpui::FontWeight::SEMIBOLD)
                                 .text_color(rgb(theme::TEXT))
-                                .child(if c.empty_trash { "Vider la corbeille ?".to_string() } else { format!("D\u{e9}sinstaller \u{ab} {} \u{bb} ?", c.name) }),
+                                .child(if c.empty_trash { crate::i18n::t("Vider la corbeille ?").to_string() } else { crate::i18n::tf(crate::i18n::t("D\u{e9}sinstaller \u{ab} {0} \u{bb} ?"), &[("0", (c.name).to_string())]) }),
                         )
                         .child(
                             div().text_size(px(13.)).text_color(rgb(theme::TEXT_SECONDARY)).child(
-                                if c.empty_trash { "Les \u{e9}l\u{e9}ments de la corbeille seront supprim\u{e9}s d\u{e9}finitivement. Cette action est irr\u{e9}versible." } else { "Le programme de d\u{e9}sinstallation officiel va s'ouvrir et pourra demander une confirmation." },
+                                if c.empty_trash { crate::i18n::t("Les \u{e9}l\u{e9}ments de la corbeille seront supprim\u{e9}s d\u{e9}finitivement. Cette action est irr\u{e9}versible.") } else { crate::i18n::t("Le programme de d\u{e9}sinstallation officiel va s'ouvrir et pourra demander une confirmation.") },
                             ),
                         )
                         .child(
@@ -123,12 +121,12 @@ impl Finder {
                                 .flex()
                                 .justify_end()
                                 .gap(px(8.))
-                                .child(button("confirm-cancel", "Annuler", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
+                                .child(button("confirm-cancel", crate::i18n::t("Annuler"), false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                     this.confirm = None;
                                     cx.notify();
                                 })))
                                 .child(
-                                    button("confirm-ok", if c.empty_trash { "Vider" } else { "D\u{e9}sinstaller" }, true)
+                                    button("confirm-ok", if c.empty_trash { crate::i18n::t("Vider") } else { crate::i18n::t("D\u{e9}sinstaller") }, true)
                                         .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.run_uninstall(cx))),
                                 ),
                         ),

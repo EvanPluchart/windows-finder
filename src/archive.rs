@@ -33,21 +33,21 @@ impl Finder {
             return;
         }
         let base = match paths.as_slice() {
-            [one] => one.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "Archive".into()),
-            _ => "Archive".to_string(),
+            [one] => one.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| crate::i18n::t("Archive").into()),
+            _ => crate::i18n::t("Archive").to_string(),
         };
         let dest = ops::unique_path(&self.cwd, &format!("{base}.zip"));
         let list = paths.iter().map(|p| ps_quote(p)).collect::<Vec<_>>().join(",");
         let script = format!("Compress-Archive -LiteralPath {list} -DestinationPath {} -Force", ps_quote(&dest));
-        self.show_notice("Compression en cours\u{2026}", cx);
+        self.show_notice(crate::i18n::t("Compression en cours\u{2026}"), cx);
         cx.spawn(async move |this, cx| {
             let result = cx.background_executor().spawn(async move { run_ps(script) }).await;
             this.update(cx, |f, cx| match result {
                 Ok(()) => {
                     f.reload_select(&[dest.clone()]);
-                    f.show_notice(format!("\u{ab} {} \u{bb} cr\u{e9}\u{e9}", dest.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()), cx);
+                    f.show_notice(crate::i18n::tf(crate::i18n::t("\u{ab} {0} \u{bb} cr\u{e9}\u{e9}"), &[("0", (dest.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()).to_string())]), cx);
                 }
-                Err(e) => f.show_notice(format!("Compression impossible \u{2014} {e}"), cx),
+                Err(e) => f.show_notice(crate::i18n::tf(crate::i18n::t("Compression impossible \u{2014} {e}"), &[("e", (e).to_string())]), cx),
             })
             .ok();
         })
@@ -58,24 +58,33 @@ impl Finder {
         if self.read_only_place(cx) {
             return;
         }
-        let Some(zip) = self.selected_entry().filter(|e| fs_ext(&e.path) == "zip").map(|e| e.path.clone()) else { return };
-        let stem = zip.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "Extrait".into());
+        let Some(zip) = self.selected_entry().filter(|e| is_archive(&e.path)).map(|e| e.path.clone()) else { return };
+        let stem = zip.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| crate::i18n::t("Extrait").into());
         let dest: PathBuf = ops::unique_path(&self.cwd, &stem);
-        let script = format!("Expand-Archive -LiteralPath {} -DestinationPath {} -Force", ps_quote(&zip), ps_quote(&dest));
-        self.show_notice("Extraction en cours\u{2026}", cx);
+        let script = if fs_ext(&zip) == "zip" {
+            format!("Expand-Archive -LiteralPath {} -DestinationPath {} -Force", ps_quote(&zip), ps_quote(&dest))
+        } else {
+            // 7z, rar, tar, tgz... : bsdtar fourni avec Windows 11.
+            format!("New-Item -ItemType Directory -Force -Path {d} | Out-Null; tar -xf {z} -C {d}; if ($LASTEXITCODE -ne 0) {{ throw 'tar' }}", d = ps_quote(&dest), z = ps_quote(&zip))
+        };
+        self.show_notice(crate::i18n::t("Extraction en cours\u{2026}"), cx);
         cx.spawn(async move |this, cx| {
             let result = cx.background_executor().spawn(async move { run_ps(script) }).await;
             this.update(cx, |f, cx| match result {
                 Ok(()) => {
                     f.reload_select(&[dest]);
-                    f.show_notice("Archive extraite", cx);
+                    f.show_notice(crate::i18n::t("Archive extraite"), cx);
                 }
-                Err(e) => f.show_notice(format!("Extraction impossible \u{2014} {e}"), cx),
+                Err(e) => f.show_notice(crate::i18n::tf(crate::i18n::t("Extraction impossible \u{2014} {e}"), &[("e", (e).to_string())]), cx),
             })
             .ok();
         })
         .detach();
     }
+}
+
+pub fn is_archive(p: &Path) -> bool {
+    matches!(crate::fs::extension(p).as_str(), "zip" | "7z" | "rar" | "tar" | "gz" | "tgz" | "bz2" | "xz" | "iso")
 }
 
 fn fs_ext(p: &Path) -> String {
@@ -118,9 +127,9 @@ impl Finder {
             this.update(cx, |f, cx| match result {
                 Ok(()) => {
                     f.reload_select(&[dest]);
-                    f.show_notice("Raccourci cr\u{e9}\u{e9}", cx);
+                    f.show_notice(crate::i18n::t("Raccourci cr\u{e9}\u{e9}"), cx);
                 }
-                Err(e) => f.show_notice(format!("Raccourci impossible \u{2014} {e}"), cx),
+                Err(e) => f.show_notice(crate::i18n::tf(crate::i18n::t("Raccourci impossible \u{2014} {e}"), &[("e", (e).to_string())]), cx),
             })
             .ok();
         })
@@ -137,7 +146,7 @@ impl Finder {
                     self.reload_select(&[target]);
                 }
             }
-            _ => self.show_notice("L'original est introuvable.", cx),
+            _ => self.show_notice(crate::i18n::t("L'original est introuvable."), cx),
         }
     }
 }

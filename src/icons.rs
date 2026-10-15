@@ -71,6 +71,12 @@ impl IconCache {
         Self { state, requests: tx }
     }
 
+    /// Oublie toutes les images (apres modification de fichiers).
+    pub fn clear_all(&self) {
+        let mut s = self.state.lock().unwrap();
+        s.ready.clear();
+    }
+
     /// Retourne l'image si elle est prete ; sinon la demande en arriere-plan et retourne None.
     pub fn get(&self, path: &Path, px: i32, thumbnail: bool) -> Option<Arc<RenderImage>> {
         let key = Key { path: path.to_path_buf(), px, thumbnail };

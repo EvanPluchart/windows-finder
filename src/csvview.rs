@@ -49,7 +49,7 @@ impl CsvTable {
     pub fn new(path: PathBuf, cx: &mut Context<Self>) -> Self {
         let (rows, error) = match Self::load(&path) {
             Ok(r) => (r, None),
-            Err(e) => (vec![vec![String::new()]], Some(format!("Lecture impossible : {e}"))),
+            Err(e) => (vec![vec![String::new()]], Some(crate::i18n::tf(crate::i18n::t("Lecture impossible : {e}"), &[("e", (e).to_string())]))),
         };
         Self { path, rows, dirty: false, error, editing: None, focus: cx.focus_handle() }
     }
@@ -88,7 +88,7 @@ impl CsvTable {
         let mut writer = csv::WriterBuilder::new().delimiter(delim).from_writer(Vec::new());
         for row in &self.rows {
             if writer.write_record(row).is_err() {
-                self.error = Some("Ecriture impossible".into());
+                self.error = Some(crate::i18n::t("Ecriture impossible").into());
                 return;
             }
         }
@@ -97,7 +97,7 @@ impl CsvTable {
                 self.dirty = false;
                 self.error = None;
             }
-            Err(e) => self.error = Some(format!("Enregistrement impossible : {e}")),
+            Err(e) => self.error = Some(crate::i18n::tf(crate::i18n::t("Enregistrement impossible : {e}"), &[("e", (e).to_string())])),
         }
         cx.notify();
     }
@@ -298,12 +298,12 @@ impl Render for CsvTable {
                     .gap(px(8.))
                     .border_t_1()
                     .border_color(rgb(0xe3e3e7))
-                    .child(pill("+ Ligne").cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.add_row(cx))))
-                    .child(pill("+ Colonne").cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.add_col(cx))))
+                    .child(pill(crate::i18n::t("+ Ligne")).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.add_row(cx))))
+                    .child(pill(crate::i18n::t("+ Colonne")).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.add_col(cx))))
                     .child(div().flex_1())
                     .when_some(self.error.clone(), |d, e| d.child(div().text_size(px(12.)).text_color(rgb(0xc42b1c)).child(e)))
                     .child(
-                        pill("Enregistrer")
+                        pill(crate::i18n::t("Enregistrer"))
                             .when(self.dirty, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe)))
                             .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.save(cx))),
                     ),

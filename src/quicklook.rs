@@ -84,7 +84,7 @@ impl Finder {
         let options = WindowOptions {
             window_bounds: Some(WindowBounds::Windowed(Bounds::centered(None, win_size, cx))),
             titlebar: Some(TitlebarOptions {
-                title: Some("Aper\u{e7}u rapide".into()),
+                title: Some(crate::i18n::t("Aper\u{e7}u rapide").into()),
                 appears_transparent: true,
                 ..Default::default()
             }),
@@ -359,9 +359,9 @@ impl Render for QuickLook {
         let dirty = self.is_dirty(cx);
         let title = entry.as_ref().map(|e| e.name.to_string()).unwrap_or_default();
         let hint = match &self.body {
-            Body::Text(_) => Some("Cliquez pour modifier \u{b7} Ctrl+S enregistre"),
-            Body::Csv(_) => Some("Cliquez sur une cellule pour modifier"),
-            Body::Pdf(_) => Some("Pr\u{e9}c. / Suiv. pour changer de page"),
+            Body::Text(_) => Some(crate::i18n::t("Cliquez pour modifier \u{b7} Ctrl+S enregistre")),
+            Body::Csv(_) => Some(crate::i18n::t("Cliquez sur une cellule pour modifier")),
+            Body::Pdf(_) => Some(crate::i18n::t("Pr\u{e9}c. / Suiv. pour changer de page")),
             Body::Video(_) => None,
             Body::None => None,
         };
@@ -600,7 +600,7 @@ impl Render for QuickLook {
                                     Some(image) => img(image.clone()).h_full().object_fit(ObjectFit::Contain).into_any_element(),
                                     None => div()
                                         .text_color(rgb(theme::TEXT_SECONDARY))
-                                        .child(if loading { "Chargement du PDF\u{2026}" } else { "Aper\u{e7}u PDF indisponible" })
+                                        .child(if loading { crate::i18n::t("Chargement du PDF\u{2026}") } else { crate::i18n::t("Aper\u{e7}u PDF indisponible") })
                                         .into_any_element(),
                                 }),
                         )
@@ -615,7 +615,7 @@ impl Render for QuickLook {
                                 .text_size(px(12.))
                                 .text_color(rgb(theme::TEXT_SECONDARY))
                                 .child(nav("pdf-prev", "\u{2039}", -1, cx))
-                                .child(format!("Page {} sur {}", page + 1, count.max(1)))
+                                .child(crate::i18n::tf(crate::i18n::t("Page {0} sur {1}"), &[("0", (page + 1).to_string()), ("1", (count.max(1)).to_string())]))
                                 .child(nav("pdf-next", "\u{203a}", 1, cx)),
                         )
                         .into_any_element(),
@@ -751,7 +751,7 @@ impl Render for QuickLook {
                             .bg(rgba(0x00000012))
                             .hover(|s| s.bg(rgba(0x00000022)))
                             .text_size(px(12.))
-                            .child("Ouvrir")
+                            .child(crate::i18n::t("Ouvrir"))
                             .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
                             .cursor_pointer().on_click(move |_, _, _| {
                                 if let Some(p) = &open_path {

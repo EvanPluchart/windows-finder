@@ -42,15 +42,15 @@ pub struct InfoState {
 fn format_bytes(n: u64) -> String {
     let f = n as f64;
     let pretty = if f < 1e3 {
-        format!("{n} octets")
+        crate::i18n::tf(crate::i18n::t("{n} octets"), &[("n", (n).to_string())])
     } else if f < 1e6 {
-        format!("{:.1} Ko", f / 1e3)
+        crate::i18n::size(f / 1e3, 0, 1)
     } else if f < 1e9 {
-        format!("{:.1} Mo", f / 1e6)
+        crate::i18n::size(f / 1e6, 1, 1)
     } else {
-        format!("{:.2} Go", f / 1e9)
+        crate::i18n::size(f / 1e9, 2, 2)
     };
-    pretty.replace('.', ",")
+    pretty
 }
 
 /// Taille cumulee d'un dossier, plafonnee pour rester instantanee ; `(octets, elements, complet)`.
@@ -121,15 +121,15 @@ impl Finder {
         let when = |t: Option<std::io::Result<SystemTime>>| fs::format_date(t.and_then(|r| r.ok()));
         let (size, size_short) = if e.is_dir {
             let (bytes, count, complete) = dir_size(&e.path);
-            let more = if complete { "" } else { " (partiel)" };
-            let n = format!("{count} \u{e9}l\u{e9}ment{}", if count > 1 { "s" } else { "" });
+            let more = if complete { "" } else { crate::i18n::t(" (partiel)") };
+            let n = crate::i18n::tf(crate::i18n::t("{count} \u{e9}l\u{e9}ment{0}"), &[("count", (count).to_string()), ("0", (if count > 1 { "s" } else { "" }).to_string())]);
             (format!("{}{more}, {n}", format_bytes(bytes)), format_bytes(bytes))
         } else {
             let on_disk = e.size.div_ceil(4096) * 4096;
             let full = if e.size >= 1000 {
-                format!("{} ({} octets, {} sur le disque)", format_bytes(e.size), e.size, format_bytes(on_disk))
+                crate::i18n::tf(crate::i18n::t("{0} ({1} octets, {2} sur le disque)"), &[("0", (format_bytes(e.size)).to_string()), ("1", (e.size).to_string()), ("2", (format_bytes(on_disk)).to_string())])
             } else {
-                format!("{} ({} sur le disque)", format_bytes(e.size), format_bytes(on_disk))
+                crate::i18n::tf(crate::i18n::t("{0} ({1} sur le disque)"), &[("0", (format_bytes(e.size)).to_string()), ("1", (format_bytes(on_disk)).to_string())])
             };
             (full, format_bytes(e.size))
         };
@@ -247,22 +247,22 @@ impl Finder {
             .flex()
             .flex_col()
             .gap(px(6.))
-            .child(row("Type :", &info.kind))
-            .child(row("Taille :", &info.size))
-            .child(row("Emplacement :", &info.location))
-            .child(row("Cr\u{e9}ation :", &info.created))
-            .child(row("Modification :", &info.modified))
-            .child(row("Dernier acc\u{e8}s :", &info.accessed))
-            .child(check("info-lock", "Verrouill\u{e9} (lecture seule)", info.locked, FILE_ATTRIBUTE_READONLY.0, cx))
-            .child(check("info-hide", "Masqu\u{e9}", info.hidden, FILE_ATTRIBUTE_HIDDEN.0, cx));
+            .child(row(crate::i18n::t("Type :"), &info.kind))
+            .child(row(crate::i18n::t("Taille :"), &info.size))
+            .child(row(crate::i18n::t("Emplacement :"), &info.location))
+            .child(row(crate::i18n::t("Cr\u{e9}ation :"), &info.created))
+            .child(row(crate::i18n::t("Modification :"), &info.modified))
+            .child(row(crate::i18n::t("Dernier acc\u{e8}s :"), &info.accessed))
+            .child(check("info-lock", crate::i18n::t("Verrouill\u{e9} (lecture seule)"), info.locked, FILE_ATTRIBUTE_READONLY.0, cx))
+            .child(check("info-hide", crate::i18n::t("Masqu\u{e9}"), info.hidden, FILE_ATTRIBUTE_HIDDEN.0, cx));
 
         let more = div().flex().flex_col().gap(px(6.)).child(match info.dims {
-            Some((w, h)) => row("Dimensions :", &format!("{w} \u{d7} {h} px")).into_any_element(),
+            Some((w, h)) => row(crate::i18n::t("Dimensions :"), &format!("{w} \u{d7} {h} px")).into_any_element(),
             None => div()
                 .pl(px(108.))
                 .text_size(px(13.))
                 .text_color(rgb(theme::TEXT_SECONDARY))
-                .child("Aucune information suppl\u{e9}mentaire")
+                .child(crate::i18n::t("Aucune information suppl\u{e9}mentaire"))
                 .into_any_element(),
         });
 
@@ -284,12 +284,12 @@ impl Finder {
             .pl(px(108.))
             .text_size(px(13.))
             .text_color(rgb(theme::TEXT))
-            .child(info.open_with.clone().unwrap_or_else(|| "Aucune application associ\u{e9}e".to_string()))
+            .child(info.open_with.clone().unwrap_or_else(|| crate::i18n::t("Aucune application associ\u{e9}e").to_string()))
             .into_any_element();
 
         let preview = div().flex().justify_center().child(self.icon(&info.path, 160., true)).into_any_element();
 
-        let perm = if info.locked { "Vous pouvez seulement lire cet \u{e9}l\u{e9}ment." } else { "Vous pouvez lire et modifier cet \u{e9}l\u{e9}ment." };
+        let perm = if info.locked { crate::i18n::t("Vous pouvez seulement lire cet \u{e9}l\u{e9}ment.") } else { crate::i18n::t("Vous pouvez lire et modifier cet \u{e9}l\u{e9}ment.") };
         let perm_body = div().pl(px(108.)).text_size(px(13.)).text_color(rgb(theme::TEXT)).child(perm).into_any_element();
 
         let tag_chips = crate::tags::get(&info.path);
@@ -349,7 +349,7 @@ impl Finder {
                                             div()
                                                 .text_size(px(12.))
                                                 .text_color(rgb(theme::TEXT_SECONDARY))
-                                                .child(format!("Modifi\u{e9} : {}", info.modified)),
+                                                .child(crate::i18n::tf(crate::i18n::t("Modifi\u{e9} : {0}"), &[("0", (info.modified).to_string())])),
                                         )
                                         .child(div().flex().items_center().gap(px(6.)).mt(px(2.)).children(tag_chips.into_iter().map(|t| {
                                             div()
@@ -368,12 +368,12 @@ impl Finder {
                                 .child(div().text_size(px(13.)).text_color(rgb(theme::TEXT_SECONDARY)).child(info.size_short.clone())),
                         )
                         .child(div().h(px(1.)).w_full().bg(rgb(0xdcdcdf)))
-                        .child(section(0, "G\u{e9}n\u{e9}ral", general.into_any_element(), cx))
-                        .child(section(1, "Plus d'infos", more.into_any_element(), cx))
-                        .child(section(2, "Nom et extension", name_body, cx))
-                        .when(!info.is_dir, |d| d.child(section(3, "Ouvrir avec", open_body, cx)))
-                        .child(section(4, "Aper\u{e7}u", preview, cx))
-                        .child(section(5, "Permissions", perm_body, cx)),
+                        .child(section(0, crate::i18n::t("G\u{e9}n\u{e9}ral"), general.into_any_element(), cx))
+                        .child(section(1, crate::i18n::t("Plus d'infos"), more.into_any_element(), cx))
+                        .child(section(2, crate::i18n::t("Nom et extension"), name_body, cx))
+                        .when(!info.is_dir, |d| d.child(section(3, crate::i18n::t("Ouvrir avec"), open_body, cx)))
+                        .child(section(4, crate::i18n::t("Aper\u{e7}u"), preview, cx))
+                        .child(section(5, crate::i18n::t("Permissions"), perm_body, cx)),
                 )
                 .into_any_element(),
         )

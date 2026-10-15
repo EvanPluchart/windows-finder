@@ -192,7 +192,7 @@ impl Finder {
                         .border_color(rgb(0xdadade))
                         .shadow_lg()
                         .occlude()
-                        .child(header("D\u{e9}placer et redimensionner"))
+                        .child(header(crate::i18n::t("D\u{e9}placer et redimensionner")))
                         .child(
                             row()
                                 .child(tile("z-left", (0.08, 0.1, 0.4, 0.8), false, false, (0., 0., 0.5, 1.), cx))
@@ -201,7 +201,7 @@ impl Finder {
                                 .child(tile("z-bottom", (0.08, 0.5, 0.84, 0.4), false, false, (0., 0.5, 1., 0.5), cx)),
                         )
                         .child(rule())
-                        .child(header("Remplir et organiser"))
+                        .child(header(crate::i18n::t("Remplir et organiser")))
                         .child(
                             row()
                                 .child(tile("z-fill", (0.08, 0.1, 0.84, 0.8), false, false, (0., 0., 1., 1.), cx))
@@ -222,7 +222,7 @@ impl Finder {
                                 .text_size(px(14.))
                                 .text_color(rgb(theme::TEXT))
                                 .hover(|s| s.bg(rgb(0xe4e4e8)))
-                                .child("Plein \u{e9}cran")
+                                .child(crate::i18n::t("Plein \u{e9}cran"))
                                 .child(div().text_color(rgb(0x6e6e73)).child("\u{203A}"))
                                 .on_mouse_down(
                                     MouseButton::Left,

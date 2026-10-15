@@ -1,0 +1,336 @@
+Compression en cours… ::: Compressing… ::: Comprimiendo… ::: Komprimieren…
+« {0} » créé ::: “{0}” created ::: «{0}» creado ::: „{0}“ erstellt
+Compression impossible — {e} ::: Compression failed — {e} ::: No se pudo comprimir — {e} ::: Komprimieren fehlgeschlagen — {e}
+Extraction en cours… ::: Extracting… ::: Extrayendo… ::: Entpacken…
+Archive extraite ::: Archive extracted ::: Archivo extraído ::: Archiv entpackt
+Extraction impossible — {e} ::: Extraction failed — {e} ::: No se pudo extraer — {e} ::: Entpacken fehlgeschlagen — {e}
+Raccourci créé ::: Shortcut created ::: Acceso directo creado ::: Verknüpfung erstellt
+Raccourci impossible — {e} ::: Could not create shortcut — {e} ::: No se pudo crear el acceso directo — {e} ::: Verknüpfung nicht möglich — {e}
+L'original est introuvable. ::: The original can't be found. ::: No se encuentra el original. ::: Das Original wurde nicht gefunden.
+Sans titre ::: Untitled ::: Sin título ::: Ohne Titel
+Renommage incomplet — {e} ::: Rename incomplete — {e} ::: Cambio de nombre incompleto — {e} ::: Umbenennen unvollständig — {e}
+{0} éléments renommés ::: {0} items renamed ::: {0} elementos renombrados ::: {0} Objekte umbenannt
+Remplacer ::: Replace ::: Reemplazar ::: Ersetzen
+Ajouter ::: Add ::: Añadir ::: Hinzufügen
+Format ::: Format ::: Formato ::: Format
+Rechercher ::: Find ::: Buscar ::: Suchen
+Remplacer par ::: Replace with ::: Reemplazar por ::: Ersetzen durch
+Texte à ajouter ::: Text to add ::: Texto que añadir ::: Hinzuzufügender Text
+Avant le nom ::: Before name ::: Antes del nombre ::: Vor dem Namen
+Après le nom ::: After name ::: Después del nombre ::: Nach dem Namen
+Nom + index ::: Name + index ::: Nombre + índice ::: Name + Index
+Nom + compteur ::: Name + counter ::: Nombre + contador ::: Name + Zähler
+Nom + date ::: Name + date ::: Nombre + fecha ::: Name + Datum
+Nom personnalisé ::: Custom name ::: Nombre personalizado ::: Eigener Name
+Commencer à (numéro) ::: Start at (number) ::: Empezar en (número) ::: Beginnen bei (Nummer)
+Renommer {0} éléments ::: Rename {0} items ::: Renombrar {0} elementos ::: {0} Objekte umbenennen
+Exemple : {preview} ::: Example: {preview} ::: Ejemplo: {preview} ::: Beispiel: {preview}
+Annuler ::: Cancel ::: Cancelar ::: Abbrechen
+Renommer ::: Rename ::: Renombrar ::: Umbenennen
+Lecture impossible : {e} ::: Can't read: {e} ::: No se puede leer: {e} ::: Lesen nicht möglich: {e}
+Ecriture impossible ::: Can't write ::: No se puede escribir ::: Schreiben nicht möglich
+Enregistrement impossible : {e} ::: Can't save: {e} ::: No se puede guardar: {e} ::: Speichern nicht möglich: {e}
++ Ligne ::: + Row ::: + Fila ::: + Zeile
++ Colonne ::: + Column ::: + Columna ::: + Spalte
+Enregistrer ::: Save ::: Guardar ::: Sichern
+{0} éléments ::: {0} items ::: {0} elementos ::: {0} Objekte
+{n} élément(s) coupé(s) — collez-les avec Ctrl+V ::: {n} item(s) cut — paste them with Ctrl+V ::: {n} elemento(s) cortado(s): pégalos con Ctrl+V ::: {n} Objekt(e) ausgeschnitten – mit Strg+V einfügen
+{n} élément(s) copié(s) ::: {n} item(s) copied ::: {n} elemento(s) copiado(s) ::: {n} Objekt(e) kopiert
+Duplication impossible — {e} ::: Can't duplicate — {e} ::: No se puede duplicar — {e} ::: Duplizieren nicht möglich — {e}
+{0} élément(s) déplacé(s) dans la corbeille ::: {0} item(s) moved to the Recycle Bin ::: {0} elemento(s) movido(s) a la papelera ::: {0} Objekt(e) in den Papierkorb verschoben
+Création impossible : {e} ::: Can't create: {e} ::: No se puede crear: {e} ::: Erstellen nicht möglich: {e}
+Dossier ::: Folder ::: Carpeta ::: Ordner
+Document ::: Document ::: Documento ::: Dokument
+Fichier {0} ::: {0} file ::: Archivo {0} ::: {0}-Datei
+Applications ::: Applications ::: Aplicaciones ::: Programme
+Corbeille ::: Recycle Bin ::: Papelera ::: Papierkorb
+Réseau ::: Network ::: Red ::: Netzwerk
+Inconnu ::: Unknown ::: Desconocido ::: Unbekannt
+Aujourd'hui ::: Today ::: Hoy ::: Heute
+Hier ::: Yesterday ::: Ayer ::: Gestern
+7 derniers jours ::: Previous 7 Days ::: Últimos 7 días ::: Letzte 7 Tage
+30 derniers jours ::: Previous 30 Days ::: Últimos 30 días ::: Letzte 30 Tage
+Plus ancien ::: Older ::: Anterior ::: Älter
+Dossiers ::: Folders ::: Carpetas ::: Ordner
+Vide ::: Empty ::: Vacío ::: Leer
+Moins de 100 Ko ::: Under 100 KB ::: Menos de 100 KB ::: Unter 100 KB
+Plus de 1 Go ::: Over 1 GB ::: Más de 1 GB ::: Über 1 GB
+{0} octets ::: {0} bytes ::: {0} bytes ::: {0} Bytes
+{n} octets ::: {n} bytes ::: {n} bytes ::: {n} Bytes
+ (partiel) ::: (partial) ::: (parcial) ::: (teilweise)
+{count} élément{0} ::: {count} item{0} ::: {count} elemento{0} ::: {count} Objekt(e)
+{0} ({1} octets, {2} sur le disque) ::: {0} ({1} bytes, {2} on disk) ::: {0} ({1} bytes, {2} en el disco) ::: {0} ({1} Bytes, {2} auf dem Datenträger)
+{0} ({1} sur le disque) ::: {0} ({1} on disk) ::: {0} ({1} en el disco) ::: {0} ({1} auf dem Datenträger)
+Type : ::: Kind: ::: Tipo: ::: Art:
+Taille : ::: Size: ::: Tamaño: ::: Größe:
+Emplacement : ::: Where: ::: Ubicación: ::: Ort:
+Création : ::: Created: ::: Creación: ::: Erstellt:
+Modification : ::: Modified: ::: Modificación: ::: Geändert:
+Dernier accès : ::: Last opened: ::: Último acceso: ::: Zuletzt geöffnet:
+Verrouillé (lecture seule) ::: Locked (read-only) ::: Bloqueado (solo lectura) ::: Gesperrt (schreibgeschützt)
+Masqué ::: Hidden ::: Oculto ::: Ausgeblendet
+Dimensions : ::: Dimensions: ::: Dimensiones: ::: Abmessungen:
+Aucune information supplémentaire ::: No additional information ::: Sin información adicional ::: Keine weiteren Informationen
+Aucune application associée ::: No associated application ::: Ninguna aplicación asociada ::: Keine zugeordnete App
+Vous pouvez seulement lire cet élément. ::: You can only read this item. ::: Solo puedes leer este elemento. ::: Sie können dieses Objekt nur lesen.
+Vous pouvez lire et modifier cet élément. ::: You can read and write this item. ::: Puedes leer y modificar este elemento. ::: Sie können dieses Objekt lesen und ändern.
+Modifié : {0} ::: Modified: {0} ::: Modificado: {0} ::: Geändert: {0}
+Général ::: General ::: General ::: Allgemein
+Plus d'infos ::: More Info ::: Más información ::: Weitere Informationen
+Nom et extension ::: Name & Extension ::: Nombre y extensión ::: Name & Extension
+Ouvrir avec ::: Open with ::: Abrir con ::: Öffnen mit
+Aperçu ::: Preview ::: Vista previa ::: Vorschau
+Permissions ::: Permissions ::: Permisos ::: Zugriffsrechte
+Impossible d'ouvrir « {0} » — {err} ::: Can't open “{0}” — {err} ::: No se puede abrir «{0}»: {err} ::: „{0}“ kann nicht geöffnet werden – {err}
+Impossible de copier un dossier dans lui-même ::: Can't copy a folder into itself ::: No se puede copiar una carpeta dentro de sí misma ::: Ein Ordner kann nicht in sich selbst kopiert werden
+Impossible de déplacer un dossier dans lui-même ::: Can't move a folder into itself ::: No se puede mover una carpeta dentro de sí misma ::: Ein Ordner kann nicht in sich selbst verschoben werden
+La corbeille a refusé l'opération (code {code}) ::: The Recycle Bin refused the operation (code {code}) ::: La papelera rechazó la operación (código {code}) ::: Der Papierkorb hat den Vorgang abgelehnt (Code {code})
+Le nom ne peut pas être vide ::: The name can't be empty ::: El nombre no puede estar vacío ::: Der Name darf nicht leer sein
+Le caractère « {c} » n'est pas autorisé dans un nom ::: The character “{c}” isn't allowed in a name ::: El carácter «{c}» no está permitido en un nombre ::: Das Zeichen „{c}“ ist in Namen nicht erlaubt
+Le nom ne peut pas finir par un point ou une espace ::: The name can't end with a period or a space ::: El nombre no puede terminar en punto ni espacio ::: Der Name darf nicht mit einem Punkt oder Leerzeichen enden
+« {new_name} » existe déjà dans ce dossier ::: “{new_name}” already exists in this folder ::: «{new_name}» ya existe en esta carpeta ::: „{new_name}“ ist in diesem Ordner bereits vorhanden
+Renommage impossible : {e} ::: Can't rename: {e} ::: No se puede renombrar: {e} ::: Umbenennen nicht möglich: {e}
+Copier le chemin ::: Copy Path ::: Copiar ruta ::: Pfad kopieren
+Compresser ::: Compress ::: Comprimir ::: Komprimieren
+Créer un raccourci ::: Make Shortcut ::: Crear acceso directo ::: Verknüpfung erstellen
+Ouvrir avec… ::: Open With… ::: Abrir con… ::: Öffnen mit…
+Afficher dans l'Explorateur ::: Show in File Explorer ::: Mostrar en el Explorador ::: Im Explorer anzeigen
+Nouveau dossier ::: New Folder ::: Nueva carpeta ::: Neuer Ordner
+Lire les informations ::: Get Info ::: Obtener información ::: Informationen
+Actualiser ::: Refresh ::: Actualizar ::: Aktualisieren
+Aller au dossier… ::: Go to Folder… ::: Ir a la carpeta… ::: Gehe zu Ordner…
+Réglages… ::: Settings… ::: Ajustes… ::: Einstellungen…
+Remettre à sa place ::: Put Back ::: Volver a colocar ::: Zurücklegen
+Vider la corbeille… ::: Empty Recycle Bin… ::: Vaciar la papelera… ::: Papierkorb leeren…
+Ouvrir ::: Open ::: Abrir ::: Öffnen
+Désinstaller… ::: Uninstall… ::: Desinstalar… ::: Deinstallieren…
+Ouvrir dans un nouvel onglet ::: Open in New Tab ::: Abrir en una pestaña nueva ::: In neuem Tab öffnen
+Aperçu rapide ::: Quick Look ::: Vista rápida ::: Übersicht
+Copier ::: Copy ::: Copiar ::: Kopieren
+Couper ::: Cut ::: Cortar ::: Ausschneiden
+Coller ::: Paste ::: Pegar ::: Einfügen
+Dupliquer ::: Duplicate ::: Duplicar ::: Duplizieren
+Renommer les éléments… ::: Rename Items… ::: Renombrar elementos… ::: Objekte umbenennen…
+Étiquettes… ::: Tags… ::: Etiquetas… ::: Tags…
+Afficher l'original ::: Show Original ::: Mostrar original ::: Original anzeigen
+Extraire ici ::: Extract Here ::: Extraer aquí ::: Hier entpacken
+Mettre à la corbeille ::: Move to Recycle Bin ::: Mover a la papelera ::: In den Papierkorb legen
+Ranger les icônes ::: Clean Up ::: Ordenar iconos ::: Symbole aufräumen
+Chemin copié ::: Path copied ::: Ruta copiada ::: Pfad kopiert
+Dossier introuvable : {0} ::: Folder not found: {0} ::: Carpeta no encontrada: {0} ::: Ordner nicht gefunden: {0}
+Aller au dossier : ::: Go to the folder: ::: Ir a la carpeta: ::: Gehe zum Ordner:
+Aller ::: Go ::: Ir ::: Los
+Chercher ::: Search ::: Buscar ::: Suchen
+Noms ::: Names ::: Nombres ::: Namen
+Noms et contenu ::: Names & Contents ::: Nombres y contenido ::: Namen & Inhalt
+Type ::: Kind ::: Tipo ::: Art
+Tous ::: All ::: Todos ::: Alle
+Images ::: Images ::: Imágenes ::: Bilder
+Audio / vidéo ::: Audio / Video ::: Audio / vídeo ::: Audio / Video
+Aucun ::: None ::: Ninguno ::: Keine
+Nom ::: Name ::: Nombre ::: Name
+Modif. ::: Modified ::: Modif. ::: Geänd.
+Créé ::: Created ::: Creado ::: Erstellt
+Taille ::: Size ::: Tamaño ::: Größe
+Ordre croissant ::: Ascending order ::: Orden ascendente ::: Aufsteigend
+Regrouper par ::: Group By ::: Agrupar por ::: Gruppieren nach
+Trier par ::: Sort By ::: Ordenar por ::: Sortieren nach
+Taille des icônes ::: Icon size ::: Tamaño de iconos ::: Symbolgröße
+Espacement de la grille ::: Grid spacing ::: Espaciado de la cuadrícula ::: Rasterabstand
+Taille du texte ::: Text size ::: Tamaño del texto ::: Textgröße
+Afficher les infos des éléments ::: Show item info ::: Mostrar información de elementos ::: Objektinformationen anzeigen
+Afficher les colonnes ::: Show columns ::: Mostrar columnas ::: Spalten anzeigen
+Date de modification ::: Date Modified ::: Fecha de modificación ::: Änderungsdatum
+Date de création ::: Date Created ::: Fecha de creación ::: Erstellungsdatum
+Utiliser les dates relatives ::: Use relative dates ::: Usar fechas relativas ::: Relative Daten verwenden
+Afficher le volet d'aperçu ::: Show Preview pane ::: Mostrar panel de vista previa ::: Vorschaubereich anzeigen
+Options — {name} ::: Options — {name} ::: Opciones — {name} ::: Optionen — {name}
+Par défaut ::: Use as Defaults ::: Usar por defecto ::: Als Standard verwenden
+Options enregistrées comme valeurs par défaut. ::: Options saved as defaults. ::: Opciones guardadas como valores por defecto. ::: Optionen als Standard gesichert.
+Restaurer ::: Restore ::: Restaurar ::: Wiederherstellen
+Cliquez pour modifier · Ctrl+S enregistre ::: Click to edit · Ctrl+S saves ::: Haz clic para editar · Ctrl+S guarda ::: Zum Bearbeiten klicken · Strg+S sichert
+Cliquez sur une cellule pour modifier ::: Click a cell to edit ::: Haz clic en una celda para editar ::: Zelle zum Bearbeiten anklicken
+Préc. / Suiv. pour changer de page ::: Page Up / Page Down to change page ::: Re Pág / Av Pág para cambiar de página ::: Bild auf / Bild ab zum Blättern
+Chargement du PDF… ::: Loading PDF… ::: Cargando PDF… ::: PDF wird geladen…
+Aperçu PDF indisponible ::: PDF preview unavailable ::: Vista previa del PDF no disponible ::: PDF-Vorschau nicht verfügbar
+Page {0} sur {1} ::: Page {0} of {1} ::: Página {0} de {1} ::: Seite {0} von {1}
+Apparence ::: Appearance ::: Apariencia ::: Erscheinungsbild
+Barre latérale ::: Sidebar ::: Barra lateral ::: Seitenleiste
+Barre d'outils ::: Toolbar ::: Barra de herramientas ::: Symbolleiste
+Explorateur ::: File Explorer ::: Explorador ::: Explorer
+Avancé ::: Advanced ::: Avanzado ::: Erweitert
+Icônes ::: Icons ::: Iconos ::: Symbole
+Liste ::: List ::: Lista ::: Liste
+Colonnes ::: Columns ::: Columnas ::: Spalten
+Galerie ::: Gallery ::: Galería ::: Galerie
+Modifié ::: Modified ::: Modificado ::: Geändert
+Le Finder s'ouvre sur ::: Finder opens at ::: Finder se abre en ::: Finder öffnet
+Dossier personnel ::: Home folder ::: Carpeta personal ::: Persönlicher Ordner
+Bureau ::: Desktop ::: Escritorio ::: Schreibtisch
+Téléchargements ::: Downloads ::: Descargas ::: Downloads
+Dernier dossier ::: Last folder ::: Última carpeta ::: Letzter Ordner
+Mode d'affichage par défaut ::: Default view ::: Vista por defecto ::: Standardansicht
+Trier par défaut ::: Default sort ::: Orden por defecto ::: Standardsortierung
+Dates relatives (« Hier à 14:03 ») ::: Relative dates (“Yesterday at 2:03 PM”) ::: Fechas relativas («Ayer a las 14:03») ::: Relative Daten („Gestern um 14:03“)
+Ces valeurs s'appliquent aux dossiers sans réglage propre (Ctrl+J). ::: These values apply to folders without their own settings (Ctrl+J). ::: Estos valores se aplican a las carpetas sin ajustes propios (Ctrl+J). ::: Diese Werte gelten für Ordner ohne eigene Einstellungen (Strg+J).
+Fichiers ::: Files ::: Archivos ::: Dateien
+Afficher les fichiers cachés et système ::: Show hidden and system files ::: Mostrar archivos ocultos y del sistema ::: Versteckte Dateien und Systemdateien anzeigen
+Fenêtre ::: Window ::: Ventana ::: Fenster
+Afficher la barre de chemin ::: Show Path Bar ::: Mostrar barra de ruta ::: Pfadleiste anzeigen
+Afficher la barre d'état ::: Show Status Bar ::: Mostrar barra de estado ::: Statusleiste anzeigen
+Lire les vidéos automatiquement à l'ouverture ::: Play videos automatically when opened ::: Reproducir vídeos automáticamente al abrir ::: Videos beim Öffnen automatisch abspielen
+Thème ::: Theme ::: Tema ::: Erscheinungsbild
+Système ::: System ::: Sistema ::: System
+Clair ::: Light ::: Claro ::: Hell
+Sombre ::: Dark ::: Oscuro ::: Dunkel
+« Système » suit le mode d'applications de Windows et change en direct. ::: “System” follows the Windows app mode and changes live. ::: «Sistema» sigue el modo de aplicaciones de Windows y cambia al instante. ::: „System“ folgt dem App-Modus von Windows und wechselt sofort.
+Couleur d'accentuation ::: Accent color ::: Color de énfasis ::: Akzentfarbe
+Couleur de la sélection, des icônes de la barre latérale et des boutons actifs. ::: Color of the selection, sidebar icons and active buttons. ::: Color de la selección, de los iconos de la barra lateral y de los botones activos. ::: Farbe der Auswahl, der Seitenleistensymbole und aktiver Schaltflächen.
+Favoris ::: Favorites ::: Favoritos ::: Favoriten
+Récents ::: Recents ::: Recientes ::: Benutzt
+Images, Musique et Vidéos ::: Pictures, Music and Videos ::: Imágenes, Música y Vídeos ::: Bilder, Musik und Videos
+Emplacements ::: Locations ::: Ubicaciones ::: Orte
+Disques ::: Drives ::: Discos ::: Laufwerke
+Réseau et Corbeille ::: Network and Recycle Bin ::: Red y Papelera ::: Netzwerk und Papierkorb
+Étiquettes ::: Tags ::: Etiquetas ::: Tags
+Afficher les étiquettes ::: Show tags ::: Mostrar etiquetas ::: Tags anzeigen
+Boutons de la barre d'outils ::: Toolbar buttons ::: Botones de la barra de herramientas ::: Symbolleisten-Schaltflächen
+Modes d'affichage ::: View modes ::: Modos de visualización ::: Darstellungsarten
+Regroupement ::: Grouping ::: Agrupación ::: Gruppierung
+Partage ::: Share ::: Compartir ::: Teilen
+Actions (…) ::: Actions (…) ::: Acciones (…) ::: Aktionen (…)
+Recherche ::: Search ::: Búsqueda ::: Suche
+Astuce : un clic droit sur la barre d'outils ouvre ces réglages. ::: Tip: right-click the toolbar to open these settings. ::: Consejo: haz clic derecho en la barra de herramientas para abrir estos ajustes. ::: Tipp: Rechtsklick auf die Symbolleiste öffnet diese Einstellungen.
+Gestionnaire de dossiers par défaut ::: Default file manager ::: Administrador de carpetas predeterminado ::: Standard-Dateimanager
+Windows Finder ouvre les dossiers (double-clic depuis un autre programme, « Afficher dans le dossier »…). ::: Windows Finder opens folders (double-click from another program, “Show in folder”…). ::: Windows Finder abre las carpetas (doble clic desde otro programa, «Mostrar en la carpeta»…). ::: Windows Finder öffnet Ordner (Doppelklick aus einem anderen Programm, „Im Ordner anzeigen“…).
+Les dossiers s'ouvrent dans l'Explorateur Windows. ::: Folders open in Windows File Explorer. ::: Las carpetas se abren en el Explorador de Windows. ::: Ordner werden im Windows-Explorer geöffnet.
+Rétablir l'Explorateur Windows ::: Restore Windows File Explorer ::: Restablecer el Explorador de Windows ::: Windows-Explorer wiederherstellen
+Définir Windows Finder par défaut ::: Set Windows Finder as default ::: Establecer Windows Finder como predeterminado ::: Windows Finder als Standard festlegen
+Impossible de modifier le registre. ::: Can't modify the registry. ::: No se puede modificar el registro. ::: Die Registrierung kann nicht geändert werden.
+Modifie seulement votre profil (HKEY_CURRENT_USER), sans droits administrateur. Win+E continue d'ouvrir l'Explorateur Windows. ::: Only changes your profile (HKEY_CURRENT_USER), no administrator rights needed. Win+E still opens Windows File Explorer. ::: Solo modifica tu perfil (HKEY_CURRENT_USER), sin derechos de administrador. Win+E sigue abriendo el Explorador de Windows. ::: Ändert nur Ihr Profil (HKEY_CURRENT_USER), keine Administratorrechte nötig. Win+E öffnet weiterhin den Windows-Explorer.
+Menu contextuel de l'Explorateur ::: File Explorer context menu ::: Menú contextual del Explorador ::: Kontextmenü des Explorers
+Ajouter « Ouvrir dans Windows Finder » au clic droit sur un dossier ::: Add “Open in Windows Finder” to the folder right-click menu ::: Añadir «Abrir en Windows Finder» al clic derecho en una carpeta ::: „In Windows Finder öffnen“ zum Rechtsklickmenü von Ordnern hinzufügen
+Fonctionne aussi dans le menu « Afficher plus d'options » de Windows 11. ::: Also works in the Windows 11 “Show more options” menu. ::: También funciona en el menú «Mostrar más opciones» de Windows 11. ::: Funktioniert auch im Windows-11-Menü „Weitere Optionen anzeigen“.
+Afficher les applications système dans « Applications » ::: Show system apps in “Applications” ::: Mostrar aplicaciones del sistema en «Aplicaciones» ::: Systemprogramme unter „Programme“ anzeigen
+Données ::: Data ::: Datos ::: Daten
+Réinitialiser les options d'affichage ::: Reset view options ::: Restablecer opciones de visualización ::: Darstellungsoptionen zurücksetzen
+Options d'affichage réinitialisées. ::: View options reset. ::: Opciones de visualización restablecidas. ::: Darstellungsoptionen zurückgesetzt.
+Réinitialiser tous les réglages ::: Reset all settings ::: Restablecer todos los ajustes ::: Alle Einstellungen zurücksetzen
+Réglages réinitialisés. ::: Settings reset. ::: Ajustes restablecidos. ::: Einstellungen zurückgesetzt.
+Ouvrir le dossier des données ::: Open data folder ::: Abrir la carpeta de datos ::: Datenordner öffnen
+À propos ::: About ::: Acerca de ::: Über
+Windows Finder 0.1.0 — un Finder pour Windows, écrit en Rust. ::: Windows Finder 0.1.0 — a Finder for Windows, written in Rust. ::: Windows Finder 0.1.0: un Finder para Windows, escrito en Rust. ::: Windows Finder 0.1.0 – ein Finder für Windows, geschrieben in Rust.
+Réglages ::: Settings ::: Ajustes ::: Einstellungen
+Musique ::: Music ::: Música ::: Musik
+Vidéos ::: Videos ::: Vídeos ::: Videos
+Accueil ::: Home ::: Inicio ::: Home
+, {0} disponible(s) ::: , {0} available ::: , {0} disponible(s) ::: , {0} verfügbar
+{total} résultat{0} ::: {total} result{0} ::: {total} resultado{0} ::: {total} Ergebnis(se)
+{k} sur {total} sélectionné{0}{free} ::: {k} of {total} selected{free} ::: {k} de {total} seleccionado(s){free} ::: {k} von {total} ausgewählt{free}
+{total} élément{0}{free} ::: {total} item{0}{free} ::: {total} elemento{0}{free} ::: {total} Objekt(e){free}
+Disque local ::: Local Disk ::: Disco local ::: Lokaler Datenträger
+Éjection du disque {letter}: demandée ::: Eject requested for drive {letter}: ::: Expulsión solicitada para la unidad {letter}: ::: Auswerfen von Laufwerk {letter}: angefordert
+Nouvel onglet ::: New Tab ::: Pestaña nueva ::: Neuer Tab
+Dupliquer l'onglet ::: Duplicate Tab ::: Duplicar pestaña ::: Tab duplizieren
+Déplacer vers une nouvelle fenêtre ::: Move Tab to New Window ::: Mover a una ventana nueva ::: In neues Fenster bewegen
+Fermer les autres onglets ::: Close Other Tabs ::: Cerrar las demás pestañas ::: Andere Tabs schließen
+Fermer l'onglet ::: Close Tab ::: Cerrar pestaña ::: Tab schließen
+Rouge ::: Red ::: Rojo ::: Rot
+Orange ::: Orange ::: Naranja ::: Orange
+Jaune ::: Yellow ::: Amarillo ::: Gelb
+Vert ::: Green ::: Verde ::: Grün
+Bleu ::: Blue ::: Azul ::: Blau
+Violet ::: Purple ::: Morado ::: Violett
+Gris ::: Gray ::: Gris ::: Grau
+Rose ::: Pink ::: Rosa ::: Rosa
+Graphite ::: Graphite ::: Grafito ::: Graphit
+Sélectionnez d'abord un élément. ::: Select an item first. ::: Selecciona primero un elemento. ::: Wählen Sie zuerst ein Objekt aus.
+Étiquettes pour « {0} » ::: Tags for “{0}” ::: Etiquetas para «{0}» ::: Tags für „{0}“
+Étiquettes pour {0} éléments ::: Tags for {0} items ::: Etiquetas para {0} elementos ::: Tags für {0} Objekte
+Saisissez un nom puis Entrée pour une étiquette personnalisée. ::: Type a name then Enter for a custom tag. ::: Escribe un nombre y pulsa Intro para una etiqueta personalizada. ::: Namen eingeben und mit der Eingabetaste ein eigenes Tag erstellen.
+Déplacer et redimensionner ::: Move & Resize ::: Mover y cambiar tamaño ::: Bewegen & Größe ändern
+Remplir et organiser ::: Fill & Arrange ::: Rellenar y organizar ::: Füllen & Anordnen
+Plein écran ::: Enter Full Screen ::: Pantalla completa ::: Vollbild
+Un transfert est déjà en cours. ::: A transfer is already in progress. ::: Ya hay una transferencia en curso. ::: Es läuft bereits eine Übertragung.
+copié ::: copied ::: copiado ::: kopiert
+déplacé ::: moved ::: movido ::: verschoben
+Transfert incomplet — {e} ::: Transfer incomplete — {e} ::: Transferencia incompleta — {e} ::: Übertragung unvollständig — {e}
+{0} élément{s} {verb}{s} vers « {dir} » ::: {0} item{s} {verb} to “{dir}” ::: {0} elemento{s} {verb}{s} a «{dir}» ::: {0} Objekt(e) {verb} nach „{dir}“
+Copie ::: Copying ::: Copiando ::: Kopieren
+Déplacement ::: Moving ::: Moviendo ::: Verschieben
+{verb} de « {current} » ({0} sur {total}) ::: {verb} “{current}” ({0} of {total}) ::: {verb} «{current}» ({0} de {total}) ::: {verb} „{current}“ ({0} von {total})
+déplacez ::: are moving ::: estás moviendo ::: verschieben
+Un élément nommé « {0} » existe déjà à cet emplacement. ::: An item named “{0}” already exists in this location. ::: Ya existe un elemento llamado «{0}» en esta ubicación. ::: An diesem Ort existiert bereits ein Objekt namens „{0}“.
+Voulez-vous le remplacer par celui que vous {verb} ? Les deux peuvent aussi être conservés. ::: Do you want to replace it with the one you’re {verb}? You can also keep both. ::: ¿Quieres reemplazarlo por el que estás {verb}? También puedes conservar ambos. ::: Möchten Sie es durch das Objekt ersetzen, das Sie {verb}? Sie können auch beide behalten.
+Appliquer à tous ::: Apply to All ::: Aplicar a todos ::: Auf alle anwenden
+Arrêter ::: Stop ::: Detener ::: Stopp
+Ignorer ::: Skip ::: Omitir ::: Überspringen
+Garder les deux ::: Keep Both ::: Conservar ambos ::: Beide behalten
+Restauration incomplète — {e} ::: Restore incomplete — {e} ::: Restauración incompleta — {e} ::: Wiederherstellung unvollständig — {e}
+{ok} élément(s) remis à leur place ::: {ok} item(s) put back ::: {ok} elemento(s) devuelto(s) a su sitio ::: {ok} Objekt(e) zurückgelegt
+Corbeille vidée ({removed} élément(s) supprimé(s)) ::: Recycle Bin emptied ({removed} item(s) deleted) ::: Papelera vaciada ({removed} elemento(s) eliminado(s)) ::: Papierkorb geleert ({removed} Objekt(e) gelöscht)
+Rien à annuler. ::: Nothing to undo. ::: Nada que deshacer. ::: Nichts zum Widerrufen.
+Annulé : {label} ::: Undone: {label} ::: Deshecho: {label} ::: Widerrufen: {label}
+Annulation impossible — {e} ::: Can't undo — {e} ::: No se puede deshacer — {e} ::: Widerrufen nicht möglich — {e}
+Rien à rétablir. ::: Nothing to redo. ::: Nada que rehacer. ::: Nichts zum Wiederholen.
+renommage de « {0} » ::: rename of “{0}” ::: cambio de nombre de «{0}» ::: Umbenennen von „{0}“
+{0} déplacement(s) ::: {0} move(s) ::: {0} movimiento(s) ::: {0} Verschiebung(en)
+mise à la corbeille ::: move to Recycle Bin ::: mover a la papelera ::: In den Papierkorb legen
+Rétabli : {label} ::: Redone: {label} ::: Rehecho: {label} ::: Wiederholt: {label}
+Rétablissement impossible — {e} ::: Can't redo — {e} ::: No se puede rehacer — {e} ::: Wiederholen nicht möglich — {e}
+« {0} » existe déjà ::: “{0}” already exists ::: «{0}» ya existe ::: „{0}“ ist bereits vorhanden
+{0} élément(s) remis en place ::: {0} item(s) put back ::: {0} elemento(s) devuelto(s) ::: {0} Objekt(e) zurückgelegt
+{0} élément(s) créé(s) ::: {0} item(s) created ::: {0} elemento(s) creado(s) ::: {0} Objekt(e) erstellt
+{0} élément(s) restauré(s) ::: {0} item(s) restored ::: {0} elemento(s) restaurado(s) ::: {0} Objekt(e) wiederhergestellt
+Cet emplacement est en lecture seule. ::: This location is read-only. ::: Esta ubicación es de solo lectura. ::: Dieser Ort ist schreibgeschützt.
+Recherche du programme de désinstallation de « {0} »… ::: Looking for the uninstaller of “{0}”… ::: Buscando el desinstalador de «{0}»… ::: Deinstallationsprogramm von „{0}“ wird gesucht…
+Désinstallation de « {name} » lancée ::: Uninstall of “{name}” started ::: Desinstalación de «{name}» iniciada ::: Deinstallation von „{name}“ gestartet
+Aucun programme de désinstallation pour « {name} » — voir Paramètres > Applications ::: No uninstaller found for “{name}” — see Settings > Apps ::: No hay desinstalador para «{name}»: consulta Configuración > Aplicaciones ::: Kein Deinstallationsprogramm für „{name}“ – siehe Einstellungen > Apps
+Vider la corbeille ? ::: Empty the Recycle Bin? ::: ¿Vaciar la papelera? ::: Papierkorb leeren?
+Désinstaller « {0} » ? ::: Uninstall “{0}”? ::: ¿Desinstalar «{0}»? ::: „{0}“ deinstallieren?
+Les éléments de la corbeille seront supprimés définitivement. Cette action est irréversible. ::: Items in the Recycle Bin will be permanently deleted. This action can't be undone. ::: Los elementos de la papelera se eliminarán definitivamente. Esta acción no se puede deshacer. ::: Die Objekte im Papierkorb werden endgültig gelöscht. Dieser Vorgang kann nicht widerrufen werden.
+Le programme de désinstallation officiel va s'ouvrir et pourra demander une confirmation. ::: The official uninstaller will open and may ask for confirmation. ::: Se abrirá el desinstalador oficial y puede que pida confirmación. ::: Das offizielle Deinstallationsprogramm wird geöffnet und fragt eventuell nach einer Bestätigung.
+Vider ::: Empty ::: Vaciar ::: Leeren
+Désinstaller ::: Uninstall ::: Desinstalar ::: Deinstallieren
+Informations ::: Info ::: Información ::: Informationen
+Langue ::: Language ::: Idioma ::: Sprache
+Linux (WSL) ::: Linux (WSL) ::: Linux (WSL) ::: Linux (WSL)
+Raccourci réseau ::: Network shortcut ::: Acceso directo de red ::: Netzwerkverknüpfung
+Lecteur réseau ::: Network drive ::: Unidad de red ::: Netzlaufwerk
+Disque ::: Drive ::: Disco ::: Laufwerk
+Application ::: Application ::: Aplicación ::: Programm
+Archive ::: Archive ::: Archivo ::: Archiv
+Extrait ::: Extracted ::: Extraído ::: Entpackt
+Options d'affichage, étiquettes et réglages sont dans %APPDATA%\winfinder. ::: View options, tags and settings are in %APPDATA%\winfinder. ::: Las opciones de visualización, etiquetas y ajustes están en %APPDATA%\winfinder. ::: Darstellungsoptionen, Tags und Einstellungen liegen in %APPDATA%\winfinder.
+Documents ::: Documents ::: Documentos ::: Dokumente
+Raccourci réseau ::: Network shortcut ::: Acceso directo de red ::: Netzwerkverknüpfung
+Moins de 100 Ko ::: Under 100 KB ::: Menos de 100 KB ::: Unter 100 KB
+copiez ::: are copying ::: estás copiando ::: kopieren
+Rouvrir l'onglet fermé ::: Reopen Closed Tab ::: Reabrir pestaña cerrada ::: Geschlossenen Tab wieder öffnen
+Aucun onglet fermé à rouvrir. ::: No closed tab to reopen. ::: No hay ninguna pestaña cerrada que reabrir. ::: Kein geschlossener Tab zum Wiederöffnen.
+Nouveau fichier texte ::: New Text File ::: Nuevo archivo de texto ::: Neue Textdatei
+Ouvrir dans le Terminal ::: Open in Terminal ::: Abrir en Terminal ::: Im Terminal öffnen
+Ajouter à la barre latérale ::: Add to Sidebar ::: Añadir a la barra lateral ::: Zur Seitenleiste hinzufügen
+Retirer de la barre latérale ::: Remove from Sidebar ::: Quitar de la barra lateral ::: Aus der Seitenleiste entfernen
+Définir comme fond d'écran ::: Set Desktop Picture ::: Establecer como fondo de escritorio ::: Als Schreibtischhintergrund festlegen
+Sélectionnez d'abord une image. ::: Select an image first. ::: Selecciona primero una imagen. ::: Wählen Sie zuerst ein Bild aus.
+Fond d'écran modifié ::: Desktop picture changed ::: Fondo de escritorio cambiado ::: Schreibtischhintergrund geändert
+Impossible de changer le fond d'écran ::: Can't change the desktop picture ::: No se puede cambiar el fondo de escritorio ::: Schreibtischhintergrund kann nicht geändert werden
+Pivoter à gauche ::: Rotate Left ::: Girar a la izquierda ::: Nach links drehen
+Pivoter à droite ::: Rotate Right ::: Girar a la derecha ::: Nach rechts drehen
+Rotation impossible. ::: Can't rotate. ::: No se puede girar. ::: Drehen nicht möglich.
+Exécuter en tant qu'administrateur ::: Run as Administrator ::: Ejecutar como administrador ::: Als Administrator ausführen
+Plus d'options… ::: More Options… ::: Más opciones… ::: Weitere Optionen…
+Afficher les options d'affichage ::: Show View Options ::: Mostrar opciones de visualización ::: Darstellungsoptionen einblenden
+Vue d'ensemble des onglets ::: Show All Tabs ::: Mostrar todas las pestañas ::: Alle Tabs anzeigen
+Se connecter au serveur… ::: Connect to Server… ::: Conectarse al servidor… ::: Mit Server verbinden…
+Tout sélectionner ::: Select All ::: Seleccionar todo ::: Alles auswählen
+Thème clair ::: Light Theme ::: Tema claro ::: Helles Erscheinungsbild
+Thème sombre ::: Dark Theme ::: Tema oscuro ::: Dunkles Erscheinungsbild
+Thème du système ::: System Theme ::: Tema del sistema ::: Systemerscheinungsbild
+Afficher les fichiers cachés et système ::: Show Hidden and System Files ::: Mostrar archivos ocultos y del sistema ::: Versteckte Dateien und Systemdateien anzeigen
+Aucune commande ::: No commands found ::: Ninguna orden ::: Keine Befehle gefunden
+Rétablir ::: Redo ::: Rehacer ::: Wiederholen
+Annuler la dernière action ::: Undo ::: Deshacer ::: Widerrufen
+Rétablir la dernière action ::: Redo ::: Rehacer ::: Wiederholen
+Retiré de la barre latérale ::: Removed from Sidebar ::: Quitado de la barra lateral ::: Aus der Seitenleiste entfernt

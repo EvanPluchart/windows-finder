@@ -131,7 +131,7 @@ pub fn entries(name: &str) -> Vec<Entry> {
             let is_dir = meta.is_dir();
             let file_name = p.file_name()?.to_string_lossy().into_owned();
             Some(Entry {
-                kind: if is_dir { "Dossier".into() } else { crate::fs::kind_label(p) },
+                kind: if is_dir { crate::i18n::t("Dossier").into() } else { crate::fs::kind_label(p) },
                 name: file_name.into(),
                 path: p.clone(),
                 is_dir,
@@ -184,7 +184,7 @@ impl Finder {
             return;
         }
         if self.selected_paths().is_empty() {
-            self.show_notice("S\u{e9}lectionnez d'abord un \u{e9}l\u{e9}ment.", cx);
+            self.show_notice(crate::i18n::t("S\u{e9}lectionnez d'abord un \u{e9}l\u{e9}ment."), cx);
             return;
         }
         let editor = cx.new(|cx| Editor::new("", true, cx));
@@ -216,8 +216,8 @@ impl Finder {
         let pop = self.tag_pop.as_ref()?;
         let paths = self.selected_paths();
         let title = match paths.as_slice() {
-            [one] => format!("\u{c9}tiquettes pour \u{ab} {} \u{bb}", one.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()),
-            many => format!("\u{c9}tiquettes pour {} \u{e9}l\u{e9}ments", many.len()),
+            [one] => crate::i18n::tf(crate::i18n::t("\u{c9}tiquettes pour \u{ab} {0} \u{bb}"), &[("0", (one.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()).to_string())]),
+            many => crate::i18n::tf(crate::i18n::t("\u{c9}tiquettes pour {0} \u{e9}l\u{e9}ments"), &[("0", (many.len()).to_string())]),
         };
         let rows = PALETTE.iter().enumerate().map(|(i, (name, color, hex))| {
             let on_all = !paths.is_empty() && paths.iter().all(|p| get(p).iter().any(|t| t.name == *name));
@@ -235,7 +235,7 @@ impl Finder {
                 .text_color(rgb(theme::TEXT))
                 .hover(|s| s.bg(rgb(0xe3e3e6)))
                 .child(div().size(px(12.)).rounded_full().bg(rgb(*hex)))
-                .child(div().flex_1().child(*name))
+                .child(div().flex_1().child(crate::i18n::td(name)))
                 .child(div().text_size(px(12.)).text_color(rgb(theme::TEXT_SECONDARY)).child(if on_all { "\u{2713}" } else if on_some { "\u{2212}" } else { "" }))
                 .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                     let paths = this.selected_paths();
@@ -289,7 +289,7 @@ impl Finder {
                             div()
                                 .text_size(px(11.))
                                 .text_color(rgb(theme::TEXT_SECONDARY))
-                                .child("Saisissez un nom puis Entr\u{e9}e pour une \u{e9}tiquette personnalis\u{e9}e."),
+                                .child(crate::i18n::t("Saisissez un nom puis Entr\u{e9}e pour une \u{e9}tiquette personnalis\u{e9}e.")),
                         ),
                 )
                 .into_any_element(),

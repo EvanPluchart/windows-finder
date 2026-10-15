@@ -56,11 +56,11 @@ pub fn kind_label(path: &Path) -> SharedString {
 
 fn kind_of(path: &Path, is_dir: bool) -> SharedString {
     if is_dir {
-        return "Dossier".into();
+        return crate::i18n::t("Dossier").into();
     }
     match extension(path).as_str() {
-        "" => "Document".into(),
-        ext => format!("Fichier {}", ext.to_uppercase()).into(),
+        "" => crate::i18n::t("Document").into(),
+        ext => crate::i18n::tf(crate::i18n::t("Fichier {0}"), &[("0", (ext.to_uppercase()).to_string())]).into(),
     }
 }
 
@@ -75,9 +75,10 @@ pub fn is_virtual(p: &Path) -> bool {
 /// Nom affiche pour un emplacement (titre de fenetre, chemin).
 pub fn display_name(p: &Path) -> String {
     match p.to_str() {
-        Some(APPS) => "Applications".into(),
+        Some(APPS) => crate::i18n::t("Applications").into(),
         Some(PC) => "Ce PC".into(),
-        Some("::trash") => "Corbeille".into(),
+        Some("::trash") => crate::i18n::t("Corbeille").into(),
+        Some("::net") => crate::i18n::t("R\u{e9}seau").into(),
         Some(s) if s.starts_with("::tag:") => s[6..].to_string(),
         _ => p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| p.display().to_string()),
     }
@@ -90,6 +91,9 @@ pub fn read_dir(path: &Path, show_hidden: bool) -> Vec<Entry> {
     }
     if path == Path::new(PC) {
         return crate::apps::drives();
+    }
+    if path == Path::new(crate::netplaces::NET) {
+        return crate::netplaces::entries();
     }
     if path == Path::new(crate::trash::TRASH) {
         return crate::trash::entries();
@@ -182,16 +186,16 @@ pub fn set_group(g: u8) {
 }
 
 fn date_bucket(t: Option<SystemTime>) -> (i64, String) {
-    let Some(t) = t else { return (9, "Inconnu".into()) };
+    let Some(t) = t else { return (9, crate::i18n::t("Inconnu").into()) };
     let d = chrono::DateTime::<chrono::Local>::from(t).date_naive();
     let today = chrono::Local::now().date_naive();
     let days = (today - d).num_days();
     match days {
-        i64::MIN..=0 => (0, "Aujourd'hui".into()),
-        1 => (1, "Hier".into()),
-        2..=7 => (2, "7 derniers jours".into()),
-        8..=30 => (3, "30 derniers jours".into()),
-        _ => (4, "Plus ancien".into()),
+        i64::MIN..=0 => (0, crate::i18n::t("Aujourd'hui").into()),
+        1 => (1, crate::i18n::t("Hier").into()),
+        2..=7 => (2, crate::i18n::t("7 derniers jours").into()),
+        8..=30 => (3, crate::i18n::t("30 derniers jours").into()),
+        _ => (4, crate::i18n::t("Plus ancien").into()),
     }
 }
 
@@ -207,16 +211,16 @@ pub fn group_of(e: &Entry, g: u8) -> (i64, String) {
         4 => date_bucket(e.created),
         5 => {
             if e.is_dir {
-                (0, "Dossiers".into())
+                (0, crate::i18n::t("Dossiers").into())
             } else {
                 match e.size {
-                    0 => (1, "Vide".into()),
-                    1..=99_999 => (2, "Moins de 100 Ko".into()),
-                    100_000..=999_999 => (3, "100 Ko \u{2013} 1 Mo".into()),
-                    1_000_000..=9_999_999 => (4, "1 \u{2013} 10 Mo".into()),
-                    10_000_000..=99_999_999 => (5, "10 \u{2013} 100 Mo".into()),
-                    100_000_000..=999_999_999 => (6, "100 Mo \u{2013} 1 Go".into()),
-                    _ => (7, "Plus de 1 Go".into()),
+                    0 => (1, crate::i18n::t("Vide").into()),
+                    1..=99_999 => (2, crate::i18n::t("Moins de 100 Ko").into()),
+                    100_000..=999_999 => (3, format!("100 {} \u{2013} 1 {}", crate::i18n::unit("Ko"), crate::i18n::unit("Mo")).into()),
+                    1_000_000..=9_999_999 => (4, format!("1 \u{2013} 10 {}", crate::i18n::unit("Mo")).into()),
+                    10_000_000..=99_999_999 => (5, format!("10 \u{2013} 100 {}", crate::i18n::unit("Mo")).into()),
+                    100_000_000..=999_999_999 => (6, format!("100 {} \u{2013} 1 {}", crate::i18n::unit("Mo"), crate::i18n::unit("Go")).into()),
+                    _ => (7, crate::i18n::t("Plus de 1 Go").into()),
                 }
             }
         }
@@ -249,24 +253,24 @@ pub fn resort(entries: &mut [Entry]) {
 
 /// Format decimal comme le Finder (1 Ko = 1000 octets).
 pub fn format_size(entry: &Entry) -> String {
-    if entry.is_dir || entry.kind.as_ref() == "Application" {
+    if entry.is_dir || entry.kind.as_ref() == crate::i18n::t("Application") {
         return "--".into();
     }
     let n = entry.size as f64;
     if n < 1000.0 {
-        format!("{} octets", entry.size)
+        crate::i18n::tf(crate::i18n::t("{0} octets"), &[("0", (entry.size).to_string())])
     } else if n < 1e6 {
-        format!("{:.1} Ko", n / 1e3)
+        crate::i18n::size(n / 1e3, 0, 1)
     } else if n < 1e9 {
-        format!("{:.1} Mo", n / 1e6)
+        crate::i18n::size(n / 1e6, 1, 1)
     } else {
-        format!("{:.2} Go", n / 1e9)
+        crate::i18n::size(n / 1e9, 2, 2)
     }
 }
 
 pub fn format_date(t: Option<SystemTime>) -> String {
     match t {
-        Some(t) => chrono::DateTime::<chrono::Local>::from(t).format("%d/%m/%Y %H:%M").to_string(),
+        Some(t) => chrono::DateTime::<chrono::Local>::from(t).format(crate::i18n::date_format()).to_string(),
         None => "--".into(),
     }
 }
@@ -278,13 +282,13 @@ pub fn format_date_pref(t: Option<SystemTime>, relative: bool) -> String {
     if relative {
         let today = chrono::Local::now().date_naive();
         if d.date_naive() == today {
-            return d.format("Aujourd'hui à %H:%M").to_string();
+            return format!("{} {}", crate::i18n::t("Aujourd'hui"), d.format(crate::i18n::at_time_format()));
         }
         if d.date_naive() == today.pred_opt().unwrap_or(today) {
-            return d.format("Hier à %H:%M").to_string();
+            return format!("{} {}", crate::i18n::t("Hier"), d.format(crate::i18n::at_time_format()));
         }
     }
-    d.format("%d/%m/%Y %H:%M").to_string()
+    d.format(crate::i18n::date_format()).to_string()
 }
 
 pub fn read_text_preview(path: &Path) -> String {

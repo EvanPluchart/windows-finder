@@ -49,7 +49,7 @@ impl Finder {
     /// Lance une copie ou un deplacement de `items` vers le dossier `dest`.
     pub fn start_transfer(&mut self, items: Vec<PathBuf>, dest: PathBuf, mode: Mode, cx: &mut Context<Self>) {
         if self.job.is_some() {
-            self.show_notice("Un transfert est d\u{e9}j\u{e0} en cours.", cx);
+            self.show_notice(crate::i18n::t("Un transfert est d\u{e9}j\u{e0} en cours."), cx);
             return;
         }
         let items: Vec<PathBuf> = items
@@ -156,13 +156,13 @@ impl Finder {
             self.record(crate::undo::Op::Created(job.created.clone()));
         }
         self.reload_select(&job.created);
-        let verb = if job.mode == Mode::Copy { "copi\u{e9}" } else { "d\u{e9}plac\u{e9}" };
+        let verb = if job.mode == Mode::Copy { crate::i18n::t("copi\u{e9}") } else { crate::i18n::t("d\u{e9}plac\u{e9}") };
         let dir = crate::fs::display_name(&job.dest);
         if let Some(e) = job.errors.first() {
-            self.show_notice(format!("Transfert incomplet \u{2014} {e}"), cx);
+            self.show_notice(crate::i18n::tf(crate::i18n::t("Transfert incomplet \u{2014} {e}"), &[("e", (e).to_string())]), cx);
         } else if !job.created.is_empty() {
             let s = if job.created.len() > 1 { "s" } else { "" };
-            self.show_notice(format!("{} \u{e9}l\u{e9}ment{s} {verb}{s} vers \u{ab} {dir} \u{bb}", job.created.len()), cx);
+            self.show_notice(crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ment{s} {verb}{s} vers \u{ab} {dir} \u{bb}"), &[("0", (job.created.len()).to_string()), ("s", (s).to_string()), ("verb", (verb).to_string()), ("dir", (dir).to_string())]), cx);
         }
         cx.notify();
     }
@@ -197,7 +197,7 @@ impl Finder {
         }
         let total = job.items.len();
         let current = job.items.get(job.idx).and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        let verb = if job.mode == Mode::Copy { "Copie" } else { "D\u{e9}placement" };
+        let verb = if job.mode == Mode::Copy { crate::i18n::t("Copie") } else { crate::i18n::t("D\u{e9}placement") };
         let frac = job.idx as f32 / total as f32;
         Some(
             div()
@@ -228,7 +228,7 @@ impl Finder {
                                 .gap(px(8.))
                                 .text_size(px(13.))
                                 .text_color(rgb(theme::TEXT))
-                                .child(crate::views::label(format!("{verb} de \u{ab} {current} \u{bb} ({} sur {total})", job.idx + 1)).flex_1().min_w_0())
+                                .child(crate::views::label(crate::i18n::tf(crate::i18n::t("{verb} de \u{ab} {current} \u{bb} ({0} sur {total})"), &[("verb", (verb).to_string()), ("current", (current).to_string()), ("0", (job.idx + 1).to_string()), ("total", (total).to_string())])).flex_1().min_w_0())
                                 .child(
                                     div()
                                         .id("job-cancel")
@@ -262,7 +262,7 @@ impl Finder {
         let c = self.conflict.as_ref()?;
         let job = self.job.as_ref()?;
         let batch = job.items.len() - job.idx > 1;
-        let verb = if job.mode == Mode::Copy { "copiez" } else { "d\u{e9}placez" };
+        let verb = if job.mode == Mode::Copy { crate::i18n::t("copiez") } else { crate::i18n::t("d\u{e9}placez") };
         let button = |id: &'static str, text: &'static str, primary: bool| {
             div()
                 .id(id)
@@ -305,12 +305,10 @@ impl Finder {
                                 .text_size(px(15.))
                                 .font_weight(gpui::FontWeight::SEMIBOLD)
                                 .text_color(rgb(theme::TEXT))
-                                .child(format!("Un \u{e9}l\u{e9}ment nomm\u{e9} \u{ab} {} \u{bb} existe d\u{e9}j\u{e0} \u{e0} cet emplacement.", c.name)),
+                                .child(crate::i18n::tf(crate::i18n::t("Un \u{e9}l\u{e9}ment nomm\u{e9} \u{ab} {0} \u{bb} existe d\u{e9}j\u{e0} \u{e0} cet emplacement."), &[("0", (c.name).to_string())])),
                         )
                         .child(
-                            div().text_size(px(13.)).text_color(rgb(theme::TEXT_SECONDARY)).child(format!(
-                                "Voulez-vous le remplacer par celui que vous {verb} ? Les deux peuvent aussi \u{ea}tre conserv\u{e9}s."
-                            )),
+                            div().text_size(px(13.)).text_color(rgb(theme::TEXT_SECONDARY)).child(crate::i18n::tf(crate::i18n::t("Voulez-vous le remplacer par celui que vous {verb} ? Les deux peuvent aussi \u{ea}tre conserv\u{e9}s."), &[("verb", (verb).to_string())])),
                         )
                         .when(batch, |d| {
                             d.child(
@@ -332,7 +330,7 @@ impl Finder {
                                             .border_color(rgb(0xb0b0b6))
                                             .when(checked, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(theme::SELECTION_TEXT)).child("\u{2713}")),
                                     )
-                                    .child("Appliquer \u{e0} tous")
+                                    .child(crate::i18n::t("Appliquer \u{e0} tous"))
                                     .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                         if let Some(c) = this.conflict.as_mut() {
                                             c.apply_all = !c.apply_all;
@@ -346,12 +344,12 @@ impl Finder {
                                 .flex()
                                 .justify_end()
                                 .gap(px(8.))
-                                .child(button("cf-stop", "Arr\u{ea}ter", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Stop, cx))))
+                                .child(button("cf-stop", crate::i18n::t("Arr\u{ea}ter"), false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Stop, cx))))
                                 .when(batch, |d| {
-                                    d.child(button("cf-skip", "Ignorer", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Skip, cx))))
+                                    d.child(button("cf-skip", crate::i18n::t("Ignorer"), false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Skip, cx))))
                                 })
-                                .child(button("cf-both", "Garder les deux", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::KeepBoth, cx))))
-                                .child(button("cf-replace", "Remplacer", true).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Replace, cx)))),
+                                .child(button("cf-both", crate::i18n::t("Garder les deux"), false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::KeepBoth, cx))))
+                                .child(button("cf-replace", crate::i18n::t("Remplacer"), true).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Replace, cx)))),
                         ),
                 )
                 .into_any_element(),

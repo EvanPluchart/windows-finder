@@ -1,5 +1,9 @@
 ﻿mod csvview;
 mod apps;
+mod i18n;
+mod extras;
+mod shellmenu;
+mod palette;
 mod editor;
 mod selection;
 mod prefs;
@@ -10,6 +14,7 @@ mod explorer;
 mod symbols;
 mod tree;
 mod trash;
+mod netplaces;
 mod undo;
 mod tags;
 mod transfer;
@@ -51,7 +56,7 @@ actions!(
         MoveUp, MoveDown, MoveLeft, MoveRight, ExtendUp, ExtendDown, OpenSelection, GoParent, GoBack, GoForward,
         ToggleQuickLook, CloseQuickLook, ViewIcons, ViewList, ViewColumns, ViewGallery, ToggleHidden,
         NewFolder, RenameSelection, TrashSelection, CopySelection, CutSelection, PasteSelection, DuplicateSelection,
-        SelectAll, GoToFolder, FocusSearch, Refresh, Dismiss, GetInfo, ShowAllTabs, ConnectServer, NewWindow, UndoOp, RedoOp, OpenSettings, ToggleSidebar, TogglePathBar, ToggleStatusBar, ViewOptions, NewTab, CloseTab, NextTab, PrevTab,
+        SelectAll, GoToFolder, FocusSearch, Refresh, Dismiss, GetInfo, ShowAllTabs, ConnectServer, NewWindow, UndoOp, RedoOp, OpenSettings, ToggleSidebar, TogglePathBar, ToggleStatusBar, ViewOptions, NewTab, CloseTab, NextTab, PrevTab, OpenPalette, ReopenTab, CopyPathAction,
     ]
 );
 
@@ -91,6 +96,7 @@ pub struct Finder {
     pub rename: Option<fileops::Rename>,
     pub menu: Option<overlays::MenuState>,
     pub goto: Option<overlays::GoTo>,
+    pub palette: Option<palette::Palette>,
     pub info: Option<info::InfoState>,
     pub confirm: Option<uninstall::Confirm>,
     pub zoom_dot_hover: bool,
@@ -194,6 +200,7 @@ impl Finder {
             rename: None,
             menu: None,
             goto: None,
+            palette: None,
             info: None,
             confirm: None,
             zoom_dot_hover: false,
@@ -308,16 +315,7 @@ impl Finder {
     /// Clic sur un emplacement de la barre laterale : dossier, emplacement virtuel, ou fenetre de l'Explorateur
     /// pour le reseau et la corbeille.
     pub fn open_place(&mut self, path: PathBuf, cx: &mut Context<Self>) {
-        let shell = match path.to_str() {
-            Some("::net") => Some("shell:NetworkPlacesFolder"),
-            _ => None,
-        };
-        match shell {
-            Some(target) => {
-                let _ = std::process::Command::new("explorer.exe").arg(target).spawn();
-            }
-            None => self.navigate(path, true, cx),
-        }
+        self.navigate(path, true, cx);
     }
 
     pub fn go_back(&mut self, cx: &mut Context<Self>) {
@@ -534,7 +532,7 @@ impl Finder {
         let Some(e) = self.selected_entry().cloned() else { return };
         if e.is_dir {
             if let Err(err) = std::fs::read_dir(&e.path) {
-                self.show_notice(format!("Impossible d'ouvrir \u{ab} {} \u{bb} \u{2014} {err}", e.name), cx);
+                self.show_notice(crate::i18n::tf(crate::i18n::t("Impossible d'ouvrir \u{ab} {0} \u{bb} \u{2014} {err}"), &[("0", (e.name).to_string()), ("err", (err).to_string())]), cx);
                 return;
             }
             self.navigate(e.path, true, cx);
@@ -663,6 +661,9 @@ impl Render for Finder {
                 cx.notify();
             }))
             .on_action(cx.listener(|this, _: &ViewOptions, _, cx| this.toggle_view_options(cx)))
+            .on_action(cx.listener(|this, _: &OpenPalette, window, cx| this.open_palette(window, cx)))
+            .on_action(cx.listener(|this, _: &ReopenTab, _, cx| this.reopen_closed_tab(cx)))
+            .on_action(cx.listener(|this, _: &CopyPathAction, _, cx| this.copy_path(cx)))
             .on_action(cx.listener(|this, _: &NewTab, _, cx| this.new_tab(None, cx)))
             .on_action(cx.listener(|this, _: &CloseTab, window, cx| {
                 let i = this.active_tab;
@@ -756,6 +757,7 @@ impl Render for Finder {
             .children(self.render_zoom_menu(cx))
             .children(self.render_menu(window, cx))
             .children(self.render_goto(cx))
+            .children(self.render_palette(cx))
             .children(self.render_info(cx))
             .children(self.render_confirm(cx))
             .children(self.render_all_tabs(cx))
@@ -779,6 +781,7 @@ fn main() {
     } else {
         None
     };
+    crate::i18n::apply();
     settings::apply_theme();
     if let Some(dark) = forced {
         theme::set_dark(dark);
@@ -824,6 +827,9 @@ fn main() {
             KeyBinding::new("ctrl-alt-p", TogglePathBar, Some("Finder")),
             KeyBinding::new("ctrl-alt-b", ToggleStatusBar, Some("Finder")),
             KeyBinding::new("ctrl-j", ViewOptions, Some(FIN)),
+            KeyBinding::new("ctrl-shift-p", OpenPalette, Some("Finder")),
+            KeyBinding::new("ctrl-shift-t", ReopenTab, Some("Finder")),
+            KeyBinding::new("ctrl-shift-c", CopyPathAction, Some(FIN)),
             KeyBinding::new("ctrl-t", NewTab, Some("Finder")),
             KeyBinding::new("ctrl-w", CloseTab, Some("Finder")),
             KeyBinding::new("ctrl-tab", NextTab, Some("Finder")),

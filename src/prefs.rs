@@ -308,12 +308,12 @@ impl Finder {
 
         let group_seg = {
             let items: Vec<(&'static str, bool, u8)> = vec![
-                ("Aucun", p.group == 0, 0),
-                ("Nom", p.group == 1, 1),
-                ("Type", p.group == 2, 2),
-                ("Modif.", p.group == 3, 3),
-                ("Cr\u{e9}\u{e9}", p.group == 4, 4),
-                ("Taille", p.group == 5, 5),
+                (crate::i18n::t("Aucun"), p.group == 0, 0),
+                (crate::i18n::t("Nom"), p.group == 1, 1),
+                (crate::i18n::t("Type"), p.group == 2, 2),
+                (crate::i18n::t("Modif."), p.group == 3, 3),
+                (crate::i18n::t("Cr\u{e9}\u{e9}"), p.group == 4, 4),
+                (crate::i18n::t("Taille"), p.group == 5, 5),
             ];
             div().flex().p(px(2.)).rounded(px(8.)).bg(rgb(0xe9e9ec)).children(items.into_iter().map(|(label, on, code)| {
                 div()
@@ -334,17 +334,17 @@ impl Finder {
         let sort_seg = seg(
             "vo-sort",
             vec![
-                ("Nom", p.sort == 0, 0),
-                ("Type", p.sort == 3, 3),
-                ("Modif.", p.sort == 1, 1),
-                ("Cr\u{e9}\u{e9}", p.sort == 4, 4),
-                ("Taille", p.sort == 2, 2),
+                (crate::i18n::t("Nom"), p.sort == 0, 0),
+                (crate::i18n::t("Type"), p.sort == 3, 3),
+                (crate::i18n::t("Modif."), p.sort == 1, 1),
+                (crate::i18n::t("Cr\u{e9}\u{e9}"), p.sort == 4, 4),
+                (crate::i18n::t("Taille"), p.sort == 2, 2),
             ],
             cx,
         );
-        let asc_check = check("vo-asc", "Ordre croissant", p.asc, cx, |p| p.asc = !p.asc);
+        let asc_check = check("vo-asc", crate::i18n::t("Ordre croissant"), p.asc, cx, |p| p.asc = !p.asc);
 
-        let mut body = div().flex().flex_col().gap(px(10.)).child(header("Regrouper par")).child(group_seg).child(header("Trier par")).child(sort_seg).child(asc_check).child(rule());
+        let mut body = div().flex().flex_col().gap(px(10.)).child(header(crate::i18n::t("Regrouper par"))).child(group_seg).child(header(crate::i18n::t("Trier par"))).child(sort_seg).child(asc_check).child(rule());
 
         match view {
             ViewMode::Icons => {
@@ -352,36 +352,36 @@ impl Finder {
                 let spaces = [0u32, 1, 2, 3];
                 let texts = [10u32, 11, 12, 13, 14, 16];
                 body = body
-                    .child(header("Taille des ic\u{f4}nes"))
+                    .child(header(crate::i18n::t("Taille des ic\u{f4}nes")))
                     .child(div().text_size(px(13.)).text_color(rgb(theme::TEXT)).child(format!("{0}\u{d7}{0}", p.icon_size)))
                     .child(slider("vo-size", sizes.iter().map(|&s| (s, s == p.icon_size as u32)).collect(), cx, |p, v| p.icon_size = v as u16))
-                    .child(header("Espacement de la grille"))
+                    .child(header(crate::i18n::t("Espacement de la grille")))
                     .child(slider("vo-space", spaces.iter().map(|&s| (s, s == p.spacing as u32)).collect(), cx, |p, v| p.spacing = v as u8))
-                    .child(header("Taille du texte"))
+                    .child(header(crate::i18n::t("Taille du texte")))
                     .child(slider("vo-text", texts.iter().map(|&s| (s, s == p.text as u32)).collect(), cx, |p, v| p.text = v as u8))
                     .child(rule())
-                    .child(check("vo-info", "Afficher les infos des \u{e9}l\u{e9}ments", p.item_info, cx, |p| p.item_info = !p.item_info));
+                    .child(check("vo-info", crate::i18n::t("Afficher les infos des \u{e9}l\u{e9}ments"), p.item_info, cx, |p| p.item_info = !p.item_info));
             }
             ViewMode::List => {
                 let texts = [11u32, 12, 13, 14, 16];
                 body = body
-                    .child(header("Taille du texte"))
+                    .child(header(crate::i18n::t("Taille du texte")))
                     .child(slider("vo-text", texts.iter().map(|&s| (s, s == p.text as u32)).collect(), cx, |p, v| p.text = v as u8))
-                    .child(header("Afficher les colonnes"))
-                    .child(check("vo-cm", "Date de modification", p.col_modified, cx, |p| p.col_modified = !p.col_modified))
-                    .child(check("vo-cc", "Date de cr\u{e9}ation", p.col_created, cx, |p| p.col_created = !p.col_created))
-                    .child(check("vo-cs", "Taille", p.col_size, cx, |p| p.col_size = !p.col_size))
-                    .child(check("vo-ck", "Type", p.col_kind, cx, |p| p.col_kind = !p.col_kind))
+                    .child(header(crate::i18n::t("Afficher les colonnes")))
+                    .child(check("vo-cm", crate::i18n::t("Date de modification"), p.col_modified, cx, |p| p.col_modified = !p.col_modified))
+                    .child(check("vo-cc", crate::i18n::t("Date de cr\u{e9}ation"), p.col_created, cx, |p| p.col_created = !p.col_created))
+                    .child(check("vo-cs", crate::i18n::t("Taille"), p.col_size, cx, |p| p.col_size = !p.col_size))
+                    .child(check("vo-ck", crate::i18n::t("Type"), p.col_kind, cx, |p| p.col_kind = !p.col_kind))
                     .child(rule())
-                    .child(check("vo-rel", "Utiliser les dates relatives", p.rel_dates, cx, |p| p.rel_dates = !p.rel_dates));
+                    .child(check("vo-rel", crate::i18n::t("Utiliser les dates relatives"), p.rel_dates, cx, |p| p.rel_dates = !p.rel_dates));
             }
             _ => {
                 let texts = [11u32, 12, 13, 14, 16];
                 body = body
-                    .child(header("Taille du texte"))
+                    .child(header(crate::i18n::t("Taille du texte")))
                     .child(slider("vo-text", texts.iter().map(|&s| (s, s == p.text as u32)).collect(), cx, |p, v| p.text = v as u8))
                     .child(rule())
-                    .child(check("vo-preview", "Afficher le volet d'aper\u{e7}u", p.preview, cx, |p| p.preview = !p.preview));
+                    .child(check("vo-preview", crate::i18n::t("Afficher le volet d'aper\u{e7}u"), p.preview, cx, |p| p.preview = !p.preview));
             }
         }
 
@@ -424,7 +424,7 @@ impl Finder {
                             .text_size(px(13.))
                             .font_weight(gpui::FontWeight::SEMIBOLD)
                             .text_color(rgb(theme::TEXT))
-                            .child(format!("Options \u{2014} {name}")),
+                            .child(crate::i18n::tf(crate::i18n::t("Options \u{2014} {name}"), &[("name", (name).to_string())])),
                     )
                     .child(
                         div()
@@ -448,16 +448,16 @@ impl Finder {
                     .flex()
                     .gap(px(8.))
                     .child(
-                        button("vo-default", "Par d\u{e9}faut")
+                        button("vo-default", crate::i18n::t("Par d\u{e9}faut"))
                             .flex_1()
                             .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                 this.prefs.defaults = this.eff();
                                 this.prefs.save();
-                                this.show_notice("Options enregistr\u{e9}es comme valeurs par d\u{e9}faut.", cx);
+                                this.show_notice(crate::i18n::t("Options enregistr\u{e9}es comme valeurs par d\u{e9}faut."), cx);
                             })),
                     )
                     .child(
-                        button("vo-restore", "Restaurer")
+                        button("vo-restore", crate::i18n::t("Restaurer"))
                             .flex_1()
                             .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                 this.prefs.folders.remove(&this.cwd);

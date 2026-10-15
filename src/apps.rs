@@ -118,7 +118,7 @@ pub fn entries() -> Vec<Entry> {
                     modified: meta.modified().ok(),
                     created: meta.created().ok(),
                 depth: 0,
-                    kind: "Application".into(),
+                    kind: crate::i18n::t("Application").into(),
                     hint: None,
                 });
             }
@@ -143,7 +143,7 @@ pub fn drives() -> Vec<Entry> {
                     modified: None::<SystemTime>,
                     created: None,
                     depth: 0,
-                    kind: "Disque".into(),
+                    kind: crate::i18n::t("Disque").into(),
                     hint: None,
                 }
             })

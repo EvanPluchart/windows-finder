@@ -59,7 +59,7 @@ impl Finder {
             return;
         }
         let Some(op) = self.undo_stack.pop() else {
-            self.show_notice("Rien \u{e0} annuler.", cx);
+            self.show_notice(crate::i18n::t("Rien \u{e0} annuler."), cx);
             return;
         };
         self.commit_rename(cx);
@@ -69,9 +69,9 @@ impl Finder {
                     self.redo_stack.push(op);
                 }
                 self.reload_select(&select);
-                self.show_notice(format!("Annul\u{e9} : {label}"), cx);
+                self.show_notice(crate::i18n::tf(crate::i18n::t("Annul\u{e9} : {label}"), &[("label", (label).to_string())]), cx);
             }
-            Err(e) => self.show_notice(format!("Annulation impossible \u{2014} {e}"), cx),
+            Err(e) => self.show_notice(crate::i18n::tf(crate::i18n::t("Annulation impossible \u{2014} {e}"), &[("e", (e).to_string())]), cx),
         }
         cx.notify();
     }
@@ -81,11 +81,11 @@ impl Finder {
             return;
         }
         let Some(op) = self.redo_stack.pop() else {
-            self.show_notice("Rien \u{e0} r\u{e9}tablir.", cx);
+            self.show_notice(crate::i18n::t("Rien \u{e0} r\u{e9}tablir."), cx);
             return;
         };
         let result: Result<(String, Vec<PathBuf>), String> = match &op {
-            Op::Rename { from, to } => std::fs::rename(from, to).map(|_| (format!("renommage de \u{ab} {} \u{bb}", name(from)), vec![to.clone()])).map_err(|e| e.to_string()),
+            Op::Rename { from, to } => std::fs::rename(from, to).map(|_| (crate::i18n::tf(crate::i18n::t("renommage de \u{ab} {0} \u{bb}"), &[("0", (name(from)).to_string())]), vec![to.clone()])).map_err(|e| e.to_string()),
             Op::Moves(pairs) => (|| {
                 let mut sel = Vec::new();
                 for (from, to) in pairs {
@@ -93,18 +93,18 @@ impl Finder {
                     crate::tags::rename_path(from, to);
                     sel.push(to.clone());
                 }
-                Ok((format!("{} d\u{e9}placement(s)", pairs.len()), sel))
+                Ok((crate::i18n::tf(crate::i18n::t("{0} d\u{e9}placement(s)"), &[("0", (pairs.len()).to_string())]), sel))
             })(),
-            Op::Trashed(paths) => ops::trash(paths).map(|_| ("mise \u{e0} la corbeille".to_string(), Vec::new())),
+            Op::Trashed(paths) => ops::trash(paths).map(|_| (crate::i18n::t("mise \u{e0} la corbeille").to_string(), Vec::new())),
             Op::Created(_) => Err("non r\u{e9}tablissable".into()),
         };
         match result {
             Ok((label, select)) => {
                 self.undo_stack.push(op);
                 self.reload_select(&select);
-                self.show_notice(format!("R\u{e9}tabli : {label}"), cx);
+                self.show_notice(crate::i18n::tf(crate::i18n::t("R\u{e9}tabli : {label}"), &[("label", (label).to_string())]), cx);
             }
-            Err(e) => self.show_notice(format!("R\u{e9}tablissement impossible \u{2014} {e}"), cx),
+            Err(e) => self.show_notice(crate::i18n::tf(crate::i18n::t("R\u{e9}tablissement impossible \u{2014} {e}"), &[("e", (e).to_string())]), cx),
         }
         cx.notify();
     }
@@ -113,31 +113,31 @@ impl Finder {
         match op {
             Op::Rename { from, to } => {
                 if from.exists() && from.to_string_lossy().to_lowercase() != to.to_string_lossy().to_lowercase() {
-                    return Err(format!("\u{ab} {} \u{bb} existe d\u{e9}j\u{e0}", name(from)));
+                    return Err(crate::i18n::tf(crate::i18n::t("\u{ab} {0} \u{bb} existe d\u{e9}j\u{e0}"), &[("0", (name(from)).to_string())]));
                 }
                 std::fs::rename(to, from).map_err(|e| e.to_string())?;
                 crate::tags::rename_path(to, from);
-                Ok((format!("renommage de \u{ab} {} \u{bb}", name(from)), vec![from.clone()]))
+                Ok((crate::i18n::tf(crate::i18n::t("renommage de \u{ab} {0} \u{bb}"), &[("0", (name(from)).to_string())]), vec![from.clone()]))
             }
             Op::Moves(pairs) => {
                 let mut sel = Vec::new();
                 for (from, to) in pairs {
                     if from.exists() {
-                        return Err(format!("\u{ab} {} \u{bb} existe d\u{e9}j\u{e0}", name(from)));
+                        return Err(crate::i18n::tf(crate::i18n::t("\u{ab} {0} \u{bb} existe d\u{e9}j\u{e0}"), &[("0", (name(from)).to_string())]));
                     }
                     ops::move_path(to, from).map_err(|e| e.to_string())?;
                     crate::tags::rename_path(to, from);
                     sel.push(from.clone());
                 }
-                Ok((format!("{} \u{e9}l\u{e9}ment(s) remis en place", pairs.len()), sel))
+                Ok((crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ment(s) remis en place"), &[("0", (pairs.len()).to_string())]), sel))
             }
             Op::Created(paths) => {
                 ops::trash(paths)?;
-                Ok((format!("{} \u{e9}l\u{e9}ment(s) cr\u{e9}\u{e9}(s)", paths.len()), Vec::new()))
+                Ok((crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ment(s) cr\u{e9}\u{e9}(s)"), &[("0", (paths.len()).to_string())]), Vec::new()))
             }
             Op::Trashed(paths) => {
                 restore_from_bin(paths)?;
-                Ok((format!("{} \u{e9}l\u{e9}ment(s) restaur\u{e9}(s)", paths.len()), paths.clone()))
+                Ok((crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ment(s) restaur\u{e9}(s)"), &[("0", (paths.len()).to_string())]), paths.clone()))
             }
         }
     }

@@ -53,7 +53,7 @@ impl Render for DragView {
                     .text_color(rgb(0xfffffe))
                     .text_size(px(13.))
                     .child(if self.count > 1 {
-                        format!("{} \u{e9}l\u{e9}ments", self.count)
+                        crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ments"), &[("0", (self.count).to_string())])
                     } else {
                         self.label.to_string()
                     }),

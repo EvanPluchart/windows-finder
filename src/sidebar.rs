@@ -28,36 +28,41 @@ pub enum Place {
 pub fn default_places() -> Vec<Place> {
     let home = crate::fs::home_dir();
     let item = |name: &str, glyph: &'static str, path: PathBuf| Place::Item { name: name.to_string().into(), glyph, path };
-    let mut places = vec![Place::Header("Favoris".into())];
+    let mut places = vec![Place::Header(crate::i18n::t("Favoris").into())];
     let recent = std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("Microsoft/Windows/Recent"));
     if let Some(r) = recent.filter(|r| r.is_dir() && crate::settings::sidebar_on("recents")) {
-        places.push(item("R\u{e9}cents", "clock", r));
+        places.push(item(crate::i18n::t("R\u{e9}cents"), "clock", r));
     }
     if crate::settings::sidebar_on("apps") {
-        places.push(item("Applications", "applications", PathBuf::from(crate::fs::APPS)));
+        places.push(item(crate::i18n::t("Applications"), "applications", PathBuf::from(crate::fs::APPS)));
     }
     let on = crate::settings::sidebar_on;
     if on("desktop") {
-        places.push(item("Bureau", "menubar.dock.rectangle", home.join("Desktop")));
+        places.push(item(crate::i18n::t("Bureau"), "menubar.dock.rectangle", home.join("Desktop")));
     }
     if on("docs") {
-        places.push(item("Documents", "doc", home.join("Documents")));
+        places.push(item(crate::i18n::t("Documents"), "doc", home.join(crate::i18n::t("Documents"))));
     }
     if on("downloads") {
-        places.push(item("T\u{e9}l\u{e9}chargements", "arrow.down.circle", home.join("Downloads")));
+        places.push(item(crate::i18n::t("T\u{e9}l\u{e9}chargements"), "arrow.down.circle", home.join("Downloads")));
     }
     if on("media") {
-        places.push(item("Images", "photo", home.join("Pictures")));
-        places.push(item("Musique", "music.note", home.join("Music")));
-        places.push(item("Vid\u{e9}os", "video", home.join("Videos")));
+        places.push(item(crate::i18n::t("Images"), "photo", home.join("Pictures")));
+        places.push(item(crate::i18n::t("Musique"), "music.note", home.join("Music")));
+        places.push(item(crate::i18n::t("Vid\u{e9}os"), "video", home.join("Videos")));
     }
 
-    places.push(Place::Header("Emplacements".into()));
+    for p in crate::extras::pins() {
+        let name = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| p.display().to_string());
+        places.push(item(&name, "folder", p));
+    }
+
+    places.push(Place::Header(crate::i18n::t("Emplacements").into()));
     let onedrive = home.join("OneDrive");
     if onedrive.is_dir() && on("cloud") {
         places.push(item("OneDrive", "icloud", onedrive));
     }
-    let user = home.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "Accueil".into());
+    let user = home.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| crate::i18n::t("Accueil").into());
     if on("home") {
         places.push(item(&user, "house", home.clone()));
     }
@@ -72,16 +77,21 @@ pub fn default_places() -> Vec<Place> {
             places.push(item(&label, if removable { "externaldrive" } else { "internaldrive" }, root));
         }
     }
+    if on("wsl") {
+        for d in crate::netplaces::wsl_distros() {
+            places.push(item(d, "folder", crate::netplaces::wsl_path(d)));
+        }
+    }
     if crate::settings::sidebar_on("net") {
-        places.push(item("R\u{e9}seau", "globe", PathBuf::from("::net")));
-        places.push(item("Corbeille", "trash", PathBuf::from("::trash")));
+        places.push(item(crate::i18n::t("R\u{e9}seau"), "globe", PathBuf::from("::net")));
+        places.push(item(crate::i18n::t("Corbeille"), "trash", PathBuf::from("::trash")));
     }
 
     if crate::settings::sidebar_on("tags") {
-        places.push(Place::Header("\u{c9}tiquettes".into()));
+        places.push(Place::Header(crate::i18n::t("\u{c9}tiquettes").into()));
         for (name, _, hex) in crate::tags::PALETTE {
             let glyph: &'static str = Box::leak(format!("dot:{hex:06x}").into_boxed_str());
-            places.push(item(name, glyph, PathBuf::from(format!("::tag:{name}"))));
+            places.push(item(&crate::i18n::td(name), glyph, PathBuf::from(format!("::tag:{name}"))));
         }
     }
     places
@@ -96,7 +106,7 @@ fn free_space(path: &Path) -> Option<u64> {
 }
 
 fn format_gb(bytes: u64) -> String {
-    format!("{:.2} Go", bytes as f64 / 1e9).replace('.', ",")
+    crate::i18n::size(bytes as f64 / 1e9, 2, 2)
 }
 
 impl Finder {
@@ -180,6 +190,15 @@ impl Finder {
                         }
                     }))
                     .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.open_place(target.clone(), cx)))
+                    .on_mouse_down(MouseButton::Right, cx.listener({
+                        let target = path.clone();
+                        move |this, _, _, cx| {
+                            if crate::extras::pins().contains(&target) {
+                                this.unpin(&target, cx);
+                                this.show_notice(crate::i18n::t("Retir\u{e9} de la barre lat\u{e9}rale"), cx);
+                            }
+                        }
+                    }))
                     .on_mouse_down(MouseButton::Middle, cx.listener({
                         let target = path.clone();
                         move |this, _, _, cx| {
@@ -274,16 +293,16 @@ impl Finder {
         });
 
         let total = self.entries.len();
-        let free = free_space(&self.cwd).map(|b| format!(", {} disponible(s)", format_gb(b))).unwrap_or_default();
+        let free = free_space(&self.cwd).map(|b| crate::i18n::tf(crate::i18n::t(", {0} disponible(s)"), &[("0", (format_gb(b)).to_string())])).unwrap_or_default();
         let status = match self.selected_entry() {
             _ if self.search_query().is_some() => {
-                format!("{total} r\u{e9}sultat{}", if total > 1 { "s" } else { "" })
+                crate::i18n::tf(crate::i18n::t("{total} r\u{e9}sultat{0}"), &[("total", (total).to_string()), ("0", (if total > 1 { "s" } else { "" }).to_string())])
             }
             Some(_) => {
                 let k = self.marked.len().max(1);
-                format!("{k} sur {total} s\u{e9}lectionn\u{e9}{}{free}", if k > 1 { "s" } else { "" })
+                crate::i18n::tf(crate::i18n::t("{k} sur {total} s\u{e9}lectionn\u{e9}{0}{free}"), &[("k", (k).to_string()), ("total", (total).to_string()), ("0", (if k > 1 { "s" } else { "" }).to_string()), ("free", (free).to_string())])
             }
-            None => format!("{total} \u{e9}l\u{e9}ment{}{free}", if total > 1 { "s" } else { "" }),
+            None => crate::i18n::tf(crate::i18n::t("{total} \u{e9}l\u{e9}ment{0}{free}"), &[("total", (total).to_string()), ("0", (if total > 1 { "s" } else { "" }).to_string()), ("free", (free).to_string())]),
         };
 
         div()
@@ -355,7 +374,7 @@ pub fn drive_info(root: &Path) -> (String, bool) {
     let kind = unsafe { GetDriveTypeW(PCWSTR(wide.as_ptr())) };
     let removable = kind == 2 || kind == 5;
     let text = String::from_utf16_lossy(&label).trim_end_matches('\0').to_string();
-    let name = if ok && !text.is_empty() { text } else { "Disque local".to_string() };
+    let name = if ok && !text.is_empty() { text } else { crate::i18n::t("Disque local").to_string() };
     (format!("{name} ({letter}:)"), removable)
 }
 
@@ -369,7 +388,7 @@ impl Finder {
             .args(["-NoProfile", "-NonInteractive", "-Command", &script])
             .creation_flags(0x0800_0000)
             .spawn();
-        self.show_notice(format!("\u{c9}jection du disque {letter}: demand\u{e9}e"), cx);
+        self.show_notice(crate::i18n::tf(crate::i18n::t("\u{c9}jection du disque {letter}: demand\u{e9}e"), &[("letter", (letter).to_string())]), cx);
         // La liste des disques est relue peu apres.
         self.places = default_places();
         cx.notify();

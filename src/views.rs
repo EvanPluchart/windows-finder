@@ -157,7 +157,7 @@ impl Finder {
                     .items_center()
                     .border_b_1()
                     .border_color(rgb(theme::SEPARATOR))
-                    .child(head("Nom", SortKey::Name, cx).flex_1().min_w_0().pl(px(NAME_INDENT)))
+                    .child(head(crate::i18n::t("Nom"), SortKey::Name, cx).flex_1().min_w_0().pl(px(NAME_INDENT)))
                     .children({
                         // Filets verticaux entre les colonnes, de la droite vers la gauche.
                         let mut off = ROW_MARGIN;
@@ -170,10 +170,10 @@ impl Finder {
                         }
                         seps
                     })
-                    .when(pr.col_modified, |d| d.child(head("Date de modification", SortKey::Modified, cx).w(px(COL_DATE)).flex_none().px_2()))
-                    .when(pr.col_created, |d| d.child(head("Date de création", SortKey::Created, cx).w(px(COL_DATE)).flex_none().px_2()))
-                    .when(pr.col_size, |d| d.child(head("Taille", SortKey::Size, cx).w(px(COL_SIZE)).flex_none().px_2().justify_end()))
-                    .when(pr.col_kind, |d| d.child(head("Type", SortKey::Kind, cx).w(px(COL_KIND)).flex_none().px_2())),
+                    .when(pr.col_modified, |d| d.child(head(crate::i18n::t("Date de modification"), SortKey::Modified, cx).w(px(COL_DATE)).flex_none().px_2()))
+                    .when(pr.col_created, |d| d.child(head(crate::i18n::t("Date de création"), SortKey::Created, cx).w(px(COL_DATE)).flex_none().px_2()))
+                    .when(pr.col_size, |d| d.child(head(crate::i18n::t("Taille"), SortKey::Size, cx).w(px(COL_SIZE)).flex_none().px_2().justify_end()))
+                    .when(pr.col_kind, |d| d.child(head(crate::i18n::t("Type"), SortKey::Kind, cx).w(px(COL_KIND)).flex_none().px_2())),
             )
             .child(self.background_handlers(
                 div().flex_1().min_h_0().on_drop(cx.listener(|this, p: &gpui::ExternalPaths, window, cx| {
@@ -367,7 +367,7 @@ impl Finder {
                 })
                 .when(pr.item_info, |d| {
                     d.child(
-                        div().text_size(px((pr.text as f32 - 2.0).max(9.0))).text_color(rgb(theme::TEXT_SECONDARY)).child(if e.is_dir { SharedString::from("Dossier") } else { SharedString::from(fs::format_size(e)) }),
+                        div().text_size(px((pr.text as f32 - 2.0).max(9.0))).text_color(rgb(theme::TEXT_SECONDARY)).child(if e.is_dir { SharedString::from(crate::i18n::t("Dossier")) } else { SharedString::from(fs::format_size(e)) }),
                     )
                 })
                 .on_drag(drag, |d, off, _, cx| cx.new(|_| d.view(off)))
@@ -538,8 +538,8 @@ impl Finder {
                     .text_color(rgb(theme::TEXT_SECONDARY))
                     .child(format!("{} \u{2014} {}", e.kind, fs::format_size(e))),
             )
-            .child(div().pt(px(10.)).font_weight(gpui::FontWeight::SEMIBOLD).child("Informations"))
-            .child(info_row("Modifi\u{e9}", fs::format_date(e.modified)))
+            .child(div().pt(px(10.)).font_weight(gpui::FontWeight::SEMIBOLD).child(crate::i18n::t("Informations")))
+            .child(info_row(crate::i18n::t("Modifi\u{e9}"), fs::format_date(e.modified)))
     }
 
     pub fn render_gallery(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -639,8 +639,8 @@ impl Finder {
                                 ),
                         ),
                 )
-                .child(div().pt(px(10.)).font_weight(gpui::FontWeight::SEMIBOLD).child("Informations"))
-                .child(info_row("Modifi\u{e9}", fs::format_date(e.modified)))
+                .child(div().pt(px(10.)).font_weight(gpui::FontWeight::SEMIBOLD).child(crate::i18n::t("Informations")))
+                .child(info_row(crate::i18n::t("Modifi\u{e9}"), fs::format_date(e.modified)))
         });
 
         div()

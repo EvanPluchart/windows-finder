@@ -87,6 +87,9 @@ impl Finder {
             window.remove_window();
             return;
         }
+        if let Some(t) = self.tabs.get(idx).filter(|t| !crate::fs::is_virtual(&t.cwd)) {
+            crate::extras::remember_closed(t.cwd.clone(), t.view);
+        }
         if idx == self.active_tab {
             self.tabs.remove(idx);
             self.active_tab = idx.min(self.tabs.len() - 1);
@@ -274,19 +277,19 @@ impl Finder {
                         .border_color(rgb(0xd9d9de))
                         .shadow_lg()
                         .occlude()
-                        .child(item("tm-new", "Nouvel onglet", true, cx, |t, _, _, cx| t.new_tab(None, cx)))
-                        .child(item("tm-dup", "Dupliquer l'onglet", true, cx, |t, i, _, cx| {
+                        .child(item("tm-new", crate::i18n::t("Nouvel onglet"), true, cx, |t, _, _, cx| t.new_tab(None, cx)))
+                        .child(item("tm-dup", crate::i18n::t("Dupliquer l'onglet"), true, cx, |t, i, _, cx| {
                             let p = if i == t.active_tab { t.cwd.clone() } else { t.tabs[i].cwd.clone() };
                             t.new_tab(Some(p), cx)
                         }))
-                        .child(item("tm-move", "D\u{e9}placer vers une nouvelle fen\u{ea}tre", many, cx, |t, i, window, cx| {
+                        .child(item("tm-move", crate::i18n::t("D\u{e9}placer vers une nouvelle fen\u{ea}tre"), many, cx, |t, i, window, cx| {
                             let p = if i == t.active_tab { t.cwd.clone() } else { t.tabs[i].cwd.clone() };
                             cx.defer(move |app| {
                                 crate::open_finder_window(app, Some(p));
                             });
                             t.close_tab(i, window, cx);
                         }))
-                        .child(item("tm-others", "Fermer les autres onglets", many, cx, |t, i, _, cx| {
+                        .child(item("tm-others", crate::i18n::t("Fermer les autres onglets"), many, cx, |t, i, _, cx| {
                             t.switch_tab(i, cx);
                             let keep = t.tabs[t.active_tab].clone();
                             let _ = keep;
@@ -296,7 +299,7 @@ impl Finder {
                             t.active_tab = 0;
                             cx.notify();
                         }))
-                        .child(item("tm-close", "Fermer l'onglet", true, cx, |t, i, window, cx| t.close_tab(i, window, cx))),
+                        .child(item("tm-close", crate::i18n::t("Fermer l'onglet"), true, cx, |t, i, window, cx| t.close_tab(i, window, cx))),
                 )
                 .into_any_element(),
         )

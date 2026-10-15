@@ -47,6 +47,9 @@ impl Finder {
     }
 
     pub fn copy_selection(&mut self, cut: bool, cx: &mut Context<Self>) {
+        if cut && self.read_only_place(cx) {
+            return;
+        }
         let paths = self.selected_paths();
         if paths.is_empty() {
             return;
@@ -65,6 +68,9 @@ impl Finder {
     }
 
     pub fn paste(&mut self, cx: &mut Context<Self>) {
+        if self.read_only_place(cx) {
+            return;
+        }
         // Le presse-papiers Windows fait foi (fichiers copies depuis l'Explorateur compris).
         let system = crate::syscb::get_files();
         let internal = self.clipboard.take();
@@ -115,6 +121,9 @@ impl Finder {
     }
 
     pub fn duplicate(&mut self, cx: &mut Context<Self>) {
+        if self.read_only_place(cx) {
+            return;
+        }
         let mut created = Vec::new();
         let mut errors = Vec::new();
         for src in self.selected_paths() {
@@ -137,6 +146,9 @@ impl Finder {
     }
 
     pub fn trash_selection(&mut self, cx: &mut Context<Self>) {
+        if self.read_only_place(cx) {
+            return;
+        }
         let paths = self.selected_paths();
         if paths.is_empty() {
             return;
@@ -168,6 +180,9 @@ impl Finder {
     }
 
     pub fn new_folder(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.read_only_place(cx) {
+            return;
+        }
         match ops::create_folder(&self.cwd) {
             Ok(path) => {
                 self.close_search_silent();
@@ -180,6 +195,9 @@ impl Finder {
 
     /// Renommage en ligne de l'element selectionne (nom sans extension pre-selectionne).
     pub fn begin_rename(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.read_only_place(cx) {
+            return;
+        }
         if self.rename.is_some() {
             return;
         }

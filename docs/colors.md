@@ -11,3 +11,6 @@ Quick Look : materiau translucide (flou ~30-40 px + teinte claire), pas de coule
 Rayons : fenetre ~15 pt | ligne de liste selectionnee ~8 pt (marges laterales ~6 pt) | selection icone ~8 pt | pilule de nom ~5 pt | vignette galerie ~6 pt
 Police : SF Pro (non disponible sous Windows : utiliser Segoe UI Variable en attendant). 13 pt lignes et barre laterale, 11 pt en-tetes/secondaire,
 titre info galerie 15-16 pt semi-gras, titre Quick Look 13 pt gras, barre d'etat 11 pt (suppose).
+
+Icones de dossiers : PNG macOS (CoreTypes.bundle) dans assets/macicons/ - usage personnel uniquement, a remplacer par un jeu libre (Lucide/Tabler) avant toute distribution.
+Symboles de la barre laterale et de la barre d'outils : SF Symbols en PNG (assets/sf/), meme restriction d'usage (perso uniquement).

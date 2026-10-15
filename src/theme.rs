@@ -22,6 +22,6 @@ pub const LIST_HEADER_HEIGHT: f32 = 28.0;
 pub const ICON_CELL: f32 = 112.0;
 pub const ICON_SIZE: f32 = 64.0;
 pub const COLUMN_WIDTH: f32 = 245.0;
-pub const COLUMN_ROW_HEIGHT: f32 = 22.0;
+pub const COLUMN_ROW_HEIGHT: f32 = 23.0;
 pub const PREVIEW_PANE_WIDTH: f32 = 312.0;
 pub const SIDEBAR_ROW_HEIGHT: f32 = 32.0;

@@ -50,3 +50,5 @@ Editeur (apercu .txt / cellule CSV) : Ctrl+Z annule, Ctrl+Y ou Ctrl+Maj+Z retabl
 Tri : clic sur un en-tete de colonne (Nom, Date, Taille, Type), second clic = ordre inverse. Ctrl+I ou menu = Lire les informations (Echap ferme).
 Glisser-deposer : glisser des elements sur un dossier (vue, barre laterale, chemin) = deplacer (Ctrl = copier) ; en vue Icones, deposer sur le fond = placement libre (clic droit > Ranger les icones pour revenir a la grille). Elements caches/systeme masques comme l'Explorateur.
 Presse-papiers : Ctrl+C / Ctrl+X / Ctrl+V utilisent le presse-papiers Windows (fichiers echanges avec l'Explorateur). Souris : bouton precedent / suivant = historique.
+Barre laterale : Applications (programmes du menu Demarrer, clic droit > Desinstaller avec confirmation), Ce PC, disques, Reseau et Corbeille (ouverts dans l'Explorateur). Pastille verte : survol = popover Deplacer/Redimensionner/Plein ecran.
+Selection : taper le debut d'un nom selectionne l'element (1 s) ; glisser sur le fond de la vue Icones dessine un rectangle de selection.

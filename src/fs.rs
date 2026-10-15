@@ -57,8 +57,31 @@ fn kind_of(path: &Path, is_dir: bool) -> SharedString {
     }
 }
 
+/// Emplacements virtuels (pas de vrai dossier derriere) : programmes installes et disques.
+pub const APPS: &str = "::apps";
+pub const PC: &str = "::pc";
+
+pub fn is_virtual(p: &Path) -> bool {
+    p.to_str().map(|s| s.starts_with("::")).unwrap_or(false)
+}
+
+/// Nom affiche pour un emplacement (titre de fenetre, chemin).
+pub fn display_name(p: &Path) -> String {
+    match p.to_str() {
+        Some(APPS) => "Applications".into(),
+        Some(PC) => "Ce PC".into(),
+        _ => p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| p.display().to_string()),
+    }
+}
+
 /// Lit un dossier : dossiers d'abord, puis tri alphabetique insensible a la casse.
 pub fn read_dir(path: &Path, show_hidden: bool) -> Vec<Entry> {
+    if path == Path::new(APPS) {
+        return crate::apps::entries();
+    }
+    if path == Path::new(PC) {
+        return crate::apps::drives();
+    }
     let mut entries: Vec<Entry> = std::fs::read_dir(path)
         .into_iter()
         .flatten()
@@ -144,7 +167,7 @@ pub fn resort(entries: &mut [Entry]) {
 
 /// Format decimal comme le Finder (1 Ko = 1000 octets).
 pub fn format_size(entry: &Entry) -> String {
-    if entry.is_dir {
+    if entry.is_dir || entry.kind.as_ref() == "Application" {
         return "--".into();
     }
     let n = entry.size as f64;

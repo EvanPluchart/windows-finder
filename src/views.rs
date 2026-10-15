@@ -269,6 +269,11 @@ impl Finder {
                 .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev, _, cx| this.on_item_context(i, ev, cx)))
                 .on_click(cx.listener(move |this, ev: &ClickEvent, _, cx| this.on_item_click(i, ev, cx)))
         });
+        // Rectangle de selection a la souris.
+        let band = self.band.filter(|b| { let r = b.rect(); r.2 >= 3.0 || r.3 >= 3.0 }).map(|b| {
+            let (x, y, w, h) = b.rect();
+            div().absolute().left(px(x)).top(px(y)).w(px(w)).h(px(h)).rounded(px(3.)).bg(gpui::rgba(0x0064e11f)).border_1().border_color(gpui::rgba(0x0064e199))
+        });
         self.background_handlers(
             div()
                 .id("icon-grid")
@@ -276,10 +281,21 @@ impl Finder {
                 .min_h_0()
                 .overflow_y_scroll()
                 .track_scroll(&self.icon_scroll)
+                .on_mouse_down(
+                    MouseButton::Left,
+                    cx.listener(|this, ev: &MouseDownEvent, _, _| this.band_start(ev.position)),
+                )
+                .on_mouse_move(cx.listener(move |this, ev: &gpui::MouseMoveEvent, _, cx| {
+                    if ev.pressed_button == Some(MouseButton::Left) {
+                        this.band_move(ev.position, width, cx);
+                    }
+                }))
+                .on_mouse_up(MouseButton::Left, cx.listener(|this, _, _, cx| this.band_end(cx)))
+                .on_mouse_up_out(MouseButton::Left, cx.listener(|this, _, _, cx| this.band_end(cx)))
                 .on_drop(cx.listener(move |this, p: &DragPaths, window, cx| {
                     this.drop_free(p, window.mouse_position(), width, cx)
                 }))
-                .child(div().relative().w_full().h(px(content_h)).children(cells)),
+                .child(div().relative().w_full().h(px(content_h)).children(cells).children(band)),
             cx,
         )
     }

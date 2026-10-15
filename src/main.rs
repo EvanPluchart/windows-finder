@@ -1,5 +1,10 @@
 ﻿mod csvview;
+mod apps;
 mod editor;
+mod selection;
+mod symbols;
+mod traffic;
+mod uninstall;
 mod dragdrop;
 mod fileops;
 mod fs;
@@ -72,6 +77,12 @@ pub struct Finder {
     pub menu: Option<overlays::MenuState>,
     pub goto: Option<overlays::GoTo>,
     pub info: Option<info::InfoState>,
+    pub confirm: Option<uninstall::Confirm>,
+    pub zoom_dot_hover: bool,
+    pub type_buf: String,
+    pub type_at: Option<std::time::Instant>,
+    pub band: Option<selection::Band>,
+    pub zoom_pop_hover: bool,
     pub layouts: layout::Layouts,
     pub icon_scroll: gpui::ScrollHandle,
     pub search: Option<overlays::Search>,
@@ -98,7 +109,7 @@ impl Finder {
             }
         })
         .detach();
-        let start = std::env::args_os().nth(1).map(PathBuf::from).filter(|p| p.is_dir()).unwrap_or_else(|| home.clone());
+        let start = std::env::args_os().nth(1).map(PathBuf::from).filter(|p| p.is_dir() || fs::is_virtual(p)).unwrap_or_else(|| home.clone());
         // Test : --sort=name|date|size|kind, suffixe ":desc" pour l'ordre inverse.
         if let Some(s) = std::env::args().find_map(|a| a.strip_prefix("--sort=").map(str::to_owned)) {
             let (k, d) = s.split_once(':').unwrap_or((&s, ""));
@@ -141,6 +152,12 @@ impl Finder {
             menu: None,
             goto: None,
             info: None,
+            confirm: None,
+            zoom_dot_hover: false,
+            type_buf: String::new(),
+            type_at: None,
+            band: None,
+            zoom_pop_hover: false,
             layouts: layout::load(),
             icon_scroll: gpui::ScrollHandle::new(),
             search: None,
@@ -198,7 +215,7 @@ impl Finder {
     }
 
     pub fn navigate(&mut self, path: PathBuf, record: bool, cx: &mut Context<Self>) {
-        if !path.is_dir() {
+        if !(fs::is_virtual(&path) || path.is_dir()) {
             return;
         }
         self.cancel_rename_silent();
@@ -212,6 +229,22 @@ impl Finder {
         self.cwd = path;
         self.reload();
         cx.notify();
+    }
+
+    /// Clic sur un emplacement de la barre laterale : dossier, emplacement virtuel, ou fenetre de l'Explorateur
+    /// pour le reseau et la corbeille.
+    pub fn open_place(&mut self, path: PathBuf, cx: &mut Context<Self>) {
+        let shell = match path.to_str() {
+            Some("::net") => Some("shell:NetworkPlacesFolder"),
+            Some("::trash") => Some("shell:RecycleBinFolder"),
+            _ => None,
+        };
+        match shell {
+            Some(target) => {
+                let _ = std::process::Command::new("explorer.exe").arg(target).spawn();
+            }
+            None => self.navigate(path, true, cx),
+        }
     }
 
     pub fn go_back(&mut self, cx: &mut Context<Self>) {
@@ -549,8 +582,18 @@ impl Render for Finder {
             )
             .relative()
             .size_full()
+            .on_mouse_move(cx.listener(|this, ev: &gpui::MouseMoveEvent, _, cx| this.update_zoom_hover(ev.position, cx)))
+            .on_key_down(cx.listener(|this, ev: &gpui::KeyDownEvent, window, cx| {
+                let m = ev.keystroke.modifiers;
+                if m.control || m.alt || m.platform || this.text_input_active(window, cx) || this.confirm.is_some() {
+                    return;
+                }
+                if let Some(ch) = ev.keystroke.key_char.as_deref().filter(|c| c.chars().count() == 1 && *c != " ") {
+                    this.type_select(ch, cx);
+                }
+            }))
             // Fenetre sans cadre Windows : coins arrondis a la macOS (fond de fenetre transparent).
-            .rounded(px(18.))
+            .rounded(px(15.))
             .border_1()
             .border_color(gpui::rgba(0x00000026))
             .overflow_hidden()
@@ -572,9 +615,11 @@ impl Render for Finder {
                     .child(div().flex_1().min_h_0().flex().flex_col().child(content))
                     .child(self.render_bottom_bar(cx)),
             )
+            .children(self.render_zoom_menu(cx))
             .children(self.render_menu(window, cx))
             .children(self.render_goto(cx))
             .children(self.render_info(cx))
+            .children(self.render_confirm(cx))
             .children(self.render_notice())
     }
 }

@@ -6,6 +6,7 @@ use gpui::{
     MouseButton, div, prelude::*, px, rgb,
 };
 
+use crate::symbols::sym;
 use crate::theme;
 use crate::{Finder, ViewMode};
 
@@ -41,71 +42,21 @@ fn capsule() -> Div {
         .occlude()
 }
 
-fn stroke() -> Div {
-    div().border_color(rgb(theme::TEXT)).border_1()
-}
-
 fn icon_grid() -> AnyElement {
-    let sq = || div().size(px(6.)).rounded(px(1.5)).border_color(rgb(theme::TEXT)).border_1();
-    div()
-        .size(px(16.))
-        .flex()
-        .flex_wrap()
-        .gap(px(2.))
-        .content_center()
-        .child(sq())
-        .child(sq())
-        .child(sq())
-        .child(sq())
-        .into_any_element()
+    sym("square.grid.2x2-medium", 14., theme::TEXT)
 }
 
 fn icon_list() -> AnyElement {
-    let row = || {
-        div()
-            .w(px(16.))
-            .h(px(3.))
-            .flex()
-            .gap(px(2.))
-            .child(div().size(px(3.)).rounded_full().bg(rgb(theme::TEXT)))
-            .child(div().flex_1().h(px(3.)).rounded(px(1.5)).bg(rgb(theme::TEXT)))
-    };
-    div().w(px(16.)).flex().flex_col().gap(px(3.)).child(row()).child(row()).child(row()).into_any_element()
+    sym("list.bullet-medium", 14., theme::TEXT)
 }
 
 fn icon_columns() -> AnyElement {
-    stroke()
-        .w(px(18.))
-        .h(px(14.))
-        .rounded(px(3.))
-        .flex()
-        .child(div().flex_1())
-        .child(div().w(px(1.)).h_full().bg(rgb(theme::TEXT)))
-        .child(div().flex_1())
-        .child(div().w(px(1.)).h_full().bg(rgb(theme::TEXT)))
-        .child(div().flex_1())
-        .into_any_element()
+    sym("rectangle.split.3x1-medium", 14., theme::TEXT)
 }
 
 fn icon_gallery() -> AnyElement {
-    div()
-        .w(px(18.))
-        .flex()
-        .flex_col()
-        .gap(px(2.))
-        .child(stroke().h(px(10.)).rounded(px(2.)))
-        .child(
-            div()
-                .flex()
-                .gap(px(1.5))
-                .child(div().flex_1().h(px(3.)).bg(rgb(theme::TEXT)))
-                .child(div().flex_1().h(px(3.)).bg(rgb(theme::TEXT)))
-                .child(div().flex_1().h(px(3.)).bg(rgb(theme::TEXT)))
-                .child(div().flex_1().h(px(3.)).bg(rgb(theme::TEXT))),
-        )
-        .into_any_element()
+    sym("square.grid.3x1.below.line.grid.1x2-medium", 14., theme::TEXT)
 }
-
 
 impl Finder {
     pub fn render_toolbar(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -125,7 +76,7 @@ impl Finder {
                     .justify_center()
                     .text_color(dim(can_back))
                     .when(can_back, |d| d.hover(|s| s.bg(rgb(theme::HOVER))))
-                    .child(fluent("\u{E76B}", 14.))
+                    .child(sym("chevron.left-medium", 12., if can_back { theme::TEXT } else { 0xb4b4b8 }))
                     .on_click(cx.listener(|this, _, _, cx| this.go_back(cx))),
             )
             .child(div().w(px(1.)).h(px(18.)).bg(rgb(0xe4e5e6)))
@@ -140,7 +91,7 @@ impl Finder {
                     .justify_center()
                     .text_color(dim(can_fwd))
                     .when(can_fwd, |d| d.hover(|s| s.bg(rgb(theme::HOVER))))
-                    .child(fluent("\u{E76C}", 14.))
+                    .child(sym("chevron.right-medium", 12., if can_fwd { theme::TEXT } else { 0xb4b4b8 }))
                     .on_click(cx.listener(|this, _, _, cx| this.go_forward(cx))),
             );
 
@@ -165,12 +116,12 @@ impl Finder {
             .child(seg("v-cols", icon_columns(), ViewMode::Columns, cx))
             .child(seg("v-gallery", icon_gallery(), ViewMode::Gallery, cx));
 
-        let group = capsule().px(px(10.)).gap(px(4.)).child(icon_grid()).child(fluent("\u{E70D}", 9.));
+        let group = capsule().px(px(10.)).gap(px(4.)).child(sym("square.grid.3x2-medium", 14., theme::TEXT)).child(sym("chevron.down-medium", 8., theme::TEXT_SECONDARY));
 
         let actions = capsule()
-            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(fluent("\u{E72D}", 16.)))
-            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(fluent("\u{E8EC}", 16.)))
-            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(fluent("\u{E712}", 16.)));
+            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("square.and.arrow.up-medium", 14., theme::TEXT)))
+            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("tag-medium", 14., theme::TEXT)))
+            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("ellipsis-medium", 14., theme::TEXT)));
 
         // Recherche : bouton rond ; au clic il devient un champ de saisie (Ctrl+F), Echap le referme.
         let search = match &self.search {
@@ -178,7 +129,7 @@ impl Finder {
                 .w(px(250.))
                 .px(px(12.))
                 .gap(px(6.))
-                .child(div().text_color(rgb(theme::TEXT_SECONDARY)).child(fluent("\u{E721}", 14.)))
+                .child(div().text_color(rgb(theme::TEXT_SECONDARY)).child(sym("magnifyingglass-medium", 11., theme::TEXT_SECONDARY)))
                 .child(div().flex_1().min_w_0().h(px(26.)).child(s.editor.clone()))
                 .child(
                     div()
@@ -190,7 +141,7 @@ impl Finder {
                         .rounded_full()
                         .text_color(rgb(theme::TEXT_SECONDARY))
                         .hover(|st| st.bg(rgb(theme::HOVER)))
-                        .child(fluent("\u{E711}", 10.))
+                        .child(sym("xmark-medium", 8., theme::TEXT_SECONDARY))
                         .on_click(cx.listener(|this, _, _, cx| this.close_search(cx))),
                 ),
             None => capsule().w(px(40.)).justify_center().child(
@@ -201,16 +152,12 @@ impl Finder {
                     .flex()
                     .items_center()
                     .justify_center()
-                    .child(fluent("\u{E721}", 16.))
+                    .child(sym("magnifyingglass-medium", 14., theme::TEXT))
                     .on_click(cx.listener(|this, _, window, cx| this.open_search(window, cx))),
             ),
         };
 
-        let title = self
-            .cwd
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| self.cwd.display().to_string());
+        let title = crate::fs::display_name(&self.cwd);
 
         div()
             .h(px(theme::TOOLBAR_HEIGHT))
@@ -221,7 +168,7 @@ impl Finder {
             .flex()
             .items_center()
             .gap(px(14.))
-            .rounded_tr(px(17.))
+            .rounded_tr(px(14.))
             .child(nav)
             .child(
                 div()

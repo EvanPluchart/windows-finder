@@ -31,27 +31,34 @@ pub fn default_places() -> Vec<Place> {
     let mut places = vec![Place::Header("Favoris".into())];
     let recent = std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("Microsoft/Windows/Recent"));
     if let Some(r) = recent.filter(|r| r.is_dir()) {
-        places.push(item("R\u{e9}cents", "\u{E823}", r));
+        places.push(item("R\u{e9}cents", "clock", r));
     }
-    places.push(item("Accueil", "\u{E80F}", home.clone()));
-    places.push(item("Bureau", "\u{E7F4}", home.join("Desktop")));
-    places.push(item("Documents", "\u{E8A5}", home.join("Documents")));
-    places.push(item("T\u{e9}l\u{e9}chargements", "\u{E896}", home.join("Downloads")));
-    places.push(item("Images", "\u{E91B}", home.join("Pictures")));
-    places.push(item("Musique", "\u{E8D6}", home.join("Music")));
-    places.push(item("Vid\u{e9}os", "\u{E714}", home.join("Videos")));
+    places.push(item("Applications", "app.dashed", PathBuf::from(crate::fs::APPS)));
+    places.push(item("Bureau", "menubar.dock.rectangle", home.join("Desktop")));
+    places.push(item("Documents", "doc", home.join("Documents")));
+    places.push(item("T\u{e9}l\u{e9}chargements", "arrow.down.circle", home.join("Downloads")));
+    places.push(item("Images", "photo", home.join("Pictures")));
+    places.push(item("Musique", "music.note", home.join("Music")));
+    places.push(item("Vid\u{e9}os", "video", home.join("Videos")));
 
     places.push(Place::Header("Emplacements".into()));
     let onedrive = home.join("OneDrive");
     if onedrive.is_dir() {
-        places.push(item("OneDrive", "\u{E753}", onedrive));
+        places.push(item("OneDrive", "icloud", onedrive));
     }
-    for letter in b'C'..=b'Z' {
+    let user = home.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "Accueil".into());
+    places.push(item(&user, "house", home.clone()));
+    let pc = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Ce PC".into());
+    places.push(item(&pc, "laptopcomputer", PathBuf::from(crate::fs::PC)));
+    for letter in b'A'..=b'Z' {
         let root = PathBuf::from(format!("{}:\\", letter as char));
         if root.exists() {
-            places.push(item(&format!("Disque ({}:)", letter as char), "\u{EDA2}", root));
+            let (label, removable) = drive_info(&root);
+            places.push(item(&label, if removable { "externaldrive" } else { "internaldrive" }, root));
         }
     }
+    places.push(item("R\u{e9}seau", "globe", PathBuf::from("::net")));
+    places.push(item("Corbeille", "trash", PathBuf::from("::trash")));
     places
 }
 
@@ -67,57 +74,9 @@ fn format_gb(bytes: u64) -> String {
     format!("{:.2} Go", bytes as f64 / 1e9).replace('.', ",")
 }
 
-/// Un bouton de fenetre macOS : pastille coloree, symbole visible au survol du groupe.
-fn traffic_dot(
-    id: &'static str,
-    color: u32,
-    edge: u32,
-    glyph: &'static str,
-    on_click: impl Fn(&mut gpui::Window, &mut gpui::App) + 'static,
-) -> impl IntoElement {
-    div()
-        .id(id)
-        .size(px(14.))
-        .rounded_full()
-        .bg(rgb(color))
-        .border_1()
-        .border_color(rgb(edge))
-        .flex()
-        .items_center()
-        .justify_center()
-        .text_size(px(10.))
-        .font_weight(gpui::FontWeight::BOLD)
-        .text_color(rgb(0x4d0000))
-        .child(div().invisible().group_hover("traffic", |s| s.visible()).child(glyph))
-        .on_click(move |_, window, cx| on_click(window, cx))
-}
-
-/// Feu tricolore macOS (fermer, reduire, agrandir) a la place des boutons Windows.
-fn traffic_lights() -> impl IntoElement {
-    div()
-        .group("traffic")
-        .flex()
-        .items_center()
-        .gap(px(9.))
-        // Les pastilles gardent le clic : la zone de deplacement derriere est bloquee.
-        .occlude()
-        .child(traffic_dot("tl-close", 0xff5f57, 0xe0443e, "\u{d7}", |window, _| window.remove_window()))
-        .child(traffic_dot("tl-min", 0xfebc2e, 0xdea123, "\u{2212}", |window, _| window.minimize_window()))
-        .child(traffic_dot("tl-zoom", 0x28c840, 0x1aab29, "+", |window, _| {
-            if window.is_maximized() {
-                // GPUI ne sait que maximiser : on restaure via l'API Windows (la fenetre cliquee est au premier plan).
-                use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, SW_RESTORE, ShowWindow};
-                unsafe {
-                    let _ = ShowWindow(GetForegroundWindow(), SW_RESTORE);
-                }
-            } else {
-                window.zoom_window();
-            }
-        }))
-}
-
 impl Finder {
     pub fn render_sidebar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let lights = self.traffic_lights(cx);
         let rows = self.places.iter().enumerate().map(|(i, place)| match place {
             Place::Header(title) => div()
                 .px(px(10.))
@@ -125,7 +84,7 @@ impl Finder {
                 .pb(px(4.))
                 .text_size(px(12.))
                 .font_weight(gpui::FontWeight::SEMIBOLD)
-                .text_color(rgb(0x8e8e93))
+                .text_color(rgb(0x878787))
                 .child(title.clone())
                 .into_any_element(),
             Place::Item { name, glyph, path } => {
@@ -133,7 +92,7 @@ impl Finder {
                 let target = path.clone();
                 div()
                     .id(("place", i))
-                    .h(px(30.))
+                    .h(px(32.))
                     .px(px(10.))
                     .flex()
                     .items_center()
@@ -143,14 +102,7 @@ impl Finder {
                     .when(active, |d| d.bg(rgb(0xdcdcdf)))
                     .when(!active, |d| d.hover(|s| s.bg(rgb(0xe3e3e6))))
                     .child(
-                        div()
-                            .w(px(20.))
-                            .flex()
-                            .justify_center()
-                            .font_family(FLUENT)
-                            .text_size(px(16.))
-                            .text_color(rgb(ACCENT))
-                            .child(*glyph),
+                        div().w(px(22.)).flex().justify_center().child(crate::symbols::sym(glyph, 13., if matches!(*glyph, "house" | "laptopcomputer" | "internaldrive" | "externaldrive" | "globe" | "trash") { 0x6e6e73 } else { ACCENT })),
                     )
                     .child(label(name.clone()).flex_1().min_w_0())
                     .drag_over::<crate::dragdrop::DragPaths>(|s, _, _, _| s.bg(rgb(0xc4daf9)))
@@ -160,14 +112,7 @@ impl Finder {
                             this.drop_into(p, target.clone(), window.modifiers().control, cx)
                         }
                     }))
-                    .drag_over::<crate::dragdrop::DragPaths>(|s, _, _, _| s.bg(rgb(0xc4daf9)))
-                .on_drop(cx.listener({
-                    let target = target.clone();
-                    move |this, p: &crate::dragdrop::DragPaths, window, cx| {
-                        this.drop_into(p, target.clone(), window.modifiers().control, cx)
-                    }
-                }))
-                .on_click(cx.listener(move |this, _, _, cx| this.navigate(target.clone(), true, cx)))
+                    .on_click(cx.listener(move |this, _, _, cx| this.open_place(target.clone(), cx)))
                     .into_any_element()
             }
         });
@@ -181,8 +126,8 @@ impl Finder {
             .h_full()
             .flex()
             .flex_col()
-            .rounded_tl(px(17.))
-            .rounded_bl(px(17.))
+            .rounded_tl(px(14.))
+            .rounded_bl(px(14.))
             .bg(rgb(0xededed))
             .border_r_1()
             .border_color(rgb(0xd3d4d8))
@@ -193,7 +138,7 @@ impl Finder {
                     .pl(px(19.))
                     .flex()
                     .items_center()
-                    .child(traffic_lights())
+                    .child(lights)
                     .on_mouse_down(gpui::MouseButton::Left, |ev, window, _| window_drag(ev, window)),
             )
             .child(div().id("sidebar").flex_1().min_h_0().overflow_y_scroll().px(px(10.)).pb(px(8.)).children(rows))
@@ -203,7 +148,10 @@ impl Finder {
     pub fn render_bottom_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let mut crumbs: Vec<(String, PathBuf)> = Vec::new();
         let mut acc = PathBuf::new();
-        for comp in self.cwd.components() {
+        if crate::fs::is_virtual(&self.cwd) {
+            crumbs.push((crate::fs::display_name(&self.cwd), self.cwd.clone()));
+        }
+        for comp in self.cwd.components().filter(|_| !crate::fs::is_virtual(&self.cwd)) {
             acc.push(comp);
             let name = match comp {
                 std::path::Component::Prefix(p) => p.as_os_str().to_string_lossy().into_owned(),
@@ -224,7 +172,7 @@ impl Finder {
                 .rounded(px(5.))
                 .hover(|s| s.bg(rgb(0xececf0)))
                 .when(i == last, |d| d.text_color(rgb(theme::TEXT)))
-                .child(div().font_family(FLUENT).text_size(px(12.)).text_color(rgb(ACCENT)).child("\u{E8B7}"))
+                .child(crate::symbols::sym("folder", 10.5, ACCENT))
                 .child(name)
                 .when(i != last, |d| d.child(div().text_color(rgb(0xb0b0b6)).child("\u{203A}")))
                 .on_click(cx.listener(move |this, _, _, cx| this.navigate(target.clone(), true, cx)))
@@ -251,7 +199,7 @@ impl Finder {
             .text_color(rgb(theme::TEXT_SECONDARY))
             .child(
                 div()
-                    .h(px(26.))
+                    .h(px(28.))
                     .px(px(12.))
                     .flex()
                     .items_center()
@@ -261,7 +209,7 @@ impl Finder {
             )
             .child(
                 div()
-                    .h(px(26.))
+                    .h(px(28.))
                     .flex()
                     .items_center()
                     .justify_center()
@@ -296,4 +244,18 @@ pub fn window_drag(ev: &gpui::MouseDownEvent, window: &mut gpui::Window) {
         let _ = ReleaseCapture();
         let _ = PostMessageW(Some(hwnd), WM_NCLBUTTONDOWN, WPARAM(HTCAPTION as usize), LPARAM(0));
     }
+}
+
+/// Nom affiche d'un disque ("Disque local (C:)") et `true` s'il est amovible.
+pub fn drive_info(root: &Path) -> (String, bool) {
+    use windows::Win32::Storage::FileSystem::{GetDriveTypeW, GetVolumeInformationW};
+    let wide: Vec<u16> = root.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let letter = root.to_string_lossy().chars().next().unwrap_or('C');
+    let mut label = [0u16; 64];
+    let ok = unsafe { GetVolumeInformationW(PCWSTR(wide.as_ptr()), Some(&mut label), None, None, None, None).is_ok() };
+    let kind = unsafe { GetDriveTypeW(PCWSTR(wide.as_ptr())) };
+    let removable = kind == 2 || kind == 5;
+    let text = String::from_utf16_lossy(&label).trim_end_matches('\0').to_string();
+    let name = if ok && !text.is_empty() { text } else { "Disque local".to_string() };
+    (format!("{name} ({letter}:)"), removable)
 }

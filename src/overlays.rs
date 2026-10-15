@@ -30,6 +30,7 @@ pub enum MenuAction {
     NewFolder,
     Refresh,
     CleanUp,
+    Uninstall,
 }
 
 pub struct MenuState {
@@ -49,6 +50,19 @@ impl Finder {
     fn menu_items(&self, on_item: bool) -> Vec<Option<(&'static str, MenuAction, bool)>> {
         let can_paste = self.clipboard.is_some();
         let single = self.selected_paths().len() == 1;
+        if crate::fs::is_virtual(&self.cwd) {
+            let apps = self.cwd.to_str() == Some(crate::fs::APPS);
+            return if on_item {
+                let mut v = vec![Some(("Ouvrir", MenuAction::Open, true)), Some(("Lire les informations", MenuAction::Info, single))];
+                if apps {
+                    v.push(None);
+                    v.push(Some(("D\u{e9}sinstaller\u{2026}", MenuAction::Uninstall, single)));
+                }
+                v
+            } else {
+                vec![Some(("Actualiser", MenuAction::Refresh, true))]
+            };
+        }
         if on_item {
             vec![
                 Some(("Ouvrir", MenuAction::Open, true)),
@@ -91,6 +105,7 @@ impl Finder {
             MenuAction::NewFolder => self.new_folder(window, cx),
             MenuAction::Refresh => self.refresh(cx),
             MenuAction::CleanUp => self.clean_up(cx),
+            MenuAction::Uninstall => self.ask_uninstall(cx),
         }
         cx.notify();
     }
@@ -187,6 +202,10 @@ impl Finder {
 
     pub fn dismiss(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         if self.menu.take().is_some() {
+            cx.notify();
+            return;
+        }
+        if self.confirm.take().is_some() {
             cx.notify();
             return;
         }

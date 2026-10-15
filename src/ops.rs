@@ -132,5 +132,6 @@ pub fn rename(path: &Path, new_name: &str) -> Result<PathBuf, String> {
         return Err(format!("\u{ab} {new_name} \u{bb} existe d\u{e9}j\u{e0} dans ce dossier"));
     }
     std::fs::rename(path, &target).map_err(|e| format!("Renommage impossible : {e}"))?;
+    crate::tags::rename_path(path, &target);
     Ok(target)
 }

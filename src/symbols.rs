@@ -53,6 +53,7 @@ fn tinted(name: &str, color: u32, pt: f32) -> Entry {
 
 /// Symbole `name` a la taille de police `pt` (le PNG fait 96 pt de corps), teinte `color` (0xRRGGBB).
 pub fn sym(name: &str, pt: f32, color: u32) -> AnyElement {
+    let color = crate::theme::map(color);
     match tinted(name, color, pt) {
         Some((image, w, h)) => {
             img(image).w(px(w)).h(px(h)).flex_none().into_any_element()

@@ -5,8 +5,8 @@ use std::path::PathBuf;
 
 use gpui::{
     App, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Subscription, Window, div, prelude::*, px, rgb,
-};
+    StatefulInteractiveElement, Styled, Subscription, Window, div, prelude::*, px, };
+use crate::theme::{rgb};
 
 use crate::editor::{Editor, EditorEvent};
 use crate::theme;
@@ -304,7 +304,7 @@ impl Render for CsvTable {
                     .when_some(self.error.clone(), |d, e| d.child(div().text_size(px(12.)).text_color(rgb(0xc42b1c)).child(e)))
                     .child(
                         pill("Enregistrer")
-                            .when(self.dirty, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xffffff)))
+                            .when(self.dirty, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe)))
                             .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
                     ),
             )

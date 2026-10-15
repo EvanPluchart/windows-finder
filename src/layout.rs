@@ -59,3 +59,22 @@ pub fn save_view(name: &str) {
     }
     let _ = std::fs::write(f, format!("view={name}\n"));
 }
+
+/// Reglages simples `cle=valeur` dans settings.txt (conserves entre les lancements).
+pub fn get_setting(key: &str) -> Option<String> {
+    let text = std::fs::read_to_string(settings_file()?).ok()?;
+    let prefix = format!("{key}=");
+    text.lines().find_map(|l| l.strip_prefix(prefix.as_str()).map(|v| v.trim().to_string()))
+}
+
+pub fn set_setting(key: &str, value: &str) {
+    let Some(f) = settings_file() else { return };
+    if let Some(parent) = f.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let prefix = format!("{key}=");
+    let mut lines: Vec<String> =
+        std::fs::read_to_string(&f).unwrap_or_default().lines().filter(|l| !l.starts_with(prefix.as_str())).map(str::to_owned).collect();
+    lines.push(format!("{key}={value}"));
+    let _ = std::fs::write(f, lines.join("\n") + "\n");
+}

@@ -3,8 +3,8 @@
 
 use gpui::{
     AnyElement, Context, Div, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement, Styled,
-    MouseButton, div, prelude::*, px, rgb,
-};
+    MouseButton, div, prelude::*, px, };
+use crate::theme::{rgb};
 
 use crate::symbols::sym;
 use crate::theme;
@@ -60,6 +60,8 @@ fn icon_gallery() -> AnyElement {
 
 impl Finder {
     pub fn render_toolbar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        // Sans barre laterale, les pastilles de fenetre passent dans la barre d'outils.
+        let lights = if self.show_sidebar { None } else { Some(self.traffic_lights(cx)) };
         let can_back = self.can_back();
         let can_fwd = self.can_forward();
         let dim = |on: bool| rgb(if on { theme::TEXT } else { 0xb4b4b8 });
@@ -116,11 +118,23 @@ impl Finder {
             .child(seg("v-cols", icon_columns(), ViewMode::Columns, cx))
             .child(seg("v-gallery", icon_gallery(), ViewMode::Gallery, cx));
 
-        let group = capsule().px(px(10.)).gap(px(4.)).child(sym("square.grid.3x2-medium", 14., theme::TEXT)).child(sym("chevron.down-medium", 8., theme::TEXT_SECONDARY));
+        let group = capsule().id("group-btn").px(px(10.)).gap(px(4.)).child(sym("square.grid.3x2-medium", 14., theme::TEXT)).child(sym("chevron.down-medium", 8., theme::TEXT_SECONDARY)).on_click(cx.listener(|this, _, _, cx| this.toggle_view_options(cx)));
 
         let actions = capsule()
             .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("square.and.arrow.up-medium", 14., theme::TEXT)))
-            .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("tag-medium", 14., theme::TEXT)))
+            .child(
+                div()
+                    .id("tag-btn")
+                    .w(px(38.))
+                    .h(px(32.))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .rounded_full()
+                    .hover(|s| s.bg(rgb(theme::HOVER)))
+                    .child(sym("tag-medium", 14., theme::TEXT))
+                    .on_click(cx.listener(|this, _, window, cx| this.toggle_tag_pop(window, cx))),
+            )
             .child(div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("ellipsis-medium", 14., theme::TEXT)));
 
         // Recherche : bouton rond ; au clic il devient un champ de saisie (Ctrl+F), Echap le referme.
@@ -163,12 +177,13 @@ impl Finder {
             .h(px(theme::TOOLBAR_HEIGHT))
             .flex_none()
             .relative()
-            .pl(px(16.))
+            .pl(px(if self.show_sidebar { 16. } else { 104. }))
             .pr(px(16.))
             .flex()
             .items_center()
             .gap(px(14.))
             .rounded_tr(px(14.))
+            .children(lights.map(|l| div().absolute().left(px(19.)).top(px(19.)).child(l)))
             .child(nav)
             .child(
                 div()

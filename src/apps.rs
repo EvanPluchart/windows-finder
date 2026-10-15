@@ -55,6 +55,7 @@ pub fn entries() -> Vec<Entry> {
                     is_dir: false,
                     size: 0,
                     modified: meta.modified().ok(),
+                    created: meta.created().ok(),
                     kind: "Application".into(),
                     hint: None,
                 });
@@ -78,6 +79,7 @@ pub fn drives() -> Vec<Entry> {
                     is_dir: true,
                     size: 0,
                     modified: None::<SystemTime>,
+                    created: None,
                     kind: "Disque".into(),
                     hint: None,
                 }

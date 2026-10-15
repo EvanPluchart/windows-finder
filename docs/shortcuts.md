@@ -52,3 +52,5 @@ Glisser-deposer : glisser des elements sur un dossier (vue, barre laterale, chem
 Presse-papiers : Ctrl+C / Ctrl+X / Ctrl+V utilisent le presse-papiers Windows (fichiers echanges avec l'Explorateur). Souris : bouton precedent / suivant = historique.
 Barre laterale : Applications (programmes du menu Demarrer, clic droit > Desinstaller avec confirmation), Ce PC, disques, Reseau et Corbeille (ouverts dans l'Explorateur). Pastille verte : survol = popover Deplacer/Redimensionner/Plein ecran.
 Selection : taper le debut d'un nom selectionne l'element (1 s) ; glisser sur le fond de la vue Icones dessine un rectangle de selection.
+Onglets : Ctrl+T nouveau, Ctrl+W ferme, Ctrl+Tab / Ctrl+Maj+Tab bascule, clic milieu sur un emplacement = nouvel onglet. Mode sombre : suit Windows. Copie/deplacement : boite de conflit (Arreter, Ignorer, Garder les deux, Remplacer, Appliquer a tous) et progression.
+Options d'affichage (Ctrl+J) : par dossier (mode, tri, taille d'icones, espacement, texte, colonnes, dates relatives), 'Par defaut' / 'Restaurer'. Memorise dans %APPDATA%\winfinder\folders.tsv.

@@ -8,8 +8,8 @@ use std::rc::Rc;
 use gpui::{
     App, Bounds, ClipboardItem, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement,
     KeyDownEvent, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, ParentElement, Pixels, Point, Render,
-    ScrollHandle, StatefulInteractiveElement, Styled, Window, canvas, div, font, point, prelude::*, px, rgb, rgba,
-};
+    ScrollHandle, StatefulInteractiveElement, Styled, Window, canvas, div, font, point, prelude::*, px, };
+use crate::theme::{rgb, rgba};
 
 const FONT: &str = "Cascadia Mono";
 

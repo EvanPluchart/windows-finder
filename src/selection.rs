@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use gpui::{Context, Pixels, Point};
 
-use crate::layout::{CELL_H, CELL_W, PAD};
+use crate::layout::PAD;
 use crate::{Finder, ViewMode};
 
 /// Rectangle de selection en coordonnees du contenu de la vue Icones (defilement compris).
@@ -69,13 +69,14 @@ impl Finder {
         if bw < 3.0 && bh < 3.0 {
             return;
         }
+        let (cell_w, cell_h) = self.cell();
         let positions = self.icon_positions(self.icon_cols(width));
         self.marked = positions
             .iter()
             .enumerate()
             .filter(|(_, (x, y))| {
                 let (cx0, cy0) = (x + PAD, y + PAD);
-                cx0 < bx + bw && cx0 + CELL_W > bx && cy0 < by + bh && cy0 + CELL_H > by
+                cx0 < bx + bw && cx0 + cell_w > bx && cy0 < by + bh && cy0 + cell_h > by
             })
             .map(|(i, _)| i)
             .collect();

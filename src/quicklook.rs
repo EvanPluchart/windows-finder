@@ -6,9 +6,9 @@ use std::path::PathBuf;
 use gpui::{
     AnyElement, App, Bounds, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement, ObjectFit,
     ParentElement, Pixels, Render, Size, StatefulInteractiveElement, Styled, Subscription, TitlebarOptions, Window,
-    WindowBackgroundAppearance, WindowBounds, WindowControlArea, WindowOptions, div, img, prelude::*, px, rgb, rgba,
-    size,
+    WindowBackgroundAppearance, WindowBounds, WindowControlArea, WindowOptions, div, img, prelude::*, px, size,
 };
+use crate::theme::{rgb, rgba};
 
 use crate::csvview::{CsvEvent, CsvTable};
 use crate::editor::{Editor, EditorEvent};
@@ -29,6 +29,10 @@ fn quick_look_size(e: &Entry, cx: &App) -> Size<Pixels> {
         }
     } else if e.is_text() {
         (720.0, 520.0)
+    } else if e.is_pdf() {
+        (640.0, 800.0)
+    } else if e.is_video() {
+        (760.0, 470.0)
     } else {
         (480.0, 360.0)
     };
@@ -117,6 +121,15 @@ enum Body {
     None,
     Text(Entity<Editor>),
     Csv(Entity<CsvTable>),
+    Pdf(PdfState),
+}
+
+pub struct PdfState {
+    path: PathBuf,
+    page: u32,
+    count: u32,
+    image: Option<std::sync::Arc<gpui::RenderImage>>,
+    loading: bool,
 }
 
 pub struct QuickLook {
@@ -169,7 +182,7 @@ impl QuickLook {
         match &self.body {
             Body::Text(ed) => ed.read(cx).dirty,
             Body::Csv(t) => t.read(cx).dirty,
-            Body::None => false,
+            Body::None | Body::Pdf(_) => false,
         }
     }
 
@@ -177,7 +190,7 @@ impl QuickLook {
         match &self.body {
             Body::Text(ed) => ed.read(cx).is_focused(window),
             Body::Csv(t) => t.read(cx).is_editing(),
-            Body::None => false,
+            Body::None | Body::Pdf(_) => false,
         }
     }
 
@@ -188,6 +201,11 @@ impl QuickLook {
         self.body = Body::None;
         self.body_path = entry.map(|e| e.path.clone());
         let Some(e) = entry else { return };
+        if e.is_pdf() {
+            self.body = Body::Pdf(PdfState { path: e.path.clone(), page: 0, count: 0, image: None, loading: false });
+            self.request_pdf(cx);
+            return;
+        }
         let is_csv = fs::extension(&e.path) == "csv";
         if is_csv && e.size <= 5_000_000 {
             let table = cx.new(|cx| CsvTable::new(e.path.clone(), cx));
@@ -216,6 +234,41 @@ impl QuickLook {
             }));
             self.subs.push(cx.observe(&editor, |_, _, cx| cx.notify()));
             self.body = Body::Text(editor);
+        }
+    }
+
+    /// Rend la page courante du PDF en arriere-plan.
+    fn request_pdf(&mut self, cx: &mut Context<Self>) {
+        let Body::Pdf(s) = &mut self.body else { return };
+        s.loading = true;
+        let (path, page) = (s.path.clone(), s.page);
+        cx.notify();
+        cx.spawn(async move |this, cx| {
+            let p = path.clone();
+            let result = cx.background_executor().spawn(async move { crate::pdf::render_page(&p, page, 1000) }).await;
+            this.update(cx, |ql, cx| {
+                if let Body::Pdf(s) = &mut ql.body {
+                    if s.path == path && s.page == page {
+                        if let Some((image, count)) = result {
+                            s.image = Some(image);
+                            s.count = count;
+                        }
+                        s.loading = false;
+                    }
+                }
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    fn pdf_page(&mut self, delta: i32, cx: &mut Context<Self>) {
+        let Body::Pdf(s) = &mut self.body else { return };
+        let next = (s.page as i32 + delta).clamp(0, s.count.max(1) as i32 - 1) as u32;
+        if next != s.page {
+            s.page = next;
+            self.request_pdf(cx);
         }
     }
 
@@ -250,12 +303,66 @@ impl Render for QuickLook {
         let hint = match &self.body {
             Body::Text(_) => Some("Cliquez pour modifier \u{b7} Ctrl+S enregistre"),
             Body::Csv(_) => Some("Cliquez sur une cellule pour modifier"),
+            Body::Pdf(_) => Some("Pr\u{e9}c. / Suiv. pour changer de page"),
             Body::None => None,
         };
 
         let body = match &self.body {
             Body::Text(ed) => Some(div().size_full().child(ed.clone()).into_any_element()),
             Body::Csv(t) => Some(div().size_full().child(t.clone()).into_any_element()),
+            Body::Pdf(s) => {
+                let (page, count, loading) = (s.page, s.count, s.loading);
+                let nav = |id: &'static str, label: &'static str, delta: i32, cx: &mut Context<Self>| {
+                    div()
+                        .id(id)
+                        .size(px(24.))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded_full()
+                        .text_size(px(15.))
+                        .hover(|st| st.bg(rgb(0xe3e3e6)))
+                        .child(label)
+                        .on_click(cx.listener(move |this, _, _, cx| this.pdf_page(delta, cx)))
+                };
+                Some(
+                    div()
+                        .size_full()
+                        .flex()
+                        .flex_col()
+                        .child(
+                            div()
+                                .id("ql-pdf")
+                                .flex_1()
+                                .min_h_0()
+                                .flex()
+                                .justify_center()
+                                .p(px(6.))
+                                .child(match &s.image {
+                                    Some(image) => img(image.clone()).h_full().object_fit(ObjectFit::Contain).into_any_element(),
+                                    None => div()
+                                        .text_color(rgb(theme::TEXT_SECONDARY))
+                                        .child(if loading { "Chargement du PDF\u{2026}" } else { "Aper\u{e7}u PDF indisponible" })
+                                        .into_any_element(),
+                                }),
+                        )
+                        .child(
+                            div()
+                                .h(px(30.))
+                                .flex_none()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .gap(px(10.))
+                                .text_size(px(12.))
+                                .text_color(rgb(theme::TEXT_SECONDARY))
+                                .child(nav("pdf-prev", "\u{2039}", -1, cx))
+                                .child(format!("Page {} sur {}", page + 1, count.max(1)))
+                                .child(nav("pdf-next", "\u{203a}", 1, cx)),
+                        )
+                        .into_any_element(),
+                )
+            }
             Body::None => entry.as_ref().map(|e| {
                 if e.is_image() {
                     div()
@@ -270,6 +377,35 @@ impl Render for QuickLook {
                         .p_4()
                         .text_size(px(12.))
                         .child(fs::read_text_preview(&e.path))
+                        .into_any_element()
+                } else if e.is_video() {
+                    let f = self.finder.read(cx);
+                    let p = e.path.clone();
+                    div()
+                        .id("ql-video")
+                        .size_full()
+                        .relative()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .bg(rgb(0x101012))
+                        .child(f.icon(&e.path, 560.0, true))
+                        .child(
+                            div()
+                                .absolute()
+                                .size(px(64.))
+                                .rounded_full()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .bg(gpui::rgba(0x000000a8))
+                                .text_color(rgb(0xfffffe))
+                                .text_size(px(28.))
+                                .child("\u{25B6}"),
+                        )
+                        .on_click(move |_, _, _| {
+                            let _ = std::process::Command::new("cmd").args(["/C", "start", "", &p.to_string_lossy()]).spawn();
+                        })
                         .into_any_element()
                 } else {
                     let f = self.finder.read(cx);
@@ -300,6 +436,11 @@ impl Render for QuickLook {
             .key_context(context)
             .track_focus(&self.focus)
             .on_action(cx.listener(|this, _: &CloseQuickLook, window, cx| this.close(window, cx)))
+            .on_key_down(cx.listener(|this, ev: &gpui::KeyDownEvent, _, cx| match ev.keystroke.key.as_str() {
+                "pagedown" => this.pdf_page(1, cx),
+                "pageup" => this.pdf_page(-1, cx),
+                _ => {}
+            }))
             .on_action(cx.listener(|this, _: &MoveUp, _, cx| this.finder.update(cx, |f, cx| f.move_vertical(-1, cx))))
             .on_action(cx.listener(|this, _: &MoveDown, _, cx| this.finder.update(cx, |f, cx| f.move_vertical(1, cx))))
             .on_action(cx.listener(|this, _: &MoveLeft, _, cx| this.finder.update(cx, |f, cx| f.move_horizontal(-1, cx))))
@@ -328,7 +469,7 @@ impl Render for QuickLook {
                             .items_center()
                             .justify_center()
                             .bg(rgb(0x262626))
-                            .text_color(rgb(0xffffff))
+                            .text_color(rgb(0xfffffe))
                             .font_family("Segoe Fluent Icons")
                             .text_size(px(8.))
                             .child("\u{E711}")

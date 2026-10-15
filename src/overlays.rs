@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 
 use gpui::{
     AnyElement, Context, Entity, Focusable, InteractiveElement, IntoElement, MouseButton, ParentElement, Pixels, Point,
-    StatefulInteractiveElement, Styled, Subscription, Window, div, prelude::*, px, rgb, rgba,
-};
+    StatefulInteractiveElement, Styled, Subscription, Window, div, prelude::*, px, };
+use crate::theme::{rgb, rgba};
 
 use crate::editor::{Editor, EditorEvent};
 use crate::theme;
@@ -31,6 +31,10 @@ pub enum MenuAction {
     Refresh,
     CleanUp,
     Uninstall,
+    OpenInTab,
+    Tags,
+    Compress,
+    Extract,
 }
 
 pub struct MenuState {
@@ -66,6 +70,7 @@ impl Finder {
         if on_item {
             vec![
                 Some(("Ouvrir", MenuAction::Open, true)),
+                Some(("Ouvrir dans un nouvel onglet", MenuAction::OpenInTab, single && self.selected_entry().map(|e| e.is_dir).unwrap_or(false))),
                 Some(("Aper\u{e7}u rapide", MenuAction::QuickLook, true)),
                 None,
                 Some(("Copier", MenuAction::Copy, true)),
@@ -73,8 +78,15 @@ impl Finder {
                 Some(("Coller", MenuAction::Paste, can_paste)),
                 Some(("Dupliquer", MenuAction::Duplicate, true)),
                 None,
-                Some(("Renommer", MenuAction::Rename, single)),
+                Some((if single { "Renommer" } else { "Renommer les éléments…" }, MenuAction::Rename, true)),
                 Some(("Lire les informations", MenuAction::Info, single)),
+                Some(("\u{c9}tiquettes\u{2026}", MenuAction::Tags, true)),
+                Some(("Compresser", MenuAction::Compress, true)),
+                Some((
+                    "Extraire ici",
+                    MenuAction::Extract,
+                    single && self.selected_entry().map(|e| crate::fs::extension(&e.path) == "zip").unwrap_or(false),
+                )),
                 Some(("Mettre \u{e0} la corbeille", MenuAction::Trash, true)),
                 None,
                 Some(("Nouveau dossier", MenuAction::NewFolder, true)),
@@ -100,12 +112,20 @@ impl Finder {
             MenuAction::Paste => self.paste(cx),
             MenuAction::Duplicate => self.duplicate(cx),
             MenuAction::Rename => self.begin_rename(window, cx),
-            MenuAction::Info => self.show_info(cx),
+            MenuAction::Info => self.show_info(window, cx),
+            MenuAction::Tags => self.toggle_tag_pop(window, cx),
+            MenuAction::Compress => self.compress_selection(cx),
+            MenuAction::Extract => self.extract_selection(cx),
             MenuAction::Trash => self.trash_selection(cx),
             MenuAction::NewFolder => self.new_folder(window, cx),
             MenuAction::Refresh => self.refresh(cx),
             MenuAction::CleanUp => self.clean_up(cx),
             MenuAction::Uninstall => self.ask_uninstall(cx),
+            MenuAction::OpenInTab => {
+                if let Some(p) = self.selected_entry().filter(|e| e.is_dir).map(|e| e.path.clone()) {
+                    self.new_tab(Some(p), cx);
+                }
+            }
         }
         cx.notify();
     }
@@ -130,7 +150,7 @@ impl Finder {
                 .rounded(px(6.))
                 .text_size(px(13.))
                 .text_color(rgb(if enabled { theme::TEXT } else { 0xa8a8ae }))
-                .when(enabled, |d| d.hover(|s| s.bg(rgb(theme::SELECTION)).text_color(rgb(0xffffff))))
+                .when(enabled, |d| d.hover(|s| s.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe))))
                 .child(label)
                 .when(enabled, |d| d.on_click(cx.listener(move |this, _, window, cx| this.run_menu(action, window, cx))))
                 .into_any_element(),
@@ -186,8 +206,8 @@ impl Finder {
                         .px(px(16.))
                         .py(px(8.))
                         .rounded_full()
-                        .bg(rgba(0x262626ee))
-                        .text_color(rgb(0xffffff))
+                        .bg(rgba(0x262625ee))
+                        .text_color(rgb(0xfffffe))
                         .text_size(px(13.))
                         .shadow_lg()
                         .child(text.clone()),
@@ -202,6 +222,25 @@ impl Finder {
 
     pub fn dismiss(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         if self.menu.take().is_some() {
+            cx.notify();
+            return;
+        }
+        if self.conflict.is_some() {
+            self.resolve_conflict(crate::transfer::Resolution::Stop, cx);
+            return;
+        }
+        if self.bulk.take().is_some() {
+            self.needs_focus = true;
+            cx.notify();
+            return;
+        }
+        if self.tag_pop.take().is_some() {
+            self.needs_focus = true;
+            cx.notify();
+            return;
+        }
+        if self.view_opts {
+            self.view_opts = false;
             cx.notify();
             return;
         }
@@ -234,6 +273,9 @@ impl Finder {
     /// Vrai pendant une saisie dans un champ du Finder : les raccourcis de navigation se desactivent.
     pub fn text_input_active(&self, window: &Window, cx: &gpui::App) -> bool {
         self.rename.is_some()
+            || self.tag_pop.is_some()
+            || self.bulk.is_some()
+            || self.info.is_some()
             || self.goto.is_some()
             || self.search.as_ref().map(|s| s.editor.read(cx).is_focused(window)).unwrap_or(false)
     }
@@ -369,7 +411,7 @@ impl Finder {
                 .items_center()
                 .rounded(px(5.))
                 .text_size(px(13.))
-                .when(selected, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xffffff)))
+                .when(selected, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe)))
                 .child(p.display().to_string())
                 .on_click(cx.listener(move |this, _, _, cx| {
                     this.goto = None;
@@ -450,7 +492,7 @@ impl Finder {
                                         .items_center()
                                         .rounded(px(7.))
                                         .bg(rgb(theme::SELECTION))
-                                        .text_color(rgb(0xffffff))
+                                        .text_color(rgb(0xfffffe))
                                         .child("Aller")
                                         .on_click(cx.listener(|this, _, _, cx| this.goto_commit(cx))),
                                 ),

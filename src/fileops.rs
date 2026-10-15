@@ -75,49 +75,21 @@ impl Finder {
         let system = crate::syscb::get_files();
         let internal = self.clipboard.take();
         let clip = match (system, internal) {
-            (Some((paths, cut)), Some(c)) if c.paths == paths => Clip { paths, cut: c.cut },
+            (Some((paths, _)), Some(c)) if c.paths == paths => c,
             (Some((paths, cut)), _) => Clip { paths, cut },
             (None, Some(c)) => c,
             (None, None) => return,
         };
-        let dest = self.cwd.clone();
-        let mut created = Vec::new();
-        let mut errors = Vec::new();
-        for src in &clip.paths {
-            let Some(name) = src.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };
-            let is_dir = src.is_dir();
-            if clip.cut {
-                // Couper-coller dans le meme dossier : rien a faire.
-                if src.parent() == Some(dest.as_path()) {
-                    created.push(src.clone());
-                    continue;
-                }
-                let target = ops::unique_path(&dest, &name);
-                match ops::move_path(src, &target) {
-                    Ok(()) => created.push(target),
-                    Err(e) => errors.push(format!("{name} : {e}")),
-                }
-            } else {
-                // Copie dans le meme dossier : "x copie", sinon nom d'origine (suffixe numerique si pris).
-                let wanted = if src.parent() == Some(dest.as_path()) { ops::copy_name(&name, is_dir) } else { name.clone() };
-                let target = ops::unique_path(&dest, &wanted);
-                match ops::copy_recursive(src, &target) {
-                    Ok(()) => created.push(target),
-                    Err(e) => errors.push(format!("{name} : {e}")),
-                }
-            }
-        }
-        // Apres un "couper", la source n'existe plus : le presse-papiers est vide. Apres une copie, on le garde.
-        if !clip.cut {
-            self.clipboard = Some(clip);
-        } else {
+        let items = clip.paths.clone();
+        let mode = if clip.cut { crate::transfer::Mode::Move } else { crate::transfer::Mode::Copy };
+        // Apres un "couper", la source disparait : le presse-papiers est vide. Apres une copie, on le garde.
+        if clip.cut {
             crate::syscb::clear();
+        } else {
+            self.clipboard = Some(clip);
         }
-        self.reload_select(&created);
-        if let Some(e) = errors.first() {
-            self.show_notice(format!("Collage incomplet \u{2014} {e}"), cx);
-        }
-        cx.notify();
+        let dest = self.cwd.clone();
+        self.start_transfer(items, dest, mode, cx);
     }
 
     pub fn duplicate(&mut self, cx: &mut Context<Self>) {
@@ -202,6 +174,10 @@ impl Finder {
             return;
         }
         let paths = self.selected_paths();
+        if paths.len() > 1 {
+            self.open_bulk_rename(window, cx);
+            return;
+        }
         let [path] = paths.as_slice() else { return };
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else { return };
         let (stem, _) = ops::split_name(&name, path.is_dir());

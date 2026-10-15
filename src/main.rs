@@ -2,7 +2,13 @@
 mod apps;
 mod editor;
 mod selection;
+mod prefs;
+mod bulk;
+mod archive;
 mod symbols;
+mod tags;
+mod transfer;
+mod tabs;
 mod traffic;
 mod uninstall;
 mod dragdrop;
@@ -12,6 +18,7 @@ mod icons;
 mod info;
 mod layout;
 mod ops;
+mod pdf;
 mod overlays;
 mod quicklook;
 mod sidebar;
@@ -25,8 +32,9 @@ use std::path::PathBuf;
 
 use gpui::{
     App, Application, Bounds, Context, FocusHandle, Focusable, KeyBinding, Modifiers, UniformListScrollHandle, Window,
-    WindowBounds, WindowOptions, actions, div, prelude::*, px, rgb, size,
+    WindowBounds, WindowOptions, actions, div, prelude::*, px, size,
 };
+use crate::theme::{rgb, rgba};
 
 use fs::Entry;
 
@@ -36,7 +44,7 @@ actions!(
         MoveUp, MoveDown, MoveLeft, MoveRight, ExtendUp, ExtendDown, OpenSelection, GoParent, GoBack, GoForward,
         ToggleQuickLook, CloseQuickLook, ViewIcons, ViewList, ViewColumns, ViewGallery, ToggleHidden,
         NewFolder, RenameSelection, TrashSelection, CopySelection, CutSelection, PasteSelection, DuplicateSelection,
-        SelectAll, GoToFolder, FocusSearch, Refresh, Dismiss, GetInfo,
+        SelectAll, GoToFolder, FocusSearch, Refresh, Dismiss, GetInfo, ToggleSidebar, TogglePathBar, ToggleStatusBar, ViewOptions, NewTab, CloseTab, NextTab, PrevTab,
     ]
 );
 
@@ -79,6 +87,19 @@ pub struct Finder {
     pub info: Option<info::InfoState>,
     pub confirm: Option<uninstall::Confirm>,
     pub zoom_dot_hover: bool,
+    pub show_sidebar: bool,
+    pub show_path_bar: bool,
+    pub show_status_bar: bool,
+    pub info_open: [bool; 6],
+    pub bulk: Option<bulk::Bulk>,
+    pub tag_pop: Option<tags::TagPop>,
+    pub prefs: prefs::Store,
+    pub view_opts: bool,
+    pub view_forced: bool,
+    pub job: Option<transfer::Job>,
+    pub conflict: Option<transfer::Conflict>,
+    pub tabs: Vec<tabs::Tab>,
+    pub active_tab: usize,
     pub type_buf: String,
     pub type_at: Option<std::time::Instant>,
     pub band: Option<selection::Band>,
@@ -154,6 +175,19 @@ impl Finder {
             info: None,
             confirm: None,
             zoom_dot_hover: false,
+            show_sidebar: layout::get_setting("sidebar").as_deref() != Some("0"),
+            show_path_bar: layout::get_setting("pathbar").as_deref() != Some("0"),
+            show_status_bar: layout::get_setting("statusbar").as_deref() != Some("0"),
+            info_open: [true, true, true, true, true, false],
+            bulk: None,
+            tag_pop: None,
+            prefs: prefs::Store::load(),
+            view_opts: false,
+            view_forced: std::env::args().any(|a| a.starts_with("--view=")),
+            job: None,
+            conflict: None,
+            tabs: Vec::new(),
+            active_tab: 0,
             type_buf: String::new(),
             type_at: None,
             band: None,
@@ -167,6 +201,7 @@ impl Finder {
             needs_focus: false,
         };
         f.reload();
+        f.tabs = vec![tabs::Tab::at(f.cwd.clone(), f.view)];
         // `--select=<nom>` preselectionne un element (tests automatiques).
         if let Some(name) = std::env::args().find_map(|a| a.strip_prefix("--select=").map(str::to_owned)) {
             if let Some(ix) = f.entries.iter().position(|e| e.name.as_ref() == name) {
@@ -179,6 +214,7 @@ impl Finder {
 
     /// Relit le dossier courant ; selectionne le premier element.
     pub fn reload(&mut self) {
+        self.apply_folder_prefs();
         self.entries = fs::read_dir(&self.cwd, self.show_hidden);
         match self.entries.is_empty() {
             true => self.clear_selection(),
@@ -408,7 +444,8 @@ impl Finder {
         if view_h <= 0.0 {
             return;
         }
-        let top = ix as f32 * theme::LIST_ROW_HEIGHT;
+        let ri = self.display_rows().iter().position(|r| matches!(r, views::Row::Item(j) if *j == ix)).unwrap_or(ix);
+        let top = ri as f32 * theme::LIST_ROW_HEIGHT;
         let bottom = top + theme::LIST_ROW_HEIGHT;
         let off = -f32::from(handle.offset().y);
         let target = if top < off {
@@ -473,23 +510,24 @@ impl Finder {
     pub fn sort_by(&mut self, key: fs::SortKey, cx: &mut Context<Self>) {
         let (cur, asc) = fs::sort();
         fs::set_sort(key, if cur == key { !asc } else { true });
+        self.remember_sort();
+        self.resort_in_place();
+        cx.notify();
+    }
+
+    /// Retrie les elements affiches selon le tri courant en gardant la selection.
+    pub fn resort_in_place(&mut self) {
         let keep: Vec<PathBuf> = self.marked.iter().filter_map(|&i| self.entries.get(i)).map(|e| e.path.clone()).collect();
         fs::resort(&mut self.entries);
         self.marked = self.entries.iter().enumerate().filter(|(_, e)| keep.contains(&e.path)).map(|(i, _)| i).collect();
         self.selected = self.marked.iter().next_back().copied();
         self.anchor = self.marked.iter().next().copied();
         self.rebuild_columns();
-        cx.notify();
     }
 
     pub fn set_view(&mut self, view: ViewMode, cx: &mut Context<Self>) {
         self.view = view;
-        layout::save_view(match view {
-            ViewMode::Icons => "icons",
-            ViewMode::List => "list",
-            ViewMode::Columns => "columns",
-            ViewMode::Gallery => "gallery",
-        });
+        self.remember_view(view);
         if view == ViewMode::Columns {
             self.rebuild_columns();
             if let Some(ix) = self.selected {
@@ -555,7 +593,30 @@ impl Render for Finder {
                 this.close_quick_look(cx);
             }))
             .on_action(cx.listener(|this, _: &Dismiss, window, cx| this.dismiss(window, cx)))
-            .on_action(cx.listener(|this, _: &GetInfo, _, cx| this.show_info(cx)))
+            .on_action(cx.listener(|this, _: &GetInfo, window, cx| this.show_info(window, cx)))
+            .on_action(cx.listener(|this, _: &ToggleSidebar, _, cx| {
+                this.show_sidebar = !this.show_sidebar;
+                layout::set_setting("sidebar", if this.show_sidebar { "1" } else { "0" });
+                cx.notify();
+            }))
+            .on_action(cx.listener(|this, _: &TogglePathBar, _, cx| {
+                this.show_path_bar = !this.show_path_bar;
+                layout::set_setting("pathbar", if this.show_path_bar { "1" } else { "0" });
+                cx.notify();
+            }))
+            .on_action(cx.listener(|this, _: &ToggleStatusBar, _, cx| {
+                this.show_status_bar = !this.show_status_bar;
+                layout::set_setting("statusbar", if this.show_status_bar { "1" } else { "0" });
+                cx.notify();
+            }))
+            .on_action(cx.listener(|this, _: &ViewOptions, _, cx| this.toggle_view_options(cx)))
+            .on_action(cx.listener(|this, _: &NewTab, _, cx| this.new_tab(None, cx)))
+            .on_action(cx.listener(|this, _: &CloseTab, window, cx| {
+                let i = this.active_tab;
+                this.close_tab(i, window, cx)
+            }))
+            .on_action(cx.listener(|this, _: &NextTab, _, cx| this.cycle_tab(1, cx)))
+            .on_action(cx.listener(|this, _: &PrevTab, _, cx| this.cycle_tab(-1, cx)))
             .on_action(cx.listener(|this, _: &ViewIcons, _, cx| this.set_view(ViewMode::Icons, cx)))
             .on_action(cx.listener(|this, _: &ViewList, _, cx| this.set_view(ViewMode::List, cx)))
             .on_action(cx.listener(|this, _: &ViewColumns, _, cx| this.set_view(ViewMode::Columns, cx)))
@@ -595,7 +656,7 @@ impl Render for Finder {
             // Fenetre sans cadre Windows : coins arrondis a la macOS (fond de fenetre transparent).
             .rounded(px(15.))
             .border_1()
-            .border_color(gpui::rgba(0x00000026))
+            .border_color(crate::theme::rgba(0x00000026))
             .overflow_hidden()
             .flex()
             .bg(rgb(theme::BG))
@@ -603,7 +664,7 @@ impl Render for Finder {
             .text_size(px(13.))
             .font_family("Segoe UI Variable Text")
             // Barre laterale sur toute la hauteur (avec les boutons de fenetre), contenu a droite.
-            .child(self.render_sidebar(cx))
+            .children(if self.show_sidebar { Some(self.render_sidebar(cx)) } else { None })
             .child(
                 div()
                     .flex_1()
@@ -612,6 +673,7 @@ impl Render for Finder {
                     .flex()
                     .flex_col()
                     .child(self.render_toolbar(cx))
+                    .children(self.render_tab_bar(cx))
                     .child(div().flex_1().min_h_0().flex().flex_col().child(content))
                     .child(self.render_bottom_bar(cx)),
             )
@@ -620,12 +682,26 @@ impl Render for Finder {
             .children(self.render_goto(cx))
             .children(self.render_info(cx))
             .children(self.render_confirm(cx))
+            .children(self.render_bulk(cx))
+            .children(self.render_tag_pop(cx))
+            .children(self.render_view_options(cx))
+            .children(self.render_progress(cx))
+            .children(self.render_conflict(cx))
             .children(self.render_notice())
     }
 }
 
 fn main() {
-    Application::new().run(|cx: &mut App| {
+    // Mode sombre : --dark / --light (tests), sinon celui de Windows, surveille en continu.
+    let forced = if std::env::args().any(|a| a == "--dark") {
+        Some(true)
+    } else if std::env::args().any(|a| a == "--light") {
+        Some(false)
+    } else {
+        None
+    };
+    theme::set_dark(forced.unwrap_or_else(theme::system_is_dark));
+    Application::new().run(move |cx: &mut App| {
         // Hors saisie seulement : pendant un renommage / une recherche, les touches vont au champ de texte.
         const FIN: &str = "Finder && !TextInput";
         cx.bind_keys([
@@ -656,6 +732,14 @@ fn main() {
             KeyBinding::new("ctrl-d", DuplicateSelection, Some(FIN)),
             KeyBinding::new("ctrl-a", SelectAll, Some(FIN)),
             KeyBinding::new("ctrl-i", GetInfo, Some(FIN)),
+            KeyBinding::new("ctrl-alt-s", ToggleSidebar, Some("Finder")),
+            KeyBinding::new("ctrl-alt-p", TogglePathBar, Some("Finder")),
+            KeyBinding::new("ctrl-alt-b", ToggleStatusBar, Some("Finder")),
+            KeyBinding::new("ctrl-j", ViewOptions, Some(FIN)),
+            KeyBinding::new("ctrl-t", NewTab, Some("Finder")),
+            KeyBinding::new("ctrl-w", CloseTab, Some("Finder")),
+            KeyBinding::new("ctrl-tab", NextTab, Some("Finder")),
+            KeyBinding::new("ctrl-shift-tab", PrevTab, Some("Finder")),
             KeyBinding::new("ctrl-shift-n", NewFolder, Some(FIN)),
             KeyBinding::new("f5", Refresh, Some(FIN)),
             KeyBinding::new("ctrl-r", Refresh, Some(FIN)),
@@ -713,8 +797,20 @@ fn main() {
         })
         .detach();
         square_dwm_frame();
+        if forced.is_none() {
+            let handle = main_window;
+            cx.spawn(async move |cx| loop {
+                cx.background_executor().timer(std::time::Duration::from_secs(3)).await;
+                let dark = cx.background_executor().spawn(async { theme::system_is_dark() }).await;
+                if dark != theme::is_dark() {
+                    theme::set_dark(dark);
+                    handle.update(cx, |_, _, cx| cx.notify()).ok();
+                }
+            })
+            .detach();
+        }
         if std::env::args().any(|a| a == "--info") {
-            main_window.update(cx, |finder, _, cx| finder.show_info(cx)).ok();
+            main_window.update(cx, |finder, window, cx| finder.show_info(window, cx)).ok();
         }
         // `--ql` ouvre l'apercu au demarrage (tests automatiques sans simuler de clavier).
         if std::env::args().any(|a| a == "--ql") {

@@ -10,6 +10,7 @@ pub struct Entry {
     pub is_dir: bool,
     pub size: u64,
     pub modified: Option<SystemTime>,
+    pub created: Option<SystemTime>,
     pub kind: SharedString,
     /// Dossier d'origine (resultats de recherche seulement).
     pub hint: Option<SharedString>,
@@ -47,6 +48,10 @@ pub fn extension(path: &Path) -> String {
     path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default()
 }
 
+pub fn kind_label(path: &Path) -> SharedString {
+    kind_of(path, false)
+}
+
 fn kind_of(path: &Path, is_dir: bool) -> SharedString {
     if is_dir {
         return "Dossier".into();
@@ -70,6 +75,7 @@ pub fn display_name(p: &Path) -> String {
     match p.to_str() {
         Some(APPS) => "Applications".into(),
         Some(PC) => "Ce PC".into(),
+        Some(s) if s.starts_with("::tag:") => s[6..].to_string(),
         _ => p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| p.display().to_string()),
     }
 }
@@ -81,6 +87,9 @@ pub fn read_dir(path: &Path, show_hidden: bool) -> Vec<Entry> {
     }
     if path == Path::new(PC) {
         return crate::apps::drives();
+    }
+    if let Some(tag) = path.to_str().and_then(|s| s.strip_prefix("::tag:")) {
+        return crate::tags::entries(tag);
     }
     let mut entries: Vec<Entry> = std::fs::read_dir(path)
         .into_iter()
@@ -110,6 +119,7 @@ pub fn read_dir(path: &Path, show_hidden: bool) -> Vec<Entry> {
                 is_dir,
                 size: if is_dir { 0 } else { meta.len() },
                 modified: meta.modified().ok(),
+                created: meta.created().ok(),
                 hint: None,
             })
         })
@@ -124,6 +134,7 @@ pub enum SortKey {
     Modified,
     Size,
     Kind,
+    Created,
 }
 
 /// Tri courant (cle * 2 + descendant), partage par toutes les lectures de dossier.
@@ -135,6 +146,7 @@ pub fn sort() -> (SortKey, bool) {
         1 => SortKey::Modified,
         2 => SortKey::Size,
         3 => SortKey::Kind,
+        4 => SortKey::Created,
         _ => SortKey::Name,
     };
     (key, v % 2 == 0)
@@ -146,18 +158,81 @@ pub fn set_sort(key: SortKey, ascending: bool) {
         SortKey::Modified => 1,
         SortKey::Size => 2,
         SortKey::Kind => 3,
+        SortKey::Created => 4,
     };
     SORT.store(k * 2 + u8::from(!ascending), std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Regroupement courant (0 aucun, 1 nom, 2 type, 3 modification, 4 creation, 5 taille).
+static GROUP: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+pub fn group() -> u8 {
+    GROUP.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+pub fn set_group(g: u8) {
+    GROUP.store(g, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn date_bucket(t: Option<SystemTime>) -> (i64, String) {
+    let Some(t) = t else { return (9, "Inconnu".into()) };
+    let d = chrono::DateTime::<chrono::Local>::from(t).date_naive();
+    let today = chrono::Local::now().date_naive();
+    let days = (today - d).num_days();
+    match days {
+        i64::MIN..=0 => (0, "Aujourd'hui".into()),
+        1 => (1, "Hier".into()),
+        2..=7 => (2, "7 derniers jours".into()),
+        8..=30 => (3, "30 derniers jours".into()),
+        _ => (4, "Plus ancien".into()),
+    }
+}
+
+/// (ordre, titre) du groupe d'un element pour le regroupement `g`.
+pub fn group_of(e: &Entry, g: u8) -> (i64, String) {
+    match g {
+        1 => {
+            let c = e.name.chars().next().map(|c| c.to_uppercase().next().unwrap_or(c)).unwrap_or('#');
+            if c.is_alphanumeric() { (c as i64, c.to_string()) } else { (0, "#".into()) }
+        }
+        2 => (0, e.kind.to_string()),
+        3 => date_bucket(e.modified),
+        4 => date_bucket(e.created),
+        5 => {
+            if e.is_dir {
+                (0, "Dossiers".into())
+            } else {
+                match e.size {
+                    0 => (1, "Vide".into()),
+                    1..=99_999 => (2, "Moins de 100 Ko".into()),
+                    100_000..=999_999 => (3, "100 Ko \u{2013} 1 Mo".into()),
+                    1_000_000..=9_999_999 => (4, "1 \u{2013} 10 Mo".into()),
+                    10_000_000..=99_999_999 => (5, "10 \u{2013} 100 Mo".into()),
+                    100_000_000..=999_999_999 => (6, "100 Mo \u{2013} 1 Go".into()),
+                    _ => (7, "Plus de 1 Go".into()),
+                }
+            }
+        }
+        _ => (0, String::new()),
+    }
 }
 
 /// Trie selon le tri courant : dossiers d'abord, puis la cle choisie, puis le nom.
 pub fn resort(entries: &mut [Entry]) {
     let (key, asc) = sort();
+    let grp = group();
     entries.sort_by(|a, b| {
+        if grp != 0 {
+            let (ka, kb) = (group_of(a, grp), group_of(b, grp));
+            if ka != kb {
+                return ka.cmp(&kb);
+            }
+        }
         let by_name = || a.name.to_lowercase().cmp(&b.name.to_lowercase());
         let ord = match key {
             SortKey::Name => by_name(),
             SortKey::Modified => a.modified.cmp(&b.modified).then_with(by_name),
+            SortKey::Created => a.created.cmp(&b.created).then_with(by_name),
             SortKey::Size => a.size.cmp(&b.size).then_with(by_name),
             SortKey::Kind => a.kind.to_lowercase().cmp(&b.kind.to_lowercase()).then_with(by_name),
         };
@@ -187,6 +262,22 @@ pub fn format_date(t: Option<SystemTime>) -> String {
         Some(t) => chrono::DateTime::<chrono::Local>::from(t).format("%d/%m/%Y %H:%M").to_string(),
         None => "--".into(),
     }
+}
+
+/// Date relative comme le Finder ("Aujourd'hui a 14:03", "Hier a ...") ou complete.
+pub fn format_date_pref(t: Option<SystemTime>, relative: bool) -> String {
+    let Some(t) = t else { return "--".into() };
+    let d = chrono::DateTime::<chrono::Local>::from(t);
+    if relative {
+        let today = chrono::Local::now().date_naive();
+        if d.date_naive() == today {
+            return d.format("Aujourd'hui à %H:%M").to_string();
+        }
+        if d.date_naive() == today.pred_opt().unwrap_or(today) {
+            return d.format("Hier à %H:%M").to_string();
+        }
+    }
+    d.format("%d/%m/%Y %H:%M").to_string()
 }
 
 pub fn read_text_preview(path: &Path) -> String {
@@ -237,6 +328,7 @@ pub fn search(root: &Path, query: &str, show_hidden: bool, max_results: usize) -
                     is_dir: ft.is_dir(),
                     size: if ft.is_dir() { 0 } else { meta.len() },
                     modified: meta.modified().ok(),
+                created: meta.created().ok(),
                     hint: rel.map(Into::into),
                 });
                 if results.len() >= max_results {
@@ -247,4 +339,14 @@ pub fn search(root: &Path, query: &str, show_hidden: bool, max_results: usize) -
     }
     results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     results
+}
+
+impl Entry {
+    pub fn is_pdf(&self) -> bool {
+        extension(&self.path) == "pdf"
+    }
+
+    pub fn is_video(&self) -> bool {
+        matches!(extension(&self.path).as_str(), "mp4" | "mkv" | "mov" | "avi" | "webm" | "wmv" | "m4v")
+    }
 }

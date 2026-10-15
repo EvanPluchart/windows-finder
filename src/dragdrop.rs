@@ -7,11 +7,11 @@ use std::sync::Arc;
 
 use gpui::{
     Context, IntoElement, ParentElement, Pixels, Point, Render, RenderImage, SharedString, Styled, Window, div, img,
-    prelude::*, px, rgb,
-};
+    prelude::*, px, };
+use crate::theme::{rgb};
 
 use crate::fs::Entry;
-use crate::layout::{self, CELL_H, CELL_W, PAD};
+use crate::layout::{self, PAD};
 use crate::{ops, theme, Finder};
 
 /// Valeur portee par le glisser : les elements deplaces et celui saisi.
@@ -34,7 +34,7 @@ pub struct DragView {
 impl Render for DragView {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
-            .w(px(CELL_W))
+            .w(px(crate::layout::CELL_W))
             .flex()
             .flex_col()
             .items_center()
@@ -50,7 +50,7 @@ impl Render for DragView {
                     .py(px(1.))
                     .rounded(px(5.))
                     .bg(rgb(theme::SELECTION))
-                    .text_color(rgb(0xffffff))
+                    .text_color(rgb(0xfffffe))
                     .text_size(px(13.))
                     .child(if self.count > 1 {
                         format!("{} \u{e9}l\u{e9}ments", self.count)
@@ -70,7 +70,7 @@ impl DragPaths {
             primary: e.path.clone(),
             label: e.name.clone(),
             icon: finder.icons.get(&e.path, 128, true),
-            grab: Cell::new((CELL_W / 2.0, 46.0)),
+            grab: Cell::new((finder.cell().0 / 2.0, 46.0)),
         }
     }
 
@@ -88,45 +88,57 @@ fn same_drive(a: &Path, b: &Path) -> bool {
 impl Finder {
     /// Deplace (ou copie, avec Ctrl ou entre deux disques) les elements dans `target`.
     pub fn drop_into(&mut self, d: &DragPaths, target: PathBuf, copy: bool, cx: &mut Context<Self>) {
-        let mut done = Vec::new();
-        let mut errors = Vec::new();
-        for src in &d.paths {
-            let Some(name) = src.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };
-            // Pas dans lui-meme, ni dans un de ses sous-dossiers, ni dans son dossier actuel.
-            if *src == target || target.starts_with(src) || src.parent() == Some(target.as_path()) {
-                continue;
-            }
-            let dest = ops::unique_path(&target, &name);
-            let result = if copy || !same_drive(src, &target) {
-                ops::copy_recursive(src, &dest)
-            } else {
-                ops::move_path(src, &dest)
-            };
-            match result {
-                Ok(()) => done.push(dest),
-                Err(e) => errors.push(format!("{name} : {e}")),
-            }
-        }
-        self.reload_select(&[]);
-        let dir =
-            target.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| target.display().to_string());
-        if let Some(e) = errors.first() {
-            self.show_notice(format!("D\u{e9}placement incomplet \u{2014} {e}"), cx);
-        } else if !done.is_empty() {
-            let verb = if copy { "copi\u{e9}" } else { "d\u{e9}plac\u{e9}" };
-            let s = if done.len() > 1 { "s" } else { "" };
-            self.show_notice(format!("{} \u{e9}l\u{e9}ment{s} {verb}{s} vers \u{ab} {dir} \u{bb}", done.len()), cx);
-        }
-        cx.notify();
+        let any_other_drive = d.paths.iter().any(|s| !same_drive(s, &target));
+        let mode = if copy || any_other_drive { crate::transfer::Mode::Copy } else { crate::transfer::Mode::Move };
+        // Une copie vers le dossier d'origine n'a pas de sens ici (Ctrl + glisser dans le meme dossier).
+        let items: Vec<PathBuf> = d.paths.iter().filter(|s| s.parent() != Some(target.as_path())).cloned().collect();
+        self.start_transfer(items, target, mode, cx);
     }
 
     /// Nombre de colonnes de la grille automatique de la vue Icones.
     pub fn icon_cols(&self, width: f32) -> usize {
-        (((width - theme::SIDEBAR_WIDTH - 2.0 * PAD) / CELL_W).floor() as usize).max(1)
+        (((width - theme::SIDEBAR_WIDTH - 2.0 * PAD) / self.cell().0).floor() as usize).max(1)
+    }
+
+    /// Titres de groupe (y, texte) de la vue Icones groupee ; vide sans regroupement ni en placement libre.
+    pub fn icon_headers(&self, cols: usize) -> Vec<(f32, String)> {
+        if self.layouts.contains_key(&self.cwd) || crate::fs::group() == 0 {
+            return Vec::new();
+        }
+        self.grouped_layout(cols).1
+    }
+
+    /// Grille par groupes : chaque groupe commence sur une nouvelle ligne, sous son titre.
+    fn grouped_layout(&self, cols: usize) -> (Vec<(f32, f32)>, Vec<(f32, String)>) {
+        const HEADER_H: f32 = 30.0;
+        let (cell_w, cell_h) = self.cell();
+        let g = crate::fs::group();
+        let mut positions = Vec::with_capacity(self.entries.len());
+        let mut headers = Vec::new();
+        let (mut y, mut k, mut last): (f32, usize, Option<String>) = (0.0, 0, None);
+        for e in &self.entries {
+            let title = crate::fs::group_of(e, g).1;
+            if last.as_deref() != Some(title.as_str()) {
+                if last.is_some() {
+                    y += (k.div_ceil(cols)) as f32 * cell_h + 8.0;
+                }
+                headers.push((y, title.clone()));
+                y += HEADER_H;
+                k = 0;
+                last = Some(title);
+            }
+            positions.push(((k % cols) as f32 * cell_w, y + (k / cols) as f32 * cell_h));
+            k += 1;
+        }
+        (positions, headers)
     }
 
     /// Position (x, y) de chaque element : celle enregistree, sinon la premiere case libre de la grille.
     pub fn icon_positions(&self, cols: usize) -> Vec<(f32, f32)> {
+        if !self.layouts.contains_key(&self.cwd) && crate::fs::group() != 0 {
+            return self.grouped_layout(cols).0;
+        }
+        let (cell_w, cell_h) = self.cell();
         let saved = self.layouts.get(&self.cwd);
         let mut out: Vec<Option<(f32, f32)>> =
             self.entries.iter().map(|e| saved.and_then(|l| l.get(e.name.as_ref()).copied())).collect();
@@ -137,12 +149,12 @@ impl Finder {
                 continue;
             }
             let pos = if saved.is_none() {
-                ((i % cols) as f32 * CELL_W, (i / cols) as f32 * CELL_H)
+                ((i % cols) as f32 * cell_w, (i / cols) as f32 * cell_h)
             } else {
                 loop {
-                    let p = ((next % cols) as f32 * CELL_W, (next / cols) as f32 * CELL_H);
+                    let p = ((next % cols) as f32 * cell_w, (next / cols) as f32 * cell_h);
                     next += 1;
-                    if !used.iter().any(|u| (u.0 - p.0).abs() < CELL_W / 2.0 && (u.1 - p.1).abs() < CELL_H / 2.0) {
+                    if !used.iter().any(|u| (u.0 - p.0).abs() < cell_w / 2.0 && (u.1 - p.1).abs() < cell_h / 2.0) {
                         break p;
                     }
                 }

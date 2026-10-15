@@ -5,9 +5,9 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
 use gpui::{
-    Context, InteractiveElement, IntoElement, ParentElement, SharedString, StatefulInteractiveElement, Styled, div,
-    prelude::*, px, rgb,
-};
+    Context, InteractiveElement, IntoElement, MouseButton, ParentElement, SharedString, StatefulInteractiveElement, Styled, div,
+    prelude::*, px, };
+use crate::theme::{rgb};
 use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
 use windows::core::PCWSTR;
 
@@ -59,6 +59,12 @@ pub fn default_places() -> Vec<Place> {
     }
     places.push(item("R\u{e9}seau", "globe", PathBuf::from("::net")));
     places.push(item("Corbeille", "trash", PathBuf::from("::trash")));
+
+    places.push(Place::Header("\u{c9}tiquettes".into()));
+    for (name, _, hex) in crate::tags::PALETTE {
+        let glyph: &'static str = Box::leak(format!("dot:{hex:06x}").into_boxed_str());
+        places.push(item(name, glyph, PathBuf::from(format!("::tag:{name}"))));
+    }
     places
 }
 
@@ -102,7 +108,23 @@ impl Finder {
                     .when(active, |d| d.bg(rgb(0xdcdcdf)))
                     .when(!active, |d| d.hover(|s| s.bg(rgb(0xe3e3e6))))
                     .child(
-                        div().w(px(22.)).flex().justify_center().child(crate::symbols::sym(glyph, 13., if matches!(*glyph, "house" | "laptopcomputer" | "internaldrive" | "externaldrive" | "globe" | "trash") { 0x6e6e73 } else { ACCENT })),
+                        div().w(px(22.)).flex().justify_center().child(if let Some(hex) = glyph.strip_prefix("dot:") {
+                            div()
+                                .size(px(12.))
+                                .rounded_full()
+                                .bg(rgb(u32::from_str_radix(hex, 16).unwrap_or(0x98989d)))
+                                .into_any_element()
+                        } else {
+                            crate::symbols::sym(
+                                glyph,
+                                13.,
+                                if matches!(*glyph, "house" | "laptopcomputer" | "internaldrive" | "externaldrive" | "globe" | "trash") {
+                                    0x6e6e73
+                                } else {
+                                    ACCENT
+                                },
+                            )
+                        }),
                     )
                     .child(label(name.clone()).flex_1().min_w_0())
                     .drag_over::<crate::dragdrop::DragPaths>(|s, _, _, _| s.bg(rgb(0xc4daf9)))
@@ -113,6 +135,14 @@ impl Finder {
                         }
                     }))
                     .on_click(cx.listener(move |this, _, _, cx| this.open_place(target.clone(), cx)))
+                    .on_mouse_down(MouseButton::Middle, cx.listener({
+                        let target = path.clone();
+                        move |this, _, _, cx| {
+                            if !matches!(target.to_str(), Some("::net") | Some("::trash")) {
+                                this.new_tab(Some(target.clone()), cx);
+                            }
+                        }
+                    }))
                     .into_any_element()
             }
         });
@@ -197,26 +227,30 @@ impl Finder {
             .flex_col()
             .text_size(px(12.))
             .text_color(rgb(theme::TEXT_SECONDARY))
-            .child(
-                div()
-                    .h(px(28.))
-                    .px(px(12.))
-                    .flex()
-                    .items_center()
-                    .border_t_1()
-                    .border_color(rgb(theme::SEPARATOR))
-                    .children(path_bar),
-            )
-            .child(
-                div()
-                    .h(px(28.))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .border_t_1()
-                    .border_color(rgb(theme::SEPARATOR))
-                    .child(status),
-            )
+            .when(self.show_path_bar, |d| {
+                d.child(
+                    div()
+                        .h(px(28.))
+                        .px(px(12.))
+                        .flex()
+                        .items_center()
+                        .border_t_1()
+                        .border_color(rgb(theme::SEPARATOR))
+                        .children(path_bar),
+                )
+            })
+            .when(self.show_status_bar, |d| {
+                d.child(
+                    div()
+                        .h(px(28.))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .border_t_1()
+                        .border_color(rgb(theme::SEPARATOR))
+                        .child(status),
+                )
+            })
     }
 }
 

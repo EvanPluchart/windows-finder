@@ -2,8 +2,8 @@
 
 use gpui::{
     AnyElement, Context, InteractiveElement, IntoElement, MouseButton, ParentElement, StatefulInteractiveElement, Styled,
-    div, prelude::*, px, rgb, rgba,
-};
+    div, prelude::*, px, };
+use crate::theme::{rgb, rgba};
 
 use crate::{apps, theme, Finder};
 
@@ -67,7 +67,7 @@ impl Finder {
                 .items_center()
                 .rounded(px(7.))
                 .text_size(px(13.))
-                .when(primary, |d| d.bg(rgb(0xd7342b)).text_color(rgb(0xffffff)))
+                .when(primary, |d| d.bg(rgb(0xd7342b)).text_color(rgb(0xfffffe)))
                 .when(!primary, |d| d.bg(rgb(0xe9e9ec)).text_color(rgb(theme::TEXT)))
                 .child(text)
         };

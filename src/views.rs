@@ -2,12 +2,19 @@ use std::ops::Range;
 
 use gpui::{
     AnyElement, ClickEvent, Context, InteractiveElement, IntoElement, MouseButton, MouseDownEvent, ParentElement,
-    SharedString, StatefulInteractiveElement, Styled, div, prelude::*, px, rgb, uniform_list,
+    SharedString, StatefulInteractiveElement, Styled, div, prelude::*, px, uniform_list,
 };
+use crate::theme::{rgb, rgba};
 
 use crate::fs::{self, Entry};
 use crate::theme;
 use crate::Finder;
+
+/// Ligne affichee dans la liste : titre de groupe ou element (indice dans `entries`).
+pub enum Row {
+    Header(String),
+    Item(usize),
+}
 
 pub(crate) fn label(text: impl Into<SharedString>) -> gpui::Div {
     div().overflow_hidden().whitespace_nowrap().text_ellipsis().child(text.into())
@@ -77,6 +84,40 @@ impl Finder {
         )
     }
 
+    /// Lignes de la liste, avec un titre avant chaque groupe quand le regroupement est actif.
+    pub fn display_rows(&self) -> Vec<Row> {
+        let g = fs::group();
+        if g == 0 {
+            return (0..self.entries.len()).map(Row::Item).collect();
+        }
+        let mut out = Vec::with_capacity(self.entries.len() + 8);
+        let mut last: Option<String> = None;
+        for (i, e) in self.entries.iter().enumerate() {
+            let title = fs::group_of(e, g).1;
+            if last.as_deref() != Some(title.as_str()) {
+                out.push(Row::Header(title.clone()));
+                last = Some(title);
+            }
+            out.push(Row::Item(i));
+        }
+        out
+    }
+
+    fn render_header_row(&self, title: &str) -> AnyElement {
+        div()
+            .w_full()
+            .h(px(theme::LIST_ROW_HEIGHT))
+            .px(px(ROW_MARGIN + 8.))
+            .flex_none()
+            .flex()
+            .items_center()
+            .text_size(px(12.))
+            .font_weight(gpui::FontWeight::SEMIBOLD)
+            .text_color(rgb(theme::TEXT_SECONDARY))
+            .child(title.to_string())
+            .into_any_element()
+    }
+
     pub fn render_list(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let (cur, asc) = crate::fs::sort();
         // En-tete cliquable : fleche sur la colonne triee, second clic = ordre inverse.
@@ -98,6 +139,7 @@ impl Finder {
                 .on_click(cx.listener(move |this, _, _, cx| this.sort_by(key, cx)))
         };
         use crate::fs::SortKey;
+        let pr = self.eff();
         div()
             .flex_1()
             .min_h_0()
@@ -114,18 +156,28 @@ impl Finder {
                     .border_b_1()
                     .border_color(rgb(theme::SEPARATOR))
                     .child(head("Nom", SortKey::Name, cx).flex_1().min_w_0().pl(px(NAME_INDENT)))
-                    .child(head("Date de modification", SortKey::Modified, cx).w(px(COL_DATE)).flex_none().px_2())
-                    .child(head("Taille", SortKey::Size, cx).w(px(COL_SIZE)).flex_none().px_2().justify_end())
-                    .child(head("Type", SortKey::Kind, cx).w(px(COL_KIND)).flex_none().px_2()),
+                    .when(pr.col_modified, |d| d.child(head("Date de modification", SortKey::Modified, cx).w(px(COL_DATE)).flex_none().px_2()))
+                    .when(pr.col_created, |d| d.child(head("Date de création", SortKey::Created, cx).w(px(COL_DATE)).flex_none().px_2()))
+                    .when(pr.col_size, |d| d.child(head("Taille", SortKey::Size, cx).w(px(COL_SIZE)).flex_none().px_2().justify_end()))
+                    .when(pr.col_kind, |d| d.child(head("Type", SortKey::Kind, cx).w(px(COL_KIND)).flex_none().px_2())),
             )
             .child(self.background_handlers(
                 div().flex_1().min_h_0().child(
                     uniform_list(
                         "list",
-                        self.entries.len().max(80),
+                        self.display_rows().len().max(80),
                         cx.processor(|this, range: Range<usize>, _window, cx| {
-                            range.map(|i| this.render_row(i, cx)).collect::<Vec<_>>()
+                            let rows = this.display_rows();
+                            let n_items = this.entries.len();
+                            range
+                                .map(|ri| match rows.get(ri) {
+                                    Some(Row::Header(t)) => this.render_header_row(t),
+                                    Some(Row::Item(i)) => this.render_row(*i, cx),
+                                    None => this.render_row(n_items + (ri - rows.len()), cx),
+                                })
+                                .collect::<Vec<_>>()
                         }),
+                        
                     )
                     .track_scroll(self.list_scroll.clone())
                     .size_full(),
@@ -151,9 +203,11 @@ impl Finder {
         } else {
             (theme::TEXT, theme::TEXT_SECONDARY)
         };
+        let pr = self.eff();
         let row = div()
             .id(("row", i))
             .size_full()
+            .text_size(px(pr.text as f32))
             .rounded(px(8.))
             .flex()
             .items_center()
@@ -171,22 +225,17 @@ impl Finder {
                     .items_center()
                     .child(self.icon(&e.path, 16.0, false))
                     .child(self.name_element(e))
+                    .children(crate::tags::dots(&e.path, 9.))
                     .children(e.hint.clone().map(|h| {
                         div().flex_none().max_w(px(220.)).text_size(px(11.)).text_color(rgb(sub)).child(label(h))
                     })),
             )
-            .child(div().w(px(COL_DATE)).flex_none().px_2().text_color(rgb(sub)).child(fs::format_date(e.modified)))
-            .child(
-                div()
-                    .w(px(COL_SIZE))
-                    .flex_none()
-                    .px_2()
-                    .flex()
-                    .justify_end()
-                    .text_color(rgb(sub))
-                    .child(fs::format_size(e)),
-            )
-            .child(div().w(px(COL_KIND)).flex_none().px_2().text_color(rgb(sub)).child(label(e.kind.clone())))
+            .when(pr.col_modified, |d| d.child(div().w(px(COL_DATE)).flex_none().px_2().text_color(rgb(sub)).child(fs::format_date_pref(e.modified, pr.rel_dates))))
+            .when(pr.col_created, |d| d.child(div().w(px(COL_DATE)).flex_none().px_2().text_color(rgb(sub)).child(fs::format_date_pref(e.created, pr.rel_dates))))
+            .when(pr.col_size, |d| {
+                d.child(div().w(px(COL_SIZE)).flex_none().px_2().flex().justify_end().text_color(rgb(sub)).child(fs::format_size(e)))
+            })
+            .when(pr.col_kind, |d| d.child(div().w(px(COL_KIND)).flex_none().px_2().text_color(rgb(sub)).child(label(e.kind.clone()))))
             .on_drag(crate::dragdrop::DragPaths::new(self, e, self.marked.contains(&i)), |d, off, _, cx| cx.new(|_| d.view(off)))
             .when(e.is_dir, |d| {
                 let target = e.path.clone();
@@ -205,10 +254,15 @@ impl Finder {
 
     pub fn render_icons(&self, window: &gpui::Window, cx: &mut Context<Self>) -> impl IntoElement {
         use crate::dragdrop::DragPaths;
-        use crate::layout::{CELL_H, CELL_W, PAD};
+        use crate::layout::PAD;
+        let (cell_w, cell_h) = self.cell();
+        let pr = self.eff();
+        let icon_px = pr.icon_size as f32;
         let width = f32::from(window.viewport_size().width);
-        let positions = self.icon_positions(self.icon_cols(width));
-        let content_h = positions.iter().map(|p| p.1).fold(0.0f32, f32::max) + CELL_H + 2.0 * PAD;
+        let cols = self.icon_cols(width);
+        let positions = self.icon_positions(cols);
+        let headers = self.icon_headers(cols);
+        let content_h = positions.iter().map(|p| p.1).fold(0.0f32, f32::max) + cell_h + 2.0 * PAD;
         let cells = self.entries.iter().enumerate().map(|(i, e)| {
             let selected = self.marked.contains(&i);
             let renaming = self.rename.as_ref().map(|r| r.path == e.path).unwrap_or(false);
@@ -221,8 +275,8 @@ impl Finder {
                 .absolute()
                 .left(px(x + PAD))
                 .top(px(y + PAD))
-                .w(px(CELL_W))
-                .h(px(CELL_H))
+                .w(px(cell_w))
+                .h(px(cell_h))
                 .pt(px(8.))
                 .flex()
                 .flex_col()
@@ -232,7 +286,7 @@ impl Finder {
                 // Boite de l'icone : carre arrondi gris quand l'element est selectionne.
                 .child(
                     div()
-                        .size(px(76.))
+                        .size(px(icon_px + 12.))
                         .flex()
                         .items_center()
                         .justify_center()
@@ -240,23 +294,29 @@ impl Finder {
                         .when(selected, |d| d.bg(rgb(0xe6e6e6)))
                         .group(format!("ibox-{i}"))
                         .when(e.is_dir, |d| d.group_drag_over::<DragPaths>(format!("icell-{i}"), |s| s.bg(rgb(0xcfe2fb))))
-                        .child(self.icon(&e.path, theme::ICON_SIZE, true)),
+                        .child(self.icon(&e.path, icon_px, true)),
                 )
+                .children(crate::tags::dots(&e.path, 10.))
                 // Nom sur 2 lignes maximum, centre ; pastille bleue quand selectionne.
                 .child(if renaming {
-                    div().w(px(theme::ICON_CELL)).h(px(22.)).flex().child(self.name_element(e)).into_any_element()
+                    div().w(px(cell_w - 16.)).h(px(22.)).flex().child(self.name_element(e)).into_any_element()
                 } else {
                     div()
-                        .max_w(px(theme::ICON_CELL + 4.))
+                        .max_w(px(cell_w - 12.))
                         .px(px(6.))
                         .py(px(1.))
                         .rounded(px(5.))
-                        .text_size(px(13.))
+                        .text_size(px(pr.text as f32))
                         .text_center()
                         .line_clamp(2)
                         .when(selected, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(theme::SELECTION_TEXT)))
                         .child(e.name.clone())
                         .into_any_element()
+                })
+                .when(pr.item_info, |d| {
+                    d.child(
+                        div().text_size(px((pr.text as f32 - 2.0).max(9.0))).text_color(rgb(theme::TEXT_SECONDARY)).child(if e.is_dir { SharedString::from("Dossier") } else { SharedString::from(fs::format_size(e)) }),
+                    )
                 })
                 .on_drag(drag, |d, off, _, cx| cx.new(|_| d.view(off)))
                 .when(e.is_dir, |d| {
@@ -272,7 +332,7 @@ impl Finder {
         // Rectangle de selection a la souris.
         let band = self.band.filter(|b| { let r = b.rect(); r.2 >= 3.0 || r.3 >= 3.0 }).map(|b| {
             let (x, y, w, h) = b.rect();
-            div().absolute().left(px(x)).top(px(y)).w(px(w)).h(px(h)).rounded(px(3.)).bg(gpui::rgba(0x0064e11f)).border_1().border_color(gpui::rgba(0x0064e199))
+            div().absolute().left(px(x)).top(px(y)).w(px(w)).h(px(h)).rounded(px(3.)).bg(crate::theme::rgba(0x0064e11f)).border_1().border_color(crate::theme::rgba(0x0064e199))
         });
         self.background_handlers(
             div()
@@ -295,7 +355,27 @@ impl Finder {
                 .on_drop(cx.listener(move |this, p: &DragPaths, window, cx| {
                     this.drop_free(p, window.mouse_position(), width, cx)
                 }))
-                .child(div().relative().w_full().h(px(content_h)).children(cells).children(band)),
+                .child(
+                    div()
+                        .relative()
+                        .w_full()
+                        .h(px(content_h))
+                        .children(headers.into_iter().map(|(y, title)| {
+                            div()
+                                .absolute()
+                                .left(px(PAD))
+                                .top(px(y + PAD))
+                                .h(px(24.))
+                                .flex()
+                                .items_center()
+                                .text_size(px(13.))
+                                .font_weight(gpui::FontWeight::SEMIBOLD)
+                                .text_color(rgb(theme::TEXT_SECONDARY))
+                                .child(title)
+                        }))
+                        .children(cells)
+                        .children(band),
+                ),
             cx,
         )
     }

@@ -241,7 +241,7 @@ impl Finder {
                                         .text_color(rgb(theme::TEXT_SECONDARY))
                                         .hover(|s| s.bg(rgb(0xe3e3e6)))
                                         .child("\u{2715}")
-                                        .on_click(cx.listener(|this, _, _, cx| this.cancel_job(cx))),
+                                        .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.cancel_job(cx))),
                                 ),
                         )
                         .child(
@@ -333,7 +333,7 @@ impl Finder {
                                             .when(checked, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(theme::SELECTION_TEXT)).child("\u{2713}")),
                                     )
                                     .child("Appliquer \u{e0} tous")
-                                    .on_click(cx.listener(|this, _, _, cx| {
+                                    .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                         if let Some(c) = this.conflict.as_mut() {
                                             c.apply_all = !c.apply_all;
                                         }
@@ -346,12 +346,12 @@ impl Finder {
                                 .flex()
                                 .justify_end()
                                 .gap(px(8.))
-                                .child(button("cf-stop", "Arr\u{ea}ter", false).on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Stop, cx))))
+                                .child(button("cf-stop", "Arr\u{ea}ter", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Stop, cx))))
                                 .when(batch, |d| {
-                                    d.child(button("cf-skip", "Ignorer", false).on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Skip, cx))))
+                                    d.child(button("cf-skip", "Ignorer", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Skip, cx))))
                                 })
-                                .child(button("cf-both", "Garder les deux", false).on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::KeepBoth, cx))))
-                                .child(button("cf-replace", "Remplacer", true).on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Replace, cx)))),
+                                .child(button("cf-both", "Garder les deux", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::KeepBoth, cx))))
+                                .child(button("cf-replace", "Remplacer", true).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.resolve_conflict(Resolution::Replace, cx)))),
                         ),
                 )
                 .into_any_element(),

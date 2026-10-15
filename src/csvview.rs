@@ -225,7 +225,7 @@ impl Render for CsvTable {
                         .when(r == 0, |d| d.font_weight(gpui::FontWeight::SEMIBOLD).bg(rgb(0xf4f4f6)))
                         .hover(|s| s.bg(rgb(0xf0f6ff)))
                         .child(text.clone())
-                        .on_click(cx.listener(move |this, _, window, cx| this.start_edit(r, c, window, cx)))
+                        .cursor_pointer().on_click(cx.listener(move |this, _, window, cx| this.start_edit(r, c, window, cx)))
                 }
             });
             div()
@@ -298,14 +298,14 @@ impl Render for CsvTable {
                     .gap(px(8.))
                     .border_t_1()
                     .border_color(rgb(0xe3e3e7))
-                    .child(pill("+ Ligne").on_click(cx.listener(|this, _, _, cx| this.add_row(cx))))
-                    .child(pill("+ Colonne").on_click(cx.listener(|this, _, _, cx| this.add_col(cx))))
+                    .child(pill("+ Ligne").cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.add_row(cx))))
+                    .child(pill("+ Colonne").cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.add_col(cx))))
                     .child(div().flex_1())
                     .when_some(self.error.clone(), |d, e| d.child(div().text_size(px(12.)).text_color(rgb(0xc42b1c)).child(e)))
                     .child(
                         pill("Enregistrer")
                             .when(self.dirty, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe)))
-                            .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
+                            .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.save(cx))),
                     ),
             )
     }

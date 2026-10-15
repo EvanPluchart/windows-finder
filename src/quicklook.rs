@@ -219,7 +219,7 @@ impl QuickLook {
         if e.is_video() {
             self.video_gen += 1;
             let generation = self.video_gen;
-            let video = crate::video::Video::open(&e.path).ok();
+            let video = crate::video::Video::open(&e.path, crate::layout::get_setting("qlauto").as_deref() != Some("0")).ok();
             if let Some(v) = &video {
                 v.set_volume(self.volume);
                 v.set_muted(self.muted);
@@ -423,7 +423,7 @@ impl Render for QuickLook {
                             } else {
                                 div().font_family("Segoe UI Symbol").text_size(px(13.)).child("\u{25B6}\u{FE0E}").into_any_element()
                             })
-                            .on_click(cx.listener(move |this, _, _, cx| {
+                            .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                                 toggle(this);
                                 cx.notify();
                                 cx.stop_propagation();
@@ -464,7 +464,7 @@ impl Render for QuickLook {
                                     .id(("vid-seg", i))
                                     .flex_1()
                                     .h_full()
-                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                    .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                                         seek(this);
                                         cx.notify();
                                         cx.stop_propagation();
@@ -492,7 +492,7 @@ impl Render for QuickLook {
                             .font_family("Segoe Fluent Icons")
                             .text_size(px(15.))
                             .child(if muted || volume <= 0.0 { "\u{E74F}" } else if volume < 0.4 { "\u{E993}" } else if volume < 0.7 { "\u{E994}" } else { "\u{E995}" })
-                            .on_click(cx.listener(|this, _, _, cx| {
+                            .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                 this.muted = !this.muted;
                                 if let Body::Video(v) = &this.body {
                                     if let Some(video) = &v.video {
@@ -520,7 +520,7 @@ impl Render for QuickLook {
                             .id(("vid-vol", i))
                             .flex_1()
                             .h_full()
-                            .on_click(cx.listener(move |this, _, _, cx| {
+                            .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                                 set(this);
                                 cx.notify();
                                 cx.stop_propagation();
@@ -549,7 +549,7 @@ impl Render for QuickLook {
                                 cx.notify();
                             }
                         }))
-                        .on_click(cx.listener(move |this, _, _, cx| {
+                        .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                             toggle(this);
                             cx.notify();
                         }))
@@ -581,7 +581,7 @@ impl Render for QuickLook {
                         .text_size(px(15.))
                         .hover(|st| st.bg(rgb(0xe3e3e6)))
                         .child(label)
-                        .on_click(cx.listener(move |this, _, _, cx| this.pdf_page(delta, cx)))
+                        .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.pdf_page(delta, cx)))
                 };
                 Some(
                     div()
@@ -661,7 +661,7 @@ impl Render for QuickLook {
                                 .text_size(px(28.))
                                 .child("\u{25B6}"),
                         )
-                        .on_click(move |_, _, _| {
+                        .cursor_pointer().on_click(move |_, _, _| {
                             let _ = std::process::Command::new("cmd").args(["/C", "start", "", &p.to_string_lossy()]).spawn();
                         })
                         .into_any_element()
@@ -734,7 +734,7 @@ impl Render for QuickLook {
                             .text_size(px(8.))
                             .child("\u{E711}")
                             .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                            .on_click(cx.listener(|this, _, window, cx| this.close(window, cx))),
+                            .cursor_pointer().on_click(cx.listener(|this, _, window, cx| this.close(window, cx))),
                     )
                     .child(div().font_weight(gpui::FontWeight::BOLD).child(title))
                     .when(dirty, |d| d.child(div().size(px(7.)).rounded_full().bg(rgb(0xf5a623))))
@@ -753,7 +753,7 @@ impl Render for QuickLook {
                             .text_size(px(12.))
                             .child("Ouvrir")
                             .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                            .on_click(move |_, _, _| {
+                            .cursor_pointer().on_click(move |_, _, _| {
                                 if let Some(p) = &open_path {
                                     let _ = std::process::Command::new("cmd")
                                         .args(["/C", "start", "", &p.to_string_lossy()])

@@ -237,7 +237,7 @@ impl Finder {
                 .child(div().size(px(12.)).rounded_full().bg(rgb(*hex)))
                 .child(div().flex_1().child(*name))
                 .child(div().text_size(px(12.)).text_color(rgb(theme::TEXT_SECONDARY)).child(if on_all { "\u{2713}" } else if on_some { "\u{2212}" } else { "" }))
-                .on_click(cx.listener(move |this, _, _, cx| {
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                     let paths = this.selected_paths();
                     toggle(&paths, &tag);
                     cx.notify();

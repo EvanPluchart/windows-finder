@@ -268,7 +268,7 @@ impl Finder {
                         .when(on, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(theme::SELECTION_TEXT)).border_color(rgb(theme::SELECTION)).child("\u{2713}")),
                 )
                 .child(label)
-                .on_click(cx.listener(move |this, _, _, cx| this.set_pref(f, cx)))
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_pref(f, cx)))
         };
         // Reglette a crans : cliquer un cran choisit la valeur.
         let slider = |id: &'static str, stops: Vec<(u32, bool)>, cx: &mut Context<Self>, setter: fn(&mut Prefs, u32)| {
@@ -285,7 +285,7 @@ impl Finder {
                             .when(current, |d| d.size(px(14.)).rounded_full().bg(rgb(0xffffff)).border_1().border_color(rgb(0xb0b0b6)).shadow_sm())
                             .when(!current, |d| d.size(px(4.)).rounded_full().bg(rgb(0xb0b0b6))),
                     )
-                    .on_click(cx.listener(move |this, _, _, cx| this.set_pref(|p| setter(p, value), cx)))
+                    .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_pref(|p| setter(p, value), cx)))
             }))
         };
         let seg = |id: &'static str, items: Vec<(&'static str, bool, u8)>, cx: &mut Context<Self>| {
@@ -302,7 +302,7 @@ impl Finder {
                     .text_color(rgb(theme::TEXT))
                     .when(on, |d| d.bg(rgb(0xffffff)).shadow_sm())
                     .child(label)
-                    .on_click(cx.listener(move |this, _, _, cx| this.set_pref(|p| p.sort = code, cx)))
+                    .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_pref(|p| p.sort = code, cx)))
             }))
         };
 
@@ -328,7 +328,7 @@ impl Finder {
                     .text_color(rgb(theme::TEXT))
                     .when(on, |d| d.bg(rgb(0xffffff)).shadow_sm())
                     .child(label)
-                    .on_click(cx.listener(move |this, _, _, cx| this.set_pref(|p| p.group = code, cx)))
+                    .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_pref(|p| p.group = code, cx)))
             }))
         };
         let sort_seg = seg(
@@ -438,7 +438,7 @@ impl Finder {
                             .text_color(rgb(theme::TEXT_SECONDARY))
                             .hover(|s| s.bg(rgb(0xe3e3e6)))
                             .child("\u{2715}")
-                            .on_click(cx.listener(|this, _, _, cx| this.toggle_view_options(cx))),
+                            .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.toggle_view_options(cx))),
                     ),
             )
             .child(body)
@@ -450,7 +450,7 @@ impl Finder {
                     .child(
                         button("vo-default", "Par d\u{e9}faut")
                             .flex_1()
-                            .on_click(cx.listener(|this, _, _, cx| {
+                            .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                 this.prefs.defaults = this.eff();
                                 this.prefs.save();
                                 this.show_notice("Options enregistr\u{e9}es comme valeurs par d\u{e9}faut.", cx);
@@ -459,7 +459,7 @@ impl Finder {
                     .child(
                         button("vo-restore", "Restaurer")
                             .flex_1()
-                            .on_click(cx.listener(|this, _, _, cx| {
+                            .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                 this.prefs.folders.remove(&this.cwd);
                                 this.prefs.save();
                                 this.apply_folder_prefs();

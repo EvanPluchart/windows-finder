@@ -30,31 +30,44 @@ pub fn default_places() -> Vec<Place> {
     let item = |name: &str, glyph: &'static str, path: PathBuf| Place::Item { name: name.to_string().into(), glyph, path };
     let mut places = vec![Place::Header("Favoris".into())];
     let recent = std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("Microsoft/Windows/Recent"));
-    if let Some(r) = recent.filter(|r| r.is_dir()) {
+    if let Some(r) = recent.filter(|r| r.is_dir() && crate::settings::sidebar_on("recents")) {
         places.push(item("R\u{e9}cents", "clock", r));
     }
     if crate::settings::sidebar_on("apps") {
         places.push(item("Applications", "applications", PathBuf::from(crate::fs::APPS)));
     }
-    places.push(item("Bureau", "menubar.dock.rectangle", home.join("Desktop")));
-    places.push(item("Documents", "doc", home.join("Documents")));
-    places.push(item("T\u{e9}l\u{e9}chargements", "arrow.down.circle", home.join("Downloads")));
-    places.push(item("Images", "photo", home.join("Pictures")));
-    places.push(item("Musique", "music.note", home.join("Music")));
-    places.push(item("Vid\u{e9}os", "video", home.join("Videos")));
+    let on = crate::settings::sidebar_on;
+    if on("desktop") {
+        places.push(item("Bureau", "menubar.dock.rectangle", home.join("Desktop")));
+    }
+    if on("docs") {
+        places.push(item("Documents", "doc", home.join("Documents")));
+    }
+    if on("downloads") {
+        places.push(item("T\u{e9}l\u{e9}chargements", "arrow.down.circle", home.join("Downloads")));
+    }
+    if on("media") {
+        places.push(item("Images", "photo", home.join("Pictures")));
+        places.push(item("Musique", "music.note", home.join("Music")));
+        places.push(item("Vid\u{e9}os", "video", home.join("Videos")));
+    }
 
     places.push(Place::Header("Emplacements".into()));
     let onedrive = home.join("OneDrive");
-    if onedrive.is_dir() {
+    if onedrive.is_dir() && on("cloud") {
         places.push(item("OneDrive", "icloud", onedrive));
     }
     let user = home.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "Accueil".into());
-    places.push(item(&user, "house", home.clone()));
+    if on("home") {
+        places.push(item(&user, "house", home.clone()));
+    }
     let pc = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Ce PC".into());
-    places.push(item(&pc, "laptopcomputer", PathBuf::from(crate::fs::PC)));
+    if on("pc") {
+        places.push(item(&pc, "laptopcomputer", PathBuf::from(crate::fs::PC)));
+    }
     for letter in b'A'..=b'Z' {
         let root = PathBuf::from(format!("{}:\\", letter as char));
-        if root.exists() {
+        if root.exists() && on("disks") {
             let (label, removable) = drive_info(&root);
             places.push(item(&label, if removable { "externaldrive" } else { "internaldrive" }, root));
         }
@@ -147,7 +160,7 @@ impl Finder {
                                 .hover(|s| s.bg(rgb(0xd0d0d6)))
                                 .child(crate::symbols::sym("eject.fill", 7., 0x8e8e93))
                                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                                .on_click(cx.listener(move |this, _, _, cx| {
+                                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                                     cx.stop_propagation();
                                     this.eject_drive(root.clone(), cx);
                                 })),
@@ -166,7 +179,7 @@ impl Finder {
                             this.drop_external(p.paths().to_vec(), target.clone(), window.modifiers().control, cx)
                         }
                     }))
-                    .on_click(cx.listener(move |this, _, _, cx| this.open_place(target.clone(), cx)))
+                    .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.open_place(target.clone(), cx)))
                     .on_mouse_down(MouseButton::Middle, cx.listener({
                         let target = path.clone();
                         move |this, _, _, cx| {
@@ -216,7 +229,7 @@ impl Finder {
                     .w(px(7.))
                     .cursor(gpui::CursorStyle::ResizeLeftRight)
                     .on_drag(SidebarResize, |_, _, _, cx| cx.new(|_| SidebarResize))
-                    .on_click(cx.listener(|this, ev: &gpui::ClickEvent, _, cx| {
+                    .cursor_pointer().on_click(cx.listener(|this, ev: &gpui::ClickEvent, _, cx| {
                         if ev.click_count() >= 2 {
                             this.show_sidebar = false;
                             layout::set_setting("sidebar", "0");
@@ -257,7 +270,7 @@ impl Finder {
                 .child(crate::symbols::sym("folder", 10.5, ACCENT))
                 .child(name)
                 .when(i != last, |d| d.child(div().text_color(rgb(0xb0b0b6)).child("\u{203A}")))
-                .on_click(cx.listener(move |this, _, _, cx| this.navigate(target.clone(), true, cx)))
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.navigate(target.clone(), true, cx)))
         });
 
         let total = self.entries.len();

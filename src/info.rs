@@ -204,7 +204,7 @@ impl Finder {
                         .text_color(rgb(theme::TEXT_SECONDARY))
                         .child(if open[idx] { "\u{25BE}" } else { "\u{25B8}" })
                         .child(title)
-                        .on_click(cx.listener(move |this, _, _, cx| {
+                        .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                             this.info_open[idx] = !this.info_open[idx];
                             cx.notify();
                         })),
@@ -235,7 +235,7 @@ impl Finder {
                         }),
                 )
                 .child(label)
-                .on_click(cx.listener(move |this, _, window, cx| {
+                .cursor_pointer().on_click(cx.listener(move |this, _, window, cx| {
                     if let Some(i) = this.info.as_ref() {
                         set_attribute(&i.path, flag, !on);
                     }

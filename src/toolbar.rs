@@ -65,7 +65,7 @@ impl Finder {
                     .text_color(dim(can_back))
                     .when(can_back, |d| d.hover(|s| s.bg(rgb(theme::HOVER))))
                     .child(sym("chevron.left-medium", 12., if can_back { theme::TEXT } else { 0xb4b4b8 }))
-                    .on_click(cx.listener(|this, _, _, cx| this.go_back(cx))),
+                    .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.go_back(cx))),
             )
             .child(div().w(px(1.)).h(px(18.)).bg(rgb(0xe4e5e6)))
             .child(
@@ -80,7 +80,7 @@ impl Finder {
                     .text_color(dim(can_fwd))
                     .when(can_fwd, |d| d.hover(|s| s.bg(rgb(theme::HOVER))))
                     .child(sym("chevron.right-medium", 12., if can_fwd { theme::TEXT } else { 0xb4b4b8 }))
-                    .on_click(cx.listener(|this, _, _, cx| this.go_forward(cx))),
+                    .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.go_forward(cx))),
             );
 
         let seg = |id: &'static str, icon: AnyElement, mode: ViewMode, cx: &mut Context<Self>| {
@@ -96,7 +96,7 @@ impl Finder {
                 .when(active, |d| d.bg(rgb(0xe6e6e6)))
                 .when(!active, |d| d.hover(|s| s.bg(rgb(0xf0f0f0))))
                 .child(icon)
-                .on_click(cx.listener(move |this, _, _, cx| this.set_view(mode, cx)))
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_view(mode, cx)))
         };
         let views = capsule()
             .child(seg("v-icons", icon_grid(), ViewMode::Icons, cx))
@@ -104,10 +104,10 @@ impl Finder {
             .child(seg("v-cols", icon_columns(), ViewMode::Columns, cx))
             .child(seg("v-gallery", icon_gallery(), ViewMode::Gallery, cx));
 
-        let group = capsule().id("group-btn").px(px(10.)).gap(px(4.)).child(sym("square.grid.3x2-medium", 14., theme::TEXT)).child(sym("chevron.down-medium", 8., theme::TEXT_SECONDARY)).on_click(cx.listener(|this, _, _, cx| this.toggle_view_options(cx)));
+        let group = capsule().id("group-btn").px(px(10.)).gap(px(4.)).child(sym("square.grid.3x2-medium", 14., theme::TEXT)).child(sym("chevron.down-medium", 8., theme::TEXT_SECONDARY)).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.toggle_view_options(cx)));
 
         let on = crate::settings::toolbar_on;
-        let share_btn = div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("square.and.arrow.up-medium", 14., theme::TEXT));
+        let share_btn = div().id("share-btn").rounded_full().hover(|s| s.bg(rgb(theme::HOVER))).cursor_pointer().on_mouse_down(MouseButton::Left, cx.listener(|this, ev: &gpui::MouseDownEvent, _, cx| this.open_toolbar_menu(gpui::point(ev.position.x - gpui::px(20.), gpui::px(54.)), 1, cx))).w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("square.and.arrow.up-medium", 14., theme::TEXT));
         let tag_btn = div()
             .id("tag-btn")
             .w(px(38.))
@@ -118,8 +118,8 @@ impl Finder {
             .rounded_full()
             .hover(|s| s.bg(rgb(theme::HOVER)))
             .child(sym("tag-medium", 14., theme::TEXT))
-            .on_click(cx.listener(|this, _, window, cx| this.toggle_tag_pop(window, cx)));
-        let more_btn = div().w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("ellipsis-medium", 14., theme::TEXT));
+            .cursor_pointer().on_click(cx.listener(|this, _, window, cx| this.toggle_tag_pop(window, cx)));
+        let more_btn = div().id("more-btn").rounded_full().hover(|s| s.bg(rgb(theme::HOVER))).cursor_pointer().on_mouse_down(MouseButton::Left, cx.listener(|this, ev: &gpui::MouseDownEvent, _, cx| this.open_toolbar_menu(gpui::point(ev.position.x - gpui::px(160.), gpui::px(54.)), 2, cx))).w(px(38.)).h(px(32.)).flex().items_center().justify_center().child(sym("ellipsis-medium", 14., theme::TEXT));
         let actions = capsule()
             .when(on("share"), |d| d.child(share_btn))
             .when(on("tags"), |d| d.child(tag_btn))
@@ -146,7 +146,7 @@ impl Finder {
                         .text_color(rgb(theme::TEXT_SECONDARY))
                         .hover(|st| st.bg(rgb(theme::HOVER)))
                         .child(sym("xmark-medium", 8., theme::TEXT_SECONDARY))
-                        .on_click(cx.listener(|this, _, _, cx| this.close_search(cx))),
+                        .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.close_search(cx))),
                 ),
             None => capsule().w(px(40.)).justify_center().child(
                 div()
@@ -157,7 +157,7 @@ impl Finder {
                     .items_center()
                     .justify_center()
                     .child(sym("magnifyingglass-medium", 14., theme::TEXT))
-                    .on_click(cx.listener(|this, _, window, cx| this.open_search(window, cx))),
+                    .cursor_pointer().on_click(cx.listener(|this, _, window, cx| this.open_search(window, cx))),
             ),
         };
 

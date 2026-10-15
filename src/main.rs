@@ -6,6 +6,7 @@ mod prefs;
 mod bulk;
 mod archive;
 mod settings;
+mod explorer;
 mod symbols;
 mod tree;
 mod trash;
@@ -103,6 +104,9 @@ pub struct Finder {
     pub undo_stack: Vec<undo::Op>,
     pub redo_stack: Vec<undo::Op>,
     pub settings_open: bool,
+    pub settings_tab: usize,
+    pub explorer_default: bool,
+    pub ctx_entry: bool,
     pub show_sidebar: bool,
     pub show_path_bar: bool,
     pub show_status_bar: bool,
@@ -203,6 +207,9 @@ impl Finder {
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             settings_open: false,
+            settings_tab: 0,
+            explorer_default: false,
+            ctx_entry: false,
             show_sidebar: layout::get_setting("sidebar").as_deref() != Some("0"),
             show_path_bar: layout::get_setting("pathbar").as_deref() != Some("0"),
             show_status_bar: layout::get_setting("statusbar").as_deref() != Some("0"),
@@ -289,6 +296,9 @@ impl Finder {
             self.history.truncate(self.history_pos + 1);
             self.history.push(path.clone());
             self.history_pos = self.history.len() - 1;
+        }
+        if !fs::is_virtual(&path) {
+            layout::set_setting("lastdir", &path.to_string_lossy());
         }
         self.cwd = path;
         self.reload();
@@ -769,7 +779,10 @@ fn main() {
     } else {
         None
     };
-    theme::set_dark(forced.unwrap_or_else(theme::system_is_dark));
+    settings::apply_theme();
+    if let Some(dark) = forced {
+        theme::set_dark(dark);
+    }
     Application::new().run(move |cx: &mut App| {
         // Hors saisie seulement : pendant un renommage / une recherche, les touches vont au champ de texte.
         const FIN: &str = "Finder && !TextInput";
@@ -854,7 +867,8 @@ fn main() {
         if forced.is_none() {
             cx.spawn(async move |cx| loop {
                 cx.background_executor().timer(std::time::Duration::from_secs(3)).await;
-                let dark = cx.background_executor().spawn(async { theme::system_is_dark() }).await;
+                let setting = layout::get_setting("theme");
+                let dark = cx.background_executor().spawn(async move { theme::resolve_dark(setting.as_deref()) }).await;
                 if dark != theme::is_dark() {
                     theme::set_dark(dark);
                     cx.update(|app| {
@@ -886,6 +900,20 @@ fn square_dwm_frame() {
     use windows::Win32::UI::WindowsAndMessaging::{EnumWindows, GetWindowTextW, GetWindowThreadProcessId};
     use windows::core::BOOL;
 
+    /// Icone de la fenetre (gestionnaire des taches, Alt+Tab) : la ressource n°1 de l'executable, le logo de l'app.
+    unsafe fn set_window_icon(hwnd: HWND) {
+        use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+        use windows::Win32::UI::WindowsAndMessaging::{IMAGE_ICON, LR_DEFAULTCOLOR, LoadImageW, SendMessageW, WM_SETICON};
+        use windows::core::PCWSTR;
+        let Ok(module) = GetModuleHandleW(None) else { return };
+        for (kind, size) in [(1usize, 32), (0usize, 16)] {
+            // kind : ICON_BIG = 1, ICON_SMALL = 0 ; la ressource n°1 s'ecrit comme un identifiant entier.
+            if let Ok(icon) = LoadImageW(Some(module.into()), PCWSTR(1usize as *const u16), IMAGE_ICON, size, size, LR_DEFAULTCOLOR) {
+                SendMessageW(hwnd, WM_SETICON, Some(windows::Win32::Foundation::WPARAM(kind)), Some(windows::Win32::Foundation::LPARAM(icon.0 as isize)));
+            }
+        }
+    }
+
     extern "system" fn apply(hwnd: HWND, _: LPARAM) -> BOOL {
         unsafe {
             let mut pid = 0u32;
@@ -899,6 +927,7 @@ fn square_dwm_frame() {
                 let _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &donotround as *const _ as *const _, 4);
                 let _ = DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, &disabled as *const _ as *const _, 4);
                 let _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &none as *const _ as *const _, 4);
+                set_window_icon(hwnd);
             }
         }
         BOOL(1)

@@ -158,7 +158,7 @@ impl Finder {
                     .text_color(rgb(theme::TEXT))
                     .when(on, |d| d.bg(rgb(0xffffff)).shadow_sm())
                     .child(label)
-                    .on_click(cx.listener(move |this, _, _, cx| {
+                    .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                         if let Some(b) = this.bulk.as_mut() {
                             set(b, i);
                         }
@@ -272,12 +272,12 @@ impl Finder {
                                 .flex()
                                 .justify_end()
                                 .gap(px(8.))
-                                .child(button("bk-cancel", "Annuler", false).on_click(cx.listener(|this, _, _, cx| {
+                                .child(button("bk-cancel", "Annuler", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                     this.bulk = None;
                                     this.needs_focus = true;
                                     cx.notify();
                                 })))
-                                .child(button("bk-ok", "Renommer", true).on_click(cx.listener(|this, _, _, cx| this.apply_bulk(cx)))),
+                                .child(button("bk-ok", "Renommer", true).cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.apply_bulk(cx)))),
                         ),
                 )
                 .into_any_element(),

@@ -35,6 +35,17 @@ pub fn is_dark() -> bool {
 
 /// Equivalent sombre d'une couleur claire (0xRRGGBB) ; les couleurs inconnues restent inchangees.
 pub fn map(c: u32) -> u32 {
+    // Couleur d'accentuation choisie dans les reglages (la premiere est le bleu d'origine).
+    let a = ACCENT.load(Ordering::Relaxed) as usize;
+    if a != 0 {
+        let t = ACCENTS[a];
+        let dark = is_dark();
+        match c {
+            0x0064e1 => return if dark { t.3 } else { t.2 },
+            0x2f7df4 => return if dark { t.5 } else { t.4 },
+            _ => {}
+        }
+    }
     if !is_dark() {
         return c;
     }
@@ -86,4 +97,32 @@ pub fn system_is_dark() -> bool {
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).contains("0x0"))
         .unwrap_or(false)
+}
+
+/// Couleurs d'accentuation : (code, libelle, selection clair, selection sombre, icones clair, icones sombre).
+pub const ACCENTS: [(&str, &str, u32, u32, u32, u32); 8] = [
+    ("blue", "Bleu", 0x0064e1, 0x0458d0, 0x2f7df4, 0x4d94ff),
+    ("purple", "Violet", 0x8944ab, 0x7d3f9e, 0xa550a7, 0xbf5af2),
+    ("pink", "Rose", 0xd92b72, 0xc42a67, 0xf74f9e, 0xff6bb3),
+    ("red", "Rouge", 0xd3302f, 0xbf2c2b, 0xf5524f, 0xff6b66),
+    ("orange", "Orange", 0xe0640a, 0xc95a09, 0xf7822b, 0xff9a47),
+    ("yellow", "Jaune", 0xd9a400, 0xc29200, 0xf0b82a, 0xffd23d),
+    ("green", "Vert", 0x2ea043, 0x278a39, 0x3fbf5a, 0x4fd36d),
+    ("graphite", "Graphite", 0x6b6b70, 0x5a5a5e, 0x8e8e93, 0xa0a0a5),
+];
+
+static ACCENT: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+pub fn set_accent(code: &str) {
+    let i = ACCENTS.iter().position(|a| a.0 == code).unwrap_or(0);
+    ACCENT.store(i as u8, Ordering::Relaxed);
+}
+
+/// Theme choisi dans les reglages : "system" (suit Windows), "light" ou "dark". Retourne vrai pour le mode sombre.
+pub fn resolve_dark(setting: Option<&str>) -> bool {
+    match setting {
+        Some("dark") => true,
+        Some("light") => false,
+        _ => system_is_dark(),
+    }
 }

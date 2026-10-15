@@ -1,1 +1,26 @@
 1 ICON "assets/icon.ico"
+
+1 VERSIONINFO
+FILEVERSION 0,1,0,0
+PRODUCTVERSION 0,1,0,0
+FILEOS 0x4
+FILETYPE 0x1
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "Windows Finder"
+            VALUE "ProductName", "Windows Finder"
+            VALUE "InternalName", "WindowsFinder"
+            VALUE "OriginalFilename", "WindowsFinder.exe"
+            VALUE "FileVersion", "0.1.0.0"
+            VALUE "ProductVersion", "0.1.0.0"
+            VALUE "LegalCopyright", ""
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

@@ -41,23 +41,57 @@ pub enum MenuAction {
     PutBack,
     EmptyTrash,
     Extract,
+    CopyPath,
+    Settings,
+    GoTo,
 }
 
 pub struct MenuState {
     pub pos: Point<Pixels>,
     /// Clic droit sur un element (sinon sur le fond du dossier).
     pub on_item: bool,
+    /// 0 = clic droit, 1 = bouton Partager, 2 = bouton Actions.
+    pub kind: u8,
 }
 
 impl Finder {
     pub fn open_menu(&mut self, pos: Point<Pixels>, on_item: bool, cx: &mut Context<Self>) {
         self.commit_rename(cx);
-        self.menu = Some(MenuState { pos, on_item });
+        self.menu = Some(MenuState { pos, on_item, kind: 0 });
+        cx.notify();
+    }
+
+    pub fn open_toolbar_menu(&mut self, pos: Point<Pixels>, kind: u8, cx: &mut Context<Self>) {
+        self.commit_rename(cx);
+        self.menu = Some(MenuState { pos, on_item: false, kind });
         cx.notify();
     }
 
     /// Entrees du menu : (libelle, action, activee). `None` = separateur.
     fn menu_items(&self, on_item: bool) -> Vec<Option<(&'static str, MenuAction, bool)>> {
+        let kind = self.menu.as_ref().map(|m| m.kind).unwrap_or(0);
+        if kind == 1 {
+            let any = !self.selected_paths().is_empty() && !crate::fs::is_virtual(&self.cwd);
+            let single = self.selected_paths().len() == 1;
+            return vec![
+                Some(("Copier le chemin", MenuAction::CopyPath, any)),
+                Some(("Compresser", MenuAction::Compress, any)),
+                Some(("Cr\u{e9}er un raccourci", MenuAction::MakeAlias, any)),
+                None,
+                Some(("Ouvrir avec\u{2026}", MenuAction::OpenWith, single && self.selected_entry().map(|e| !e.is_dir).unwrap_or(false))),
+                Some(("Afficher dans l'Explorateur", MenuAction::Reveal, single)),
+            ];
+        }
+        if kind == 2 {
+            return vec![
+                Some(("Nouveau dossier", MenuAction::NewFolder, !crate::fs::is_virtual(&self.cwd))),
+                Some(("Lire les informations", MenuAction::Info, self.selected_paths().len() == 1)),
+                Some(("Actualiser", MenuAction::Refresh, true)),
+                Some(("Aller au dossier\u{2026}", MenuAction::GoTo, true)),
+                None,
+                Some(("R\u{e9}glages\u{2026}", MenuAction::Settings, true)),
+            ];
+        }
         let can_paste = self.clipboard.is_some();
         let single = self.selected_paths().len() == 1;
         if self.in_trash() {
@@ -148,6 +182,16 @@ impl Finder {
             MenuAction::PutBack => self.put_back(cx),
             MenuAction::EmptyTrash => self.ask_empty_trash(cx),
             MenuAction::Extract => self.extract_selection(cx),
+            MenuAction::CopyPath => {
+                let text = self.selected_paths().iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join("
+");
+                if !text.is_empty() {
+                    cx.write_to_clipboard(gpui::ClipboardItem::new_string(text));
+                    self.show_notice("Chemin copi\u{e9}", cx);
+                }
+            }
+            MenuAction::Settings => self.toggle_settings(cx),
+            MenuAction::GoTo => self.open_goto(window, cx),
             MenuAction::Trash => self.trash_selection(cx),
             MenuAction::NewFolder => self.new_folder(window, cx),
             MenuAction::Refresh => self.refresh(cx),
@@ -184,7 +228,7 @@ impl Finder {
                 .text_color(rgb(if enabled { theme::TEXT } else { 0xa8a8ae }))
                 .when(enabled, |d| d.hover(|s| s.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe))))
                 .child(label)
-                .when(enabled, |d| d.on_click(cx.listener(move |this, _, window, cx| this.run_menu(action, window, cx))))
+                .when(enabled, |d| d.cursor_pointer().on_click(cx.listener(move |this, _, window, cx| this.run_menu(action, window, cx))))
                 .into_any_element(),
         });
 
@@ -464,7 +508,7 @@ impl Finder {
                 .text_size(px(13.))
                 .when(selected, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe)))
                 .child(p.display().to_string())
-                .on_click(cx.listener(move |this, _, _, cx| {
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                     this.goto = None;
                     this.needs_focus = true;
                     this.navigate(target.clone(), true, cx);
@@ -528,7 +572,7 @@ impl Finder {
                                         .border_1()
                                         .border_color(rgb(0xd0d0d6))
                                         .child("Annuler")
-                                        .on_click(cx.listener(|this, _, _, cx| {
+                                        .cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                             this.goto = None;
                                             this.needs_focus = true;
                                             cx.notify();
@@ -545,7 +589,7 @@ impl Finder {
                                         .bg(rgb(theme::SELECTION))
                                         .text_color(rgb(0xfffffe))
                                         .child("Aller")
-                                        .on_click(cx.listener(|this, _, _, cx| this.goto_commit(cx))),
+                                        .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.goto_commit(cx))),
                                 ),
                         ),
                 )
@@ -673,7 +717,7 @@ impl Finder {
                 .when(on, |d| d.bg(rgb(theme::SELECTION)))
                 .when(!on, |d| d.bg(rgb(0xe9e9ec)).hover(|s| s.bg(rgb(0xe0e0e4))))
                 .child(label)
-                .on_click(cx.listener(move |this, _, _, cx| {
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                     f(this);
                     this.run_search(cx);
                     cx.notify();

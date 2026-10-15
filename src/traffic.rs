@@ -60,7 +60,7 @@ fn dot(
         .items_center()
         .justify_center()
         .child(div().invisible().group_hover("traffic", |s| s.visible()).child(mark(icon)))
-        .on_click(move |_, window, cx| on_click(window, cx))
+        .cursor_pointer().on_click(move |_, window, cx| on_click(window, cx))
 }
 
 /// Remet la fenetre a sa taille normale, puis la place dans la zone de travail du moniteur (fractions 0..1).
@@ -89,7 +89,7 @@ pub fn place(fx: f32, fy: f32, fw: f32, fh: f32) {
 
 /// Icone de disposition : cadre arrondi avec la zone occupee (fractions) en plein, le reste en gris si `gray`.
 fn layout_icon(cell: (f32, f32, f32, f32), gray_rest: bool, filled_gray: bool) -> impl IntoElement {
-    let dark = if filled_gray { 0x9a9aa0 } else { 0x2f2f33 };
+    let dark = if filled_gray { 0x9a9aa0 } else { 0x262626 };
     let (x, y, w, h) = cell;
     div()
         .relative()
@@ -159,7 +159,7 @@ impl Finder {
                 .rounded(px(8.))
                 .hover(|s| s.bg(rgb(0xe4e4e8)))
                 .child(layout_icon(cell, gray_rest, filled_gray))
-                .on_click(cx.listener(move |this, _, _, cx| {
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                     place(target.0, target.1, target.2, target.3);
                     this.zoom_pop_hover = false;
                     this.zoom_dot_hover = false;

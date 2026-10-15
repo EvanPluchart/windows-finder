@@ -152,7 +152,7 @@ impl Finder {
                         .hover(|s| s.bg(rgb(0xe2e2e6)))
                         .child("\u{2715}")
                         .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                        .on_click(cx.listener(move |this, _, window, cx| this.close_tab(i, window, cx))),
+                        .cursor_pointer().on_click(cx.listener(move |this, _, window, cx| this.close_tab(i, window, cx))),
                 )
                 .on_mouse_down(
                     MouseButton::Right,
@@ -165,7 +165,7 @@ impl Finder {
                     MouseButton::Middle,
                     cx.listener(move |this, _, window, cx| this.close_tab(i, window, cx)),
                 )
-                .on_click(cx.listener(move |this, _, _, cx| this.switch_tab(i, cx)))
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.switch_tab(i, cx)))
         });
         Some(
             div()
@@ -202,7 +202,7 @@ impl Finder {
                         .text_color(rgb(theme::TEXT))
                         .hover(|s| s.bg(rgb(0xf0f0f0)))
                         .child("+")
-                        .on_click(cx.listener(|this, _, _, cx| this.new_tab(None, cx))),
+                        .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.new_tab(None, cx))),
                 )
                 .into_any_element(),
         )
@@ -241,7 +241,7 @@ impl Finder {
                 .when(enabled, |d| d.hover(|s| s.bg(rgb(theme::SELECTION)).text_color(rgb(theme::SELECTION_TEXT))))
                 .child(label)
                 .when(enabled, |d| {
-                    d.on_click(cx.listener(move |this, _, window, cx| {
+                    d.cursor_pointer().on_click(cx.listener(move |this, _, window, cx| {
                         this.tab_menu = None;
                         f(this, idx, window, cx);
                         cx.notify();
@@ -326,7 +326,7 @@ impl Finder {
                 .hover(|s| s.border_color(rgb(0x6aa6f8)))
                 .child(div().text_size(px(15.)).font_weight(gpui::FontWeight::SEMIBOLD).text_color(rgb(theme::TEXT)).child(title))
                 .child(div().text_size(px(11.)).text_color(rgb(theme::TEXT_SECONDARY)).child(crate::views::label(path)))
-                .on_click(cx.listener(move |this, _, _, cx| {
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                     this.all_tabs = false;
                     this.switch_tab(i, cx);
                 }))

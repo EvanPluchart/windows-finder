@@ -137,7 +137,7 @@ impl Finder {
                         div().font_family("Segoe Fluent Icons").text_size(px(8.)).child(if asc { "\u{E70E}" } else { "\u{E70D}" }),
                     )
                 })
-                .on_click(cx.listener(move |this, _, _, cx| this.sort_by(key, cx)))
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.sort_by(key, cx)))
         };
         use crate::fs::SortKey;
         let pr = self.eff();
@@ -257,7 +257,7 @@ impl Finder {
                                 ""
                             })
                             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                            .on_click(cx.listener(move |this, _, _, cx| {
+                            .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
                                 cx.stop_propagation();
                                 this.toggle_expand(i, cx);
                             })),
@@ -300,7 +300,7 @@ impl Finder {
             })
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev, _, cx| this.on_item_context(i, ev, cx)))
-            .on_click(cx.listener(move |this, ev: &ClickEvent, _, cx| this.on_item_click(i, ev, cx)));
+            .cursor_pointer().on_click(cx.listener(move |this, ev: &ClickEvent, _, cx| this.on_item_click(i, ev, cx)));
         div().w_full().h(px(theme::LIST_ROW_HEIGHT)).px(px(ROW_MARGIN)).flex_none().child(row).into_any_element()
     }
 
@@ -392,7 +392,7 @@ impl Finder {
                 })
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                 .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev, _, cx| this.on_item_context(i, ev, cx)))
-                .on_click(cx.listener(move |this, ev: &ClickEvent, _, cx| this.on_item_click(i, ev, cx)))
+                .cursor_pointer().on_click(cx.listener(move |this, ev: &ClickEvent, _, cx| this.on_item_click(i, ev, cx)))
         });
         // Rectangle de selection a la souris.
         let band = self.band.filter(|b| { let r = b.rect(); r.2 >= 3.0 || r.3 >= 3.0 }).map(|b| {
@@ -490,7 +490,7 @@ impl Finder {
                             cx.stop_propagation();
                         }),
                     )
-                    .on_click(cx.listener(move |this, ev: &ClickEvent, _, cx| {
+                    .cursor_pointer().on_click(cx.listener(move |this, ev: &ClickEvent, _, cx| {
                         this.select_in_column(c, i, cx);
                         if ev.click_count() >= 2 {
                             this.open_selection(cx);
@@ -562,7 +562,7 @@ impl Finder {
                     MouseButton::Right,
                     cx.listener(move |this, ev: &MouseDownEvent, _, cx| this.on_item_context(i, ev, cx)),
                 )
-                .on_click(cx.listener(move |this, _, _, cx| this.select(i, cx)))
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.select(i, cx)))
         });
 
         // Apercu central : cadre a fin contour 403x261 (texte en monospace, sinon miniature).

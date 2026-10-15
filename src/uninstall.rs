@@ -123,13 +123,13 @@ impl Finder {
                                 .flex()
                                 .justify_end()
                                 .gap(px(8.))
-                                .child(button("confirm-cancel", "Annuler", false).on_click(cx.listener(|this, _, _, cx| {
+                                .child(button("confirm-cancel", "Annuler", false).cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
                                     this.confirm = None;
                                     cx.notify();
                                 })))
                                 .child(
                                     button("confirm-ok", if c.empty_trash { "Vider" } else { "D\u{e9}sinstaller" }, true)
-                                        .on_click(cx.listener(|this, _, _, cx| this.run_uninstall(cx))),
+                                        .cursor_pointer().on_click(cx.listener(|this, _, _, cx| this.run_uninstall(cx))),
                                 ),
                         ),
                 )

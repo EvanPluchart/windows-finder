@@ -1,4 +1,4 @@
-//! Reglages (Ctrl+,) : dossier d'ouverture, fichiers caches, elements de la barre laterale.
+//! Page de reglages (Ctrl+,) : General, Apparence, Barre laterale, Barre d'outils, Explorateur, Avance.
 
 use gpui::{
     AnyElement, Context, InteractiveElement, IntoElement, MouseButton, ParentElement, StatefulInteractiveElement, Styled,
@@ -6,7 +6,9 @@ use gpui::{
 };
 
 use crate::theme::{rgb, rgba};
-use crate::{layout, theme, Finder};
+use crate::{layout, prefs, theme, Finder};
+
+const TABS: [&str; 6] = ["G\u{e9}n\u{e9}ral", "Apparence", "Barre lat\u{e9}rale", "Barre d'outils", "Explorateur", "Avanc\u{e9}"];
 
 /// Dossier d'ouverture choisi dans les reglages (valeur de `startdir`).
 pub fn start_folder() -> std::path::PathBuf {
@@ -15,6 +17,7 @@ pub fn start_folder() -> std::path::PathBuf {
         Some("documents") => home.join("Documents"),
         Some("desktop") => home.join("Desktop"),
         Some("downloads") => home.join("Downloads"),
+        Some("last") => layout::get_setting("lastdir").map(std::path::PathBuf::from).filter(|p| p.is_dir()).unwrap_or(home),
         _ => home,
     }
 }
@@ -29,23 +32,71 @@ pub fn sidebar_on(key: &str) -> bool {
     layout::get_setting(&format!("sb_{key}")).as_deref() != Some("0")
 }
 
+/// Applique le theme et la couleur d'accentuation choisis : clair, sombre ou systeme.
+pub fn apply_theme() {
+    theme::set_dark(theme::resolve_dark(layout::get_setting("theme").as_deref()));
+    theme::set_accent(&layout::get_setting("accent").unwrap_or_default());
+}
+
 impl Finder {
     pub fn toggle_settings(&mut self, cx: &mut Context<Self>) {
         self.settings_open = !self.settings_open;
+        if self.settings_open {
+            self.explorer_default = crate::explorer::is_default();
+            self.ctx_entry = crate::explorer::context_entry();
+        }
         cx.notify();
     }
 
-    fn flip_setting(&mut self, key: &str, default_on: bool, cx: &mut Context<Self>) {
+    fn refresh_all_windows(cx: &mut Context<Self>) {
+        cx.defer(|app| {
+            for w in app.windows() {
+                let _ = w.update(app, |_, window, _| window.refresh());
+            }
+        });
+    }
+
+    /// Effets d'un reglage qui vient de changer.
+    fn setting_changed(&mut self, key: &str, cx: &mut Context<Self>) {
+        match key {
+            "theme" | "accent" => {
+                apply_theme();
+                Self::refresh_all_windows(cx);
+            }
+            "hidden" => {
+                self.show_hidden = layout::get_setting("hidden").as_deref() == Some("1");
+                self.reload();
+            }
+            "apps_all" => {
+                if self.cwd.to_str() == Some(crate::fs::APPS) {
+                    self.reload();
+                }
+            }
+            "pathbar" => self.show_path_bar = layout::get_setting("pathbar").as_deref() != Some("0"),
+            "statusbar" => self.show_status_bar = layout::get_setting("statusbar").as_deref() != Some("0"),
+            _ => {}
+        }
+        if key.starts_with("sb_") {
+            self.places = crate::sidebar::default_places();
+        }
+        cx.notify();
+    }
+
+    fn flip_setting(&mut self, key: &'static str, default_on: bool, cx: &mut Context<Self>) {
         let on = layout::get_setting(key).map(|v| v == "1").unwrap_or(default_on);
         layout::set_setting(key, if on { "0" } else { "1" });
-        self.places = crate::sidebar::default_places();
-        if key == "hidden" {
-            self.show_hidden = !on;
-            self.reload();
-        }
-        if key == "apps_all" && self.cwd.to_str() == Some(crate::fs::APPS) {
-            self.reload();
-        }
+        self.setting_changed(key, cx);
+    }
+
+    fn set_choice(&mut self, key: &'static str, value: &'static str, cx: &mut Context<Self>) {
+        layout::set_setting(key, value);
+        self.setting_changed(key, cx);
+    }
+
+    /// Modifie une valeur par defaut des options d'affichage (mode, tri, dates relatives).
+    fn set_default_pref(&mut self, f: impl FnOnce(&mut prefs::Prefs), cx: &mut Context<Self>) {
+        f(&mut self.prefs.defaults);
+        self.prefs.save();
         cx.notify();
     }
 
@@ -53,10 +104,11 @@ impl Finder {
         if !self.settings_open {
             return None;
         }
-        let start = layout::get_setting("startdir").unwrap_or_else(|| "home".into());
+        let tab = self.settings_tab;
+        let sep = || div().h(px(1.)).w_full().bg(rgb(0xdcdcdf));
         let header = |t: &'static str| div().text_size(px(12.)).font_weight(gpui::FontWeight::SEMIBOLD).text_color(rgb(theme::TEXT_SECONDARY)).child(t);
-        let check = |id: &'static str, label: &'static str, key: &'static str, default_on: bool, cx: &mut Context<Self>| {
-            let on = layout::get_setting(key).map(|v| v == "1").unwrap_or(default_on);
+        let note = |t: &'static str| div().text_size(px(11.)).text_color(rgb(theme::TEXT_SECONDARY)).child(t);
+        let check_ui = |id: &'static str, label: &'static str, on: bool| {
             div()
                 .id(id)
                 .flex()
@@ -67,6 +119,7 @@ impl Finder {
                 .child(
                     div()
                         .size(px(16.))
+                        .flex_none()
                         .flex()
                         .items_center()
                         .justify_center()
@@ -79,35 +132,265 @@ impl Finder {
                         }),
                 )
                 .child(label)
-                .on_click(cx.listener(move |this, _, _, cx| this.flip_setting(key, default_on, cx)))
         };
-        let radio = |id: &'static str, label: &'static str, value: &'static str, current: &str, cx: &mut Context<Self>| {
-            let on = current == value;
+        // Case a cocher liee a un reglage de settings.txt.
+        let check = |id: &'static str, label: &'static str, key: &'static str, default_on: bool, cx: &mut Context<Self>| {
+            let on = layout::get_setting(key).map(|v| v == "1").unwrap_or(default_on);
+            check_ui(id, label, on).cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.flip_setting(key, default_on, cx)))
+        };
+        let pill = |on: bool| {
             div()
-                .id(id)
+                .px(px(12.))
+                .h(px(26.))
                 .flex()
                 .items_center()
-                .gap(px(8.))
+                .rounded_full()
+                .text_size(px(12.))
+                .text_color(rgb(if on { theme::SELECTION_TEXT } else { theme::TEXT }))
+                .when(on, |d| d.bg(rgb(theme::SELECTION)))
+                .when(!on, |d| d.bg(rgb(0xe9e9ec)))
+        };
+        // Rangee de boutons exclusifs liee a un reglage de settings.txt.
+        let choice = |id: &'static str, key: &'static str, options: Vec<(&'static str, &'static str)>, default: &'static str, cx: &mut Context<Self>| {
+            let current = layout::get_setting(key).unwrap_or_else(|| default.to_string());
+            div().flex().flex_wrap().gap(px(6.)).children(options.into_iter().enumerate().map(|(i, (value, label))| {
+                pill(current == value)
+                    .id((id, i))
+                    .child(label)
+                    .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_choice(key, value, cx)))
+            }))
+        };
+        let button = |id: &'static str, label: &'static str, cx: &mut Context<Self>, f: fn(&mut Finder, &mut Context<Finder>)| {
+            div()
+                .id(id)
+                .px(px(14.))
+                .h(px(28.))
+                .flex()
+                .items_center()
+                .rounded(px(7.))
+                .bg(rgb(0xe9e9ec))
+                .hover(|s| s.bg(rgb(theme::HOVER)))
                 .text_size(px(13.))
                 .text_color(rgb(theme::TEXT))
-                .child(
-                    div()
-                        .size(px(16.))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .rounded_full()
-                        .border_1()
-                        .border_color(rgb(if on { theme::SELECTION } else { 0xb0b0b6 }))
-                        .when(on, |d| d.child(div().size(px(8.)).rounded_full().bg(rgb(theme::SELECTION)))),
-                )
                 .child(label)
-                .on_click(cx.listener(move |this, _, _, cx| {
-                    layout::set_setting("startdir", value);
-                    cx.notify();
-                    let _ = this;
-                }))
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| f(this, cx)))
         };
+
+        let defaults = &self.prefs.defaults;
+        let mut body = div().flex().flex_col().gap(px(12.));
+        match tab {
+            0 => {
+                let view = defaults.view.clone();
+                let views: [(&'static str, &'static str); 4] = [("icons", "Ic\u{f4}nes"), ("list", "Liste"), ("columns", "Colonnes"), ("gallery", "Galerie")];
+                let sorts: [(&'static str, u8); 5] = [("Nom", 0), ("Type", 3), ("Modifi\u{e9}", 1), ("Cr\u{e9}\u{e9}", 4), ("Taille", 2)];
+                body = body
+                    .child(header("Le Finder s'ouvre sur"))
+                    .child(choice(
+                        "st-start",
+                        "startdir",
+                        vec![("home", "Dossier personnel"), ("documents", "Documents"), ("desktop", "Bureau"), ("downloads", "T\u{e9}l\u{e9}chargements"), ("last", "Dernier dossier")],
+                        "home",
+                        cx,
+                    ))
+                    .child(sep())
+                    .child(header("Mode d'affichage par d\u{e9}faut"))
+                    .child(div().flex().gap(px(6.)).children(views.into_iter().enumerate().map(|(i, (v, label))| {
+                        pill(view == v)
+                            .id(("st-view", i))
+                            .child(label)
+                            .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_default_pref(|p| p.view = v.to_string(), cx)))
+                    })))
+                    .child(header("Trier par d\u{e9}faut"))
+                    .child(div().flex().flex_wrap().gap(px(6.)).children(sorts.into_iter().enumerate().map(|(i, (label, code))| {
+                        pill(defaults.sort == code)
+                            .id(("st-sort", i))
+                            .child(label)
+                            .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_default_pref(|p| p.sort = code, cx)))
+                    })))
+                    .child(check_ui("st-rel", "Dates relatives (\u{ab} Hier \u{e0} 14:03 \u{bb})", defaults.rel_dates).cursor_pointer().on_click(cx.listener(|this, _, _, cx| {
+                        this.set_default_pref(|p| p.rel_dates = !p.rel_dates, cx)
+                    })))
+                    .child(note("Ces valeurs s'appliquent aux dossiers sans r\u{e9}glage propre (Ctrl+J)."))
+                    .child(sep())
+                    .child(header("Fichiers"))
+                    .child(check("st-hidden", "Afficher les fichiers cach\u{e9}s et syst\u{e8}me", "hidden", false, cx))
+                    .child(sep())
+                    .child(header("Fen\u{ea}tre"))
+                    .child(check("st-pathbar", "Afficher la barre de chemin", "pathbar", true, cx))
+                    .child(check("st-statusbar", "Afficher la barre d'\u{e9}tat", "statusbar", true, cx))
+                    .child(sep())
+                    .child(header("Aper\u{e7}u rapide"))
+                    .child(check("st-qlauto", "Lire les vid\u{e9}os automatiquement \u{e0} l'ouverture", "qlauto", true, cx));
+            }
+            1 => {
+                let current = layout::get_setting("accent").unwrap_or_else(|| "blue".into());
+                body = body
+                    .child(header("Th\u{e8}me"))
+                    .child(choice("st-theme", "theme", vec![("system", "Syst\u{e8}me"), ("light", "Clair"), ("dark", "Sombre")], "system", cx))
+                    .child(note("\u{ab} Syst\u{e8}me \u{bb} suit le mode d'applications de Windows et change en direct."))
+                    .child(sep())
+                    .child(header("Couleur d'accentuation"))
+                    .child(div().flex().gap(px(10.)).children(theme::ACCENTS.iter().enumerate().map(|(i, a)| {
+                        let (code, label, light, _, _, _) = *a;
+                        let on = current == code;
+                        div()
+                            .id(("st-accent", i))
+                            .flex()
+                            .flex_col()
+                            .items_center()
+                            .gap(px(4.))
+                            .child(
+                                div()
+                                    .size(px(26.))
+                                    .rounded_full()
+                                    .bg(gpui::rgb(light))
+                                    .border_2()
+                                    .border_color(rgb(if on { 0x262626 } else { 0xffffff }))
+                                    .when(on, |d| d.shadow_sm()),
+                            )
+                            .child(div().text_size(px(10.)).text_color(rgb(theme::TEXT_SECONDARY)).child(label))
+                            .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.set_choice("accent", code, cx)))
+                    })))
+                    .child(note("Couleur de la s\u{e9}lection, des ic\u{f4}nes de la barre lat\u{e9}rale et des boutons actifs."));
+            }
+            2 => {
+                body = body
+                    .child(header("Favoris"))
+                    .child(check("st-sb-recents", "R\u{e9}cents", "sb_recents", true, cx))
+                    .child(check("st-sb-apps", "Applications", "sb_apps", true, cx))
+                    .child(check("st-sb-desktop", "Bureau", "sb_desktop", true, cx))
+                    .child(check("st-sb-docs", "Documents", "sb_docs", true, cx))
+                    .child(check("st-sb-downloads", "T\u{e9}l\u{e9}chargements", "sb_downloads", true, cx))
+                    .child(check("st-sb-media", "Images, Musique et Vid\u{e9}os", "sb_media", true, cx))
+                    .child(sep())
+                    .child(header("Emplacements"))
+                    .child(check("st-sb-cloud", "OneDrive", "sb_cloud", true, cx))
+                    .child(check("st-sb-home", "Dossier personnel", "sb_home", true, cx))
+                    .child(check("st-sb-pc", "Ce PC", "sb_pc", true, cx))
+                    .child(check("st-sb-disks", "Disques", "sb_disks", true, cx))
+                    .child(check("st-sb-net", "R\u{e9}seau et Corbeille", "sb_net", true, cx))
+                    .child(sep())
+                    .child(header("\u{c9}tiquettes"))
+                    .child(check("st-sb-tags", "Afficher les \u{e9}tiquettes", "sb_tags", true, cx));
+            }
+            3 => {
+                body = body
+                    .child(header("Boutons de la barre d'outils"))
+                    .child(check("st-tb-views", "Modes d'affichage", "tb_views", true, cx))
+                    .child(check("st-tb-group", "Regroupement", "tb_group", true, cx))
+                    .child(check("st-tb-share", "Partage", "tb_share", true, cx))
+                    .child(check("st-tb-tags", "\u{c9}tiquettes", "tb_tags", true, cx))
+                    .child(check("st-tb-more", "Actions (\u{2026})", "tb_more", true, cx))
+                    .child(check("st-tb-search", "Recherche", "tb_search", true, cx))
+                    .child(note("Astuce : un clic droit sur la barre d'outils ouvre ces r\u{e9}glages."));
+            }
+            4 => {
+                let is_default = self.explorer_default;
+                let ctx_entry = self.ctx_entry;
+                body = body
+                    .child(header("Gestionnaire de dossiers par d\u{e9}faut"))
+                    .child(div().text_size(px(13.)).text_color(rgb(theme::TEXT)).child(if is_default {
+                        "Windows Finder ouvre les dossiers (double-clic depuis un autre programme, \u{ab} Afficher dans le dossier \u{bb}\u{2026})."
+                    } else {
+                        "Les dossiers s'ouvrent dans l'Explorateur Windows."
+                    }))
+                    .child(if is_default {
+                        button("st-ex-off", "R\u{e9}tablir l'Explorateur Windows", cx, |this, cx| {
+                            crate::explorer::set_default(false);
+                            this.explorer_default = crate::explorer::is_default();
+                            cx.notify();
+                        })
+                        .into_any_element()
+                    } else {
+                        button("st-ex-on", "D\u{e9}finir Windows Finder par d\u{e9}faut", cx, |this, cx| {
+                            if !crate::explorer::set_default(true) {
+                                this.show_notice("Impossible de modifier le registre.", cx);
+                            }
+                            this.explorer_default = crate::explorer::is_default();
+                            cx.notify();
+                        })
+                        .into_any_element()
+                    })
+                    .child(note("Modifie seulement votre profil (HKEY_CURRENT_USER), sans droits administrateur. Win+E continue d'ouvrir l'Explorateur Windows."))
+                    .child(sep())
+                    .child(header("Menu contextuel de l'Explorateur"))
+                    .child(check_ui("st-ex-ctx", "Ajouter \u{ab} Ouvrir dans Windows Finder \u{bb} au clic droit sur un dossier", ctx_entry).cursor_pointer().on_click(cx.listener(
+                        |this, _, _, cx| {
+                            let target = !this.ctx_entry;
+                            crate::explorer::set_context_entry(target);
+                            this.ctx_entry = crate::explorer::context_entry();
+                            cx.notify();
+                        },
+                    )))
+                    .child(note("Fonctionne aussi dans le menu \u{ab} Afficher plus d'options \u{bb} de Windows 11."));
+            }
+            _ => {
+                body = body
+                    .child(header("Applications"))
+                    .child(check("st-appsall", "Afficher les applications syst\u{e8}me dans \u{ab} Applications \u{bb}", "apps_all", false, cx))
+                    .child(sep())
+                    .child(header("Donn\u{e9}es"))
+                    .child(
+                        div()
+                            .flex()
+                            .flex_wrap()
+                            .gap(px(8.))
+                            .child(button("st-reset-views", "R\u{e9}initialiser les options d'affichage", cx, |this, cx| {
+                                this.prefs = crate::prefs::Store::default();
+                                this.prefs.save();
+                                this.layouts.clear();
+                                crate::layout::save(&this.layouts);
+                                this.reload();
+                                this.show_notice("Options d'affichage r\u{e9}initialis\u{e9}es.", cx);
+                            }))
+                            .child(button("st-reset-all", "R\u{e9}initialiser tous les r\u{e9}glages", cx, |this, cx| {
+                                if let Some(f) = std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("winfinder").join("settings.txt")) {
+                                    let _ = std::fs::remove_file(f);
+                                }
+                                apply_theme();
+                                this.show_sidebar = true;
+                                this.show_path_bar = true;
+                                this.show_status_bar = true;
+                                this.show_hidden = false;
+                                this.sidebar_w = theme::SIDEBAR_WIDTH;
+                                this.places = crate::sidebar::default_places();
+                                this.reload();
+                                this.show_notice("R\u{e9}glages r\u{e9}initialis\u{e9}s.", cx);
+                            }))
+                            .child(button("st-open-data", "Ouvrir le dossier des donn\u{e9}es", cx, |_, _| {
+                                if let Some(d) = std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("winfinder")) {
+                                    let _ = std::fs::create_dir_all(&d);
+                                    let _ = std::process::Command::new("explorer.exe").arg(d).spawn();
+                                }
+                            })),
+                    )
+                    .child(note("Options d'affichage, \u{e9}tiquettes et r\u{e9}glages sont dans %APPDATA%\\winfinder."))
+                    .child(sep())
+                    .child(header("\u{c0} propos"))
+                    .child(div().text_size(px(13.)).text_color(rgb(theme::TEXT)).child("Windows Finder 0.1.0 \u{2014} un Finder pour Windows, \u{e9}crit en Rust."));
+            }
+        }
+
+        let nav = div().w(px(170.)).flex_none().flex().flex_col().gap(px(2.)).p(px(10.)).children(TABS.iter().enumerate().map(|(i, name)| {
+            let on = i == tab;
+            div()
+                .id(("st-tab", i))
+                .h(px(30.))
+                .px(px(10.))
+                .flex()
+                .items_center()
+                .rounded(px(8.))
+                .text_size(px(13.))
+                .text_color(rgb(if on { theme::SELECTION_TEXT } else { theme::TEXT }))
+                .when(on, |d| d.bg(rgb(theme::SELECTION)))
+                .when(!on, |d| d.hover(|s| s.bg(rgb(theme::HOVER))))
+                .child(*name)
+                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
+                    this.settings_tab = i;
+                    cx.notify();
+                }))
+        }));
+
         Some(
             div()
                 .id("settings-backdrop")
@@ -115,8 +398,7 @@ impl Finder {
                 .inset_0()
                 .flex()
                 .justify_center()
-                .items_start()
-                .pt(px(70.))
+                .items_center()
                 .on_mouse_down(
                     MouseButton::Left,
                     cx.listener(|this, _, _, cx| {
@@ -126,41 +408,78 @@ impl Finder {
                 )
                 .child(
                     div()
-                        .w(px(380.))
-                        .p(px(20.))
+                        .w(px(700.))
+                        .relative()
+                        .h(px(470.))
+                        .max_w_full()
+                        .max_h_full()
                         .flex()
-                        .flex_col()
-                        .gap(px(10.))
-                        .rounded(px(12.))
+                        .rounded(px(14.))
                         .bg(rgba(0xf6f6f6fc))
                         .border_1()
                         .border_color(rgb(0xd9d9de))
                         .shadow_lg()
+                        .overflow_hidden()
                         .occlude()
-                        .child(div().text_size(px(15.)).font_weight(gpui::FontWeight::SEMIBOLD).text_color(rgb(theme::TEXT)).child("R\u{e9}glages"))
-                        .child(header("Le Finder s'ouvre sur"))
-                        .child(radio("st-home", "Dossier personnel", "home", &start, cx))
-                        .child(radio("st-docs", "Documents", "documents", &start, cx))
-                        .child(radio("st-desk", "Bureau", "desktop", &start, cx))
-                        .child(radio("st-down", "T\u{e9}l\u{e9}chargements", "downloads", &start, cx))
-                        .child(div().h(px(1.)).w_full().bg(rgb(0xdcdcdf)))
-                        .child(header("G\u{e9}n\u{e9}ral"))
-                        .child(check("st-hidden", "Afficher les fichiers cach\u{e9}s", "hidden", false, cx))
-                        .child(check("st-appsall", "Afficher les applications syst\u{e8}me", "apps_all", false, cx))
-                        .child(div().h(px(1.)).w_full().bg(rgb(0xdcdcdf)))
-                        .child(header("Barre d'outils"))
-                        .child(check("st-tb-views", "Modes d'affichage", "tb_views", true, cx))
-                        .child(check("st-tb-group", "Regroupement", "tb_group", true, cx))
-                        .child(check("st-tb-share", "Partage", "tb_share", true, cx))
-                        .child(check("st-tb-tags", "\u{c9}tiquettes", "tb_tags", true, cx))
-                        .child(check("st-tb-more", "Actions (\u{2026})", "tb_more", true, cx))
-                        .child(check("st-tb-search", "Recherche", "tb_search", true, cx))
-                        .child(div().h(px(1.)).w_full().bg(rgb(0xdcdcdf)))
-                        .child(header("\u{c9}l\u{e9}ments de la barre lat\u{e9}rale"))
-                        .child(check("st-sb-apps", "Applications", "sb_apps", true, cx))
-                        .child(check("st-sb-tags", "\u{c9}tiquettes", "sb_tags", true, cx))
-                        .child(check("st-sb-net", "R\u{e9}seau et Corbeille", "sb_net", true, cx))
-                        .child(div().text_size(px(11.)).text_color(rgb(theme::TEXT_SECONDARY)).child("Le dossier d'ouverture s'applique au prochain lancement.")),
+                        .child(
+                            div()
+                                .h_full()
+                                .flex()
+                                .flex_col()
+                                .border_r_1()
+                                .border_color(rgb(0xdcdcdf))
+                                .child(
+                                    div()
+                                        .px(px(20.))
+                                        .pt(px(18.))
+                                        .pb(px(6.))
+                                        .text_size(px(15.))
+                                        .font_weight(gpui::FontWeight::SEMIBOLD)
+                                        .text_color(rgb(theme::TEXT))
+                                        .child("R\u{e9}glages"),
+                                )
+                                .child(nav),
+                        )
+                        .child(
+                            div()
+                                .id("settings-body")
+                                .flex_1()
+                                .min_w_0()
+                                .h_full()
+                                .overflow_y_scroll()
+                                .p(px(24.))
+                                .child(
+                                    div()
+                                        .text_size(px(17.))
+                                        .font_weight(gpui::FontWeight::SEMIBOLD)
+                                        .text_color(rgb(theme::TEXT))
+                                        .pb(px(14.))
+                                        .child(TABS[tab]),
+                                )
+                                .child(body),
+                        )
+                        .child(
+                            div()
+                                .id("settings-close")
+                                .absolute()
+                                .top(px(12.))
+                                .right(px(12.))
+                                .size(px(26.))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .rounded_full()
+                                .cursor_pointer()
+                                .bg(rgb(0xe9e9ec))
+                                .hover(|s| s.bg(rgb(theme::HOVER)))
+                                .text_size(px(12.))
+                                .text_color(rgb(theme::TEXT_SECONDARY))
+                                .child("\u{2715}")
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.settings_open = false;
+                                    cx.notify();
+                                })),
+                        ),
                 )
                 .into_any_element(),
         )

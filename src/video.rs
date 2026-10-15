@@ -91,7 +91,7 @@ pub struct Video {
 
 impl Video {
     /// Ouvre `path` et commence la lecture.
-    pub fn open(path: &Path) -> Result<Self, String> {
+    pub fn open(path: &Path, autoplay: bool) -> Result<Self, String> {
         unsafe {
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         }
@@ -160,7 +160,9 @@ impl Video {
             .map_err(|e| e.to_string())?;
         let src: IMediaPlaybackSource = source.cast().map_err(|e| e.to_string())?;
         player.SetSource(&src).map_err(|e| e.to_string())?;
-        player.Play().map_err(|e| e.to_string())?;
+        if autoplay {
+            player.Play().map_err(|e| e.to_string())?;
+        }
         Ok(Self { player, shared })
     }
 

@@ -58,3 +58,5 @@ Autres : Ctrl+, reglages ; Ctrl+Alt+S barre laterale, Ctrl+Alt+P barre de chemin
 Ctrl+N nouvelle fenetre ; Ctrl+Z / Ctrl+Maj+Z annuler / retablir ; bord droit de la barre laterale : glisser = redimensionner (135-400), double-clic = masquer ; Corbeille : dans l'app (Remettre a sa place, Vider).
 Ctrl+K se connecter a un serveur (chemin reseau) ; Ctrl+Maj+A tous les onglets ; clic droit sur un onglet = menu (dupliquer, nouvelle fenetre, fermer les autres) ; clic droit sur la barre d'outils = personnaliser ; Options d'affichage : volet d'apercu (colonnes, galerie).
 Liste hierarchique : triangle ou fleche droite deplie un dossier, fleche gauche le replie.
+
+Ajouts : Ctrl+Maj+P palette de commandes ; Ctrl+Maj+T rouvrir l'onglet ferme ; Ctrl+Maj+C copier le chemin ; clic droit > Plus d'options... (menu natif de Windows), Ouvrir dans le Terminal, Ajouter a la barre laterale (clic droit sur l'element epingle pour le retirer), Definir comme fond d'ecran, Pivoter, Executer en tant qu'administrateur, Nouveau fichier texte.

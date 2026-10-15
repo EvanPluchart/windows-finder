@@ -392,6 +392,7 @@ impl Finder {
             || self.bulk.is_some()
             || self.info.is_some()
             || self.goto.is_some()
+            || self.palette.is_some()
             || self.search.as_ref().map(|s| s.editor.read(cx).is_focused(window)).unwrap_or(false)
     }
 }

@@ -16,7 +16,7 @@ BEGIN
             VALUE "OriginalFilename", "WindowsFinder.exe"
             VALUE "FileVersion", "0.1.0.0"
             VALUE "ProductVersion", "0.1.0.0"
-            VALUE "LegalCopyright", ""
+            VALUE "LegalCopyright", "MIT License - Evan Pluchart"
         END
     END
     BLOCK "VarFileInfo"

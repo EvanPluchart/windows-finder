@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Windows Finder : le Finder de macOS pour Windows (gratuit, open source)</title>
+<meta name="description" content="Windows Finder apporte le Finder de macOS à Windows 10 et 11 : vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et palette de commandes. Gratuit, open source MIT, écrit en Rust.">
+<meta name="keywords" content="windows finder, finder pour windows, finder macos pour windows, finder windows 11, finder mac sur windows, gestionnaire de fichiers macos pour windows, alternative explorateur de fichiers, aperçu rapide windows, vue colonnes windows, gestionnaire de fichiers rust">
+<link rel="canonical" href="https://evanpluchart.github.io/windows-finder/fr/">
+<link rel="alternate" hreflang="en" href="https://evanpluchart.github.io/windows-finder/">
+<link rel="alternate" hreflang="fr" href="https://evanpluchart.github.io/windows-finder/fr/">
+<link rel="alternate" hreflang="x-default" href="https://evanpluchart.github.io/windows-finder/">
+<meta name="theme-color" content="#0a64f0">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Windows Finder">
+<meta property="og:title" content="Windows Finder : le Finder de macOS pour Windows">
+<meta property="og:description" content="Un gestionnaire de fichiers gratuit et open source façon Finder pour Windows 10 et 11. Quatre vues, onglets, Aperçu rapide, étiquettes, palette de commandes.">
+<meta property="og:url" content="https://evanpluchart.github.io/windows-finder/fr/">
+<meta property="og:image" content="https://evanpluchart.github.io/windows-finder/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Windows Finder : le Finder de macOS pour Windows">
+<meta name="twitter:description" content="Gratuit, open source, écrit en Rust. Vues icônes / liste / colonnes / galerie, onglets, Aperçu rapide, étiquettes.">
+<meta name="twitter:image" content="https://evanpluchart.github.io/windows-finder/assets/og.png">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "Windows Finder",
+      "alternateName": ["Finder macOS pour Windows", "Finder pour Windows"],
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Windows 10, Windows 11",
+      "description": "Un gestionnaire de fichiers open source pour Windows qui recrée le Finder de macOS : vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes, Lire les informations et palette de commandes.",
+      "license": "https://opensource.org/license/mit",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+      "url": "https://evanpluchart.github.io/windows-finder/fr/",
+      "codeRepository": "https://github.com/EvanPluchart/windows-finder",
+      "programmingLanguage": "Rust",
+      "inLanguage": ["fr", "en", "es", "de"]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Existe-t-il un Finder pour Windows ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Windows Finder est un gestionnaire de fichiers gratuit et open source pour Windows 10 et 11 qui recrée le Finder de macOS : même disposition de fenêtre, vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et Lire les informations." } },
+        { "@type": "Question", "name": "Peut-on avoir le Finder de macOS sur Windows 11 ?", "acceptedAnswer": { "@type": "Answer", "text": "macOS ne tourne pas sur Windows, mais Windows Finder offre un gestionnaire façon Finder qui fonctionne sur vos vrais fichiers, disques, OneDrive, distributions WSL et la Corbeille." } },
+        { "@type": "Question", "name": "Windows Finder est-il gratuit ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui, il est publié sous licence MIT. Vous pouvez l'utiliser, le modifier et contribuer sur GitHub." } },
+        { "@type": "Question", "name": "Remplace-t-il l'Explorateur de fichiers ?", "acceptedAnswer": { "@type": "Answer", "text": "Seulement si vous le souhaitez : un réglage facultatif, propre à votre profil, en fait le gestionnaire de dossiers par défaut et s'annule en un clic. L'Explorateur reste installé et Win+E continue de fonctionner." } },
+        { "@type": "Question", "name": "Est-il affilié à Apple ?", "acceptedAnswer": { "@type": "Answer", "text": "Non. C'est un projet open source indépendant inspiré du Finder de macOS. Finder et macOS sont des marques d'Apple Inc." } }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Accueil Windows Finder">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="url(#lg)"/><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ab0ff"/><stop offset="1" stop-color="#0a64f0"/></linearGradient></defs><path d="M16 4v24" stroke="#fff" stroke-width="2" opacity=".9"/><circle cx="11" cy="13" r="2" fill="#fff"/><circle cx="21" cy="13" r="2" fill="#fff"/><path d="M9 20c2 3 5 4 7 4s5-1 7-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      Windows Finder
+    </a>
+    <nav aria-label="Principale">
+      <a href="#views">Vues</a>
+      <a href="#features">Fonctions</a>
+      <a href="#compare">Comparer</a>
+      <a href="#faq">FAQ</a>
+      <a href="../">English</a>
+      <button class="theme-toggle" id="theme" aria-label="Basculer entre thème clair et sombre">☾</button>
+      <a class="btn small primary" href="https://github.com/EvanPluchart/windows-finder">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" aria-labelledby="h1">
+    <div class="wrap">
+      <p class="eyebrow">Gratuit · Open source · Windows 10 &amp; 11</p>
+      <h1 id="h1">Le Finder de macOS, <em>pour Windows.</em></h1>
+      <p class="lead">Windows Finder est un gestionnaire de fichiers rapide, façon Finder, écrit en Rust. Vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et palette de commandes, sur vos vrais fichiers Windows.</p>
+      <div class="cta">
+        <a class="btn primary" href="#install">Obtenir Windows Finder</a>
+        <a class="btn" href="https://github.com/EvanPluchart/windows-finder">★ Voir sur GitHub</a>
+      </div>
+      <div class="badges"><span>Licence MIT</span><span>Rust + GPUI</span><span>Clair &amp; sombre</span><span>EN · FR · ES · DE</span></div>
+
+      <div class="stage" id="views">
+        <div class="window" id="mock" data-view="icons" role="img" aria-label="Illustration de la fenêtre Windows Finder qui alterne entre les vues icônes, liste, colonnes et galerie">
+          <aside class="side" aria-hidden="true">
+            <div class="lights"><i></i><i></i><i></i></div>
+            <h6>Favoris</h6>
+            <div class="item on"><span class="gl"></span>Récents</div>
+            <div class="item"><span class="gl"></span>Applications</div>
+            <div class="item"><span class="gl"></span>Bureau</div>
+            <div class="item"><span class="gl"></span>Documents</div>
+            <div class="item"><span class="gl"></span>Téléchargements</div>
+            <h6>Emplacements</h6>
+            <div class="item"><span class="gl"></span>OneDrive</div>
+            <div class="item"><span class="gl"></span>Disque local (C:)</div>
+            <div class="item"><span class="gl"></span>Linux (WSL)</div>
+          </aside>
+          <div class="main">
+            <div class="bar">
+              <div class="cap" aria-hidden="true"><span>‹</span><span>›</span></div>
+              <span class="title">Documents</span>
+              <div class="cap seg" role="group" aria-label="Mode d'affichage">
+                <button data-v="icons" aria-pressed="true">Icônes</button>
+                <button data-v="list" aria-pressed="false">Liste</button>
+                <button data-v="columns" aria-pressed="false">Colonnes</button>
+                <button data-v="gallery" aria-pressed="false">Galerie</button>
+              </div>
+            </div>
+            <div class="content" id="mock-content"></div>
+            <div class="status" id="mock-status">1 sur 8 sélectionné, 295 Go disponibles</div>
+          </div>
+        </div>
+        <p class="hint">Cliquez sur une vue. C'est la vraie disposition de l'app, redessinée en HTML.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" aria-labelledby="f-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Ce que vous obtenez</p>
+        <h2 id="f-h">Tout ce qui vous manque du Finder du Mac, plus ce dont Windows a besoin.</h2>
+        <p class="lead">Construit à partir d'une étude par rétro-ingénierie du Finder de macOS, puis recoupé avec l'Explorateur de fichiers et l'app Files pour ne rien oublier d'utile.</p>
+      </div>
+      <div class="grid">
+        <article class="card"><div class="ico">⌘</div><h3>Quatre vues, par dossier</h3><p>Icônes à placement libre, Liste aux dossiers dépliables, Colonnes avec aperçu détaillé, Galerie avec bande de miniatures. Chaque dossier retient sa vue, son tri, son regroupement et la taille de ses icônes.</p></article>
+        <article class="card"><div class="ico">␣</div><h3>Aperçu rapide</h3><p>Appuyez sur Espace pour prévisualiser images, texte, CSV, PDF et vidéo avec commandes de lecture. Modifiez texte et CSV directement dans l'aperçu.</p></article>
+        <article class="card"><div class="ico">⊞</div><h3>Onglets et fenêtres</h3><p>Onglets, vue d'ensemble, onglet fermé rouvrable, dossiers qui s'ouvrent au survol, boutons précédent / suivant de la souris, Aller au dossier et Se connecter au serveur.</p></article>
+        <article class="card"><div class="ico">●</div><h3>Étiquettes et informations</h3><p>Étiquettes de couleur avec leur section dans la barre latérale, et un panneau « Lire les informations » complet : tailles, dates, type, permissions et Ouvrir avec.</p></article>
+        <article class="card"><div class="ico">⌃</div><h3>Palette de commandes</h3><p>Appuyez sur <span class="kbd">Ctrl</span>+<span class="kbd">Maj</span>+<span class="kbd">P</span> pour trouver n'importe quelle commande, avec son raccourci, depuis un seul champ.</p></article>
+        <article class="card"><div class="ico">⊕</div><h3>Vraie intégration à Windows</h3><p>« Plus d'options… » ouvre le vrai menu contextuel de l'Explorateur (Git, 7-Zip, Envoyer vers, Propriétés). Distributions WSL dans la barre latérale, Corbeille, OneDrive, réseau, Terminal et lancement en administrateur.</p></article>
+        <article class="card"><div class="ico">◐</div><h3>Clair, sombre et couleurs d'accent</h3><p>Suit Windows, change en direct, huit couleurs d'accent, fenêtre arrondie avec pastilles rouge / jaune / verte, comme sur le Mac.</p></article>
+        <article class="card"><div class="ico">文</div><h3>Votre langue</h3><p>English, Français, Español et Deutsch, choisis automatiquement d'après la langue de Windows. Ajouter une langue, c'est une colonne dans un fichier texte.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="s-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Clavier d'abord</p>
+        <h2 id="s-h">Des raccourcis que vous connaissez déjà.</h2>
+      </div>
+      <div class="shortcuts">
+        <div>Aperçu rapide <span><span class="kbd">Espace</span></span></div>
+        <div>Lire les informations <span><span class="kbd">Ctrl</span> <span class="kbd">I</span></span></div>
+        <div>Vues <span><span class="kbd">Ctrl</span> <span class="kbd">1</span>–<span class="kbd">4</span></span></div>
+        <div>Aller au dossier <span><span class="kbd">Ctrl</span> <span class="kbd">⇧</span> <span class="kbd">G</span></span></div>
+        <div>Nouvel onglet <span><span class="kbd">Ctrl</span> <span class="kbd">T</span></span></div>
+        <div>Rouvrir l'onglet <span><span class="kbd">Ctrl</span> <span class="kbd">⇧</span> <span class="kbd">T</span></span></div>
+        <div>Palette de commandes <span><span class="kbd">Ctrl</span> <span class="kbd">⇧</span> <span class="kbd">P</span></span></div>
+        <div>Copier le chemin <span><span class="kbd">Ctrl</span> <span class="kbd">⇧</span> <span class="kbd">C</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare" aria-labelledby="c-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Comparaison honnête</p>
+        <h2 id="c-h">Windows Finder, Explorateur de fichiers et Files.</h2>
+        <p class="lead">L'Explorateur et Files sont excellents. Windows Finder s'adresse à ceux qui veulent le design et le fonctionnement du Finder. D'après notre propre analyse des deux apps.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="cmp">
+          <thead><tr><th scope="col">Fonction</th><th scope="col" class="us">Windows Finder</th><th scope="col">Explorateur</th><th scope="col">Files</th></tr></thead>
+          <tbody>
+            <tr><td>Look &amp; feel du Finder macOS</td><td class="y">✓</td><td class="n">–</td><td class="n">–</td></tr>
+            <tr><td>Vue colonnes</td><td class="y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
+            <tr><td>Vue galerie avec miniatures</td><td class="y">✓</td><td class="p">partiel</td><td class="p">partiel</td></tr>
+            <tr><td>Aperçu type Aperçu rapide</td><td class="y">✓</td><td class="p">volet</td><td class="y">✓</td></tr>
+            <tr><td>Onglets</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+            <tr><td>Étiquettes de couleur</td><td class="y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
+            <tr><td>Palette de commandes</td><td class="y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
+            <tr><td>Menu natif des extensions du shell</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+            <tr><td>Vue mémorisée par dossier</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+            <tr><td>Open source</td><td class="y">MIT</td><td class="n">–</td><td class="y">MIT</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="install" aria-labelledby="i-h">
+    <div class="wrap split">
+      <div class="sec-head" style="margin:0">
+        <p class="eyebrow">Installer</p>
+        <h2 id="i-h">Compilez-le en deux minutes.</h2>
+        <p class="lead">Pas encore d'installeur. Il faut Windows 10 ou 11, Rust et les outils de build C++ de Visual Studio.</p>
+        <ol class="steps" style="padding:0;margin:8px 0 0">
+          <li><span>Clonez le dépôt.</span></li>
+          <li><span>Lancez <code>cargo build --release</code>.</span></li>
+          <li><span>Lancez <code>WindowsFinder.exe</code>. <span class="kbd">Ctrl</span>+<span class="kbd">,</span> ouvre les réglages.</span></li>
+        </ol>
+      </div>
+<pre><code>git clone https://github.com/EvanPluchart/windows-finder.git
+cd windows-finder
+cargo build --release
+.\target\release\WindowsFinder.exe</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="how-h">
+    <div class="wrap split">
+      <div class="sec-head" style="margin:0">
+        <p class="eyebrow">Sous le capot</p>
+        <h2 id="how-h">Rust, dessiné par le GPU, rétro-ingénierie.</h2>
+        <p class="lead">L'interface est dessinée par le GPU avec GPUI. Disque, recherche et aperçus tournent hors du thread d'interface. Géométrie, couleurs et comportement viennent de mesures du vrai Finder ; les fonctions ont été recoupées avec l'Explorateur et Files grâce à la boîte à outils de rétro-ingénierie REA. Les rapports sont dans le dépôt.</p>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card"><h3>~11k</h3><p>lignes de Rust</p></div>
+        <div class="card"><h3>4</h3><p>langues</p></div>
+        <div class="card"><h3>MIT</h3><p>licence</p></div>
+        <div class="card"><h3>0</h3><p>télémétrie</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="faq" aria-labelledby="q-h">
+    <div class="wrap" style="max-width:820px">
+      <div class="sec-head"><p class="eyebrow">FAQ</p><h2 id="q-h">Les questions fréquentes.</h2></div>
+      <details><summary>Existe-t-il un Finder pour Windows ?</summary><p>Oui, le voici. Windows Finder est un gestionnaire de fichiers gratuit et open source pour Windows 10 et 11 qui recrée le Finder de macOS : même disposition de fenêtre, vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et « Lire les informations ».</p></details>
+      <details><summary>Peut-on avoir le Finder de macOS sur Windows 11 ?</summary><p>macOS ne tourne pas sur Windows, mais Windows Finder vous offre un gestionnaire façon Finder qui fonctionne sur vos vrais fichiers, disques, OneDrive, distributions WSL et la Corbeille.</p></details>
+      <details><summary>Windows Finder est-il gratuit ?</summary><p>Oui. Il est publié sous licence MIT. Utilisez-le, modifiez-le et contribuez sur GitHub.</p></details>
+      <details><summary>Remplace-t-il l'Explorateur de fichiers ?</summary><p>Seulement si vous le voulez. Un réglage facultatif, propre à votre profil, en fait le gestionnaire de dossiers par défaut et s'annule en un clic. L'Explorateur reste sur votre PC et Win+E continue de fonctionner. « Plus d'options… » affiche même le menu natif de l'Explorateur avec toutes vos extensions du shell.</p></details>
+      <details><summary>Peut-on l'utiliser sans risque sur ses fichiers ?</summary><p>Supprimer envoie les fichiers à la Corbeille, les actions irréversibles demandent confirmation et rien n'est envoyé sur le réseau. Les modifications du registre (uniquement à votre demande) restent dans votre profil utilisateur.</p></details>
+      <details><summary>Est-il affilié à Apple ?</summary><p>Non. C'est un projet open source indépendant inspiré du Finder de macOS. Finder et macOS sont des marques d'Apple Inc.</p></details>
+    </div>
+  </section>
+
+  <section aria-labelledby="end-h">
+    <div class="wrap final">
+      <h2 id="end-h">Faites de Windows un chez-vous.</h2>
+      <p class="lead">Mettez une étoile, essayez-le et proposez une pull request. Traductions et idées bienvenues.</p>
+      <div class="cta"><a class="btn primary" href="https://github.com/EvanPluchart/windows-finder">Ouvrir GitHub</a><a class="btn" href="https://github.com/EvanPluchart/windows-finder/blob/main/CONTRIBUTING.md">Comment contribuer</a></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div><strong>Windows Finder</strong> : le Finder de macOS pour Windows. Licence MIT © 2026 Evan Pluchart.</div>
+    <div>Windows Finder est un projet indépendant, non affilié à Apple Inc. ni approuvé par elle. Finder et macOS sont des marques d'Apple Inc. Windows est une marque de Microsoft Corporation.</div>
+    <div><a href="https://github.com/EvanPluchart/windows-finder">GitHub</a> · <a href="../">English</a> · <a href="https://github.com/EvanPluchart/windows-finder/blob/main/CODE_OF_CONDUCT.md">Code de conduite</a></div>
+  </div>
+</footer>
+<script>window.WF_LABELS={name:"Nom",date:"Date de modification",size:"Taille",kind:"Type",folder:"Dossier",items:"1 sur 8 sélectionné, 295 Go disponibles",preview:"Aperçu"};</script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

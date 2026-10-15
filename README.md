@@ -45,7 +45,7 @@ There are no binary releases yet. Build it (about two minutes):
 
 ```powershell
 # Requirements: Windows 10/11, Rust stable, Visual Studio Build Tools (C++ workload)
-git clone <repo-url>
+git clone https://github.com/EvanPluchart/windows-finder.git
 cd windows-finder
 cargo build --release
 .\target\release\WindowsFinder.exe

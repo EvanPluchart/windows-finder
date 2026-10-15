@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://evanpluchart.github.io/windows-finder/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://evanpluchart.github.io/windows-finder/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://evanpluchart.github.io/windows-finder/fr/"/>
+    <lastmod>2026-10-15</lastmod>
+  </url>
+  <url>
+    <loc>https://evanpluchart.github.io/windows-finder/fr/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://evanpluchart.github.io/windows-finder/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://evanpluchart.github.io/windows-finder/fr/"/>
+    <lastmod>2026-10-15</lastmod>
+  </url>
+</urlset>

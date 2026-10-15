@@ -6,7 +6,7 @@ Thanks for helping! Windows Finder is a macOS Finder-style file manager for Wind
 
 ```powershell
 # Windows 10/11, Rust (stable) and the MSVC C++ build tools
-git clone <repo-url>
+git clone https://github.com/EvanPluchart/windows-finder.git
 cd windows-finder
 cargo run                       # opens your home folder
 cargo run -- C:\Windows --dark --view=list

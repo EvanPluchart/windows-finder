@@ -340,3 +340,5 @@ Le dossier de cette recherche n'existe plus. ::: This search's folder no longer 
 Actions rapides ::: Quick Actions ::: Acciones rápidas ::: Schnellaktionen
 Chargement… ::: Loading… ::: Cargando… ::: Wird geladen…
 Aucune option ::: No options ::: Sin opciones ::: Keine Optionen
+Ouvrir dans Windows Finder ::: Open in Windows Finder ::: Abrir en Windows Finder ::: In Windows Finder öffnen
+Windows Finder s'est arrêté à cause d'une erreur. ::: Windows Finder stopped because of an error. ::: Windows Finder se detuvo por un error. ::: Windows Finder wurde wegen eines Fehlers beendet.

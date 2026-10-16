@@ -662,7 +662,7 @@ impl Render for QuickLook {
                                 .child("\u{25B6}"),
                         )
                         .cursor_pointer().on_click(move |_, _, _| {
-                            let _ = std::process::Command::new("cmd").args(["/C", "start", "", &p.to_string_lossy()]).spawn();
+                            crate::extras::shell_open(&p);
                         })
                         .into_any_element()
                 } else {
@@ -755,9 +755,7 @@ impl Render for QuickLook {
                             .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
                             .cursor_pointer().on_click(move |_, _, _| {
                                 if let Some(p) = &open_path {
-                                    let _ = std::process::Command::new("cmd")
-                                        .args(["/C", "start", "", &p.to_string_lossy()])
-                                        .spawn();
+                                    crate::extras::shell_open(p);
                                 }
                             }),
                     ),

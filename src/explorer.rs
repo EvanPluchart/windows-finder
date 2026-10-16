@@ -53,7 +53,7 @@ pub fn set_context_entry(on: bool) -> bool {
     let key_dir = format!(r"{DIR}\WindowsFinder");
     let key_bg = format!(r"{BG}\WindowsFinder");
     if on {
-        let label = "Ouvrir dans Windows Finder";
+        let label = crate::i18n::t("Ouvrir dans Windows Finder");
         let mut ok = true;
         for (key, arg) in [(&key_dir, "%1"), (&key_bg, "%V")] {
             ok &= reg(&["add", key, "/ve", "/d", label, "/f"]).is_some();
@@ -65,5 +65,21 @@ pub fn set_context_entry(on: bool) -> bool {
         let _ = reg(&["delete", &key_dir, "/f"]);
         let _ = reg(&["delete", &key_bg, "/f"]);
         true
+    }
+}
+
+/// Vrai si la commande de la cle lance cet executable-ci (pas une autre copie, portable par exemple).
+fn points_here(key: &str) -> bool {
+    let me = exe().to_lowercase();
+    !me.is_empty() && reg(&["query", key, "/ve"]).map(|o| o.to_lowercase().contains(&me)).unwrap_or(false)
+}
+
+/// Desinstallation : retire le gestionnaire par defaut et l'entree du menu contextuel s'ils pointent ici.
+pub fn unregister() {
+    if points_here(&format!(r"{DIR}\open\command")) {
+        set_default(false);
+    }
+    if points_here(&format!(r"{DIR}\WindowsFinder\command")) {
+        set_context_entry(false);
     }
 }

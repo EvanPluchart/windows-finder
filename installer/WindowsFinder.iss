@@ -49,3 +49,9 @@ Name: "{autodesktop}\Windows Finder"; Filename: "{app}\WindowsFinder.exe"; Tasks
 
 [Run]
 Filename: "{app}\WindowsFinder.exe"; Description: "{cm:LaunchProgram,Windows Finder}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+; Removes the optional Explorer integration (default folder handler, "Open in Windows Finder" entry) before the
+; exe is deleted, so folders never point to a missing program after uninstalling.
+Filename: "{app}\WindowsFinder.exe"; Parameters: "--unregister"; Flags: runhidden waituntilterminated; RunOnceId: "UnregisterExplorer"
+

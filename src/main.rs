@@ -1,3 +1,7 @@
+// Application graphique : sans cet attribut, Windows ouvre une console (terminal) a chaque lancement.
+// Les builds de debug (`cargo run`) gardent la console pour voir les messages.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 // Jeu d'icones : "apple" (usage personnel, feature par defaut) ou "open" (libre, assets/open).
 #[cfg(feature = "apple-assets")]
 macro_rules! asset_set { () => { "apple" }; }
@@ -167,7 +171,7 @@ impl Finder {
         })
         .detach();
         let start = start
-            .or_else(|| std::env::args_os().nth(1).map(PathBuf::from).filter(|p| p.is_dir() || fs::is_virtual(p)))
+            .or_else(start_arg)
             .unwrap_or_else(settings::start_folder);
         // Test : --sort=name|date|size|kind, suffixe ":desc" pour l'ordre inverse.
         if let Some(s) = std::env::args().find_map(|a| a.strip_prefix("--sort=").map(str::to_owned)) {
@@ -549,7 +553,7 @@ impl Finder {
             }
             self.navigate(e.path, true, cx);
         } else {
-            let _ = std::process::Command::new("cmd").args(["/C", "start", "", &e.path.to_string_lossy()]).spawn();
+            crate::extras::shell_open(&e.path);
         }
     }
 
@@ -787,7 +791,48 @@ impl Render for Finder {
     }
 }
 
+/// Dossier passe en premier argument (Explorateur, raccourci, menu contextuel).
+/// Un lecteur arrive en `C:"` (parfois suivi d'espaces) : dans `"C:\"`, la barre oblique inverse echappe
+/// le guillemet. On le repare.
+fn start_arg() -> Option<PathBuf> {
+    let a = std::env::args_os().nth(1)?;
+    let p = match a.to_str().map(str::trim_end) {
+        Some(s) if s.ends_with('"') => PathBuf::from(format!("{}\\", s.trim_end_matches('"'))),
+        _ => PathBuf::from(a),
+    };
+    (p.is_dir() || fs::is_virtual(&p)).then_some(p)
+}
+
+/// Sans console, un plantage serait silencieux : le message et l'emplacement vont dans %APPDATA%\winfinder\crash.log,
+/// et un plantage du thread principal (l'application se ferme) l'explique dans une boite de dialogue.
+fn log_panics() {
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        if let Some(dir) = std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("winfinder")) {
+            let _ = std::fs::create_dir_all(&dir);
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join("crash.log")) {
+                use std::io::Write;
+                let _ = writeln!(f, "[{}] v{} {info}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), env!("CARGO_PKG_VERSION"));
+            }
+        }
+        if cfg!(not(debug_assertions)) && std::thread::current().name() == Some("main") {
+            use windows::Win32::UI::WindowsAndMessaging::{MB_ICONERROR, MB_OK, MessageBoxW};
+            use windows::core::HSTRING;
+            let text = format!("{}\n\n{info}\n\n%APPDATA%\\winfinder\\crash.log", crate::i18n::t("Windows Finder s'est arr\u{ea}t\u{e9} \u{e0} cause d'une erreur."));
+            unsafe { MessageBoxW(None, &HSTRING::from(text), &HSTRING::from("Windows Finder"), MB_OK | MB_ICONERROR) };
+        }
+        previous(info);
+    }));
+}
+
 fn main() {
+    log_panics();
+    // Appele par le desinstalleur : retire l'integration a l'Explorateur (sinon les dossiers pointeraient
+    // vers un executable supprime), puis quitte sans ouvrir de fenetre.
+    if std::env::args().any(|a| a == "--unregister") {
+        explorer::unregister();
+        return;
+    }
     // Mode sombre : --dark / --light (tests), sinon celui de Windows, surveille en continu.
     let forced = if std::env::args().any(|a| a == "--dark") {
         Some(true)
@@ -927,11 +972,13 @@ fn square_dwm_frame() {
         use windows::Win32::System::LibraryLoader::GetModuleHandleW;
         use windows::Win32::UI::WindowsAndMessaging::{IMAGE_ICON, LR_DEFAULTCOLOR, LoadImageW, SendMessageW, WM_SETICON};
         use windows::core::PCWSTR;
-        let Ok(module) = GetModuleHandleW(None) else { return };
-        for (kind, size) in [(1usize, 32), (0usize, 16)] {
-            // kind : ICON_BIG = 1, ICON_SMALL = 0 ; la ressource n°1 s'ecrit comme un identifiant entier.
-            if let Ok(icon) = LoadImageW(Some(module.into()), PCWSTR(1usize as *const u16), IMAGE_ICON, size, size, LR_DEFAULTCOLOR) {
-                SendMessageW(hwnd, WM_SETICON, Some(windows::Win32::Foundation::WPARAM(kind)), Some(windows::Win32::Foundation::LPARAM(icon.0 as isize)));
+        unsafe {
+            let Ok(module) = GetModuleHandleW(None) else { return };
+            for (kind, size) in [(1usize, 32), (0usize, 16)] {
+                // kind : ICON_BIG = 1, ICON_SMALL = 0 ; la ressource n°1 s'ecrit comme un identifiant entier.
+                if let Ok(icon) = LoadImageW(Some(module.into()), PCWSTR(1usize as *const u16), IMAGE_ICON, size, size, LR_DEFAULTCOLOR) {
+                    SendMessageW(hwnd, WM_SETICON, Some(windows::Win32::Foundation::WPARAM(kind)), Some(windows::Win32::Foundation::LPARAM(icon.0 as isize)));
+                }
             }
         }
     }

@@ -1,6 +1,7 @@
 //! Fonctions ajoutees apres l'analyse de l'Explorateur Windows et de Files (docs/research) :
 //! terminal, fond d'ecran, rotation d'images, execution en administrateur, elements epingles, onglets fermes.
 
+use std::os::windows::ffi::OsStrExt;
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -10,6 +11,27 @@ use gpui::Context;
 use crate::{layout, ops, Finder, ViewMode};
 
 const NO_WINDOW: u32 = 0x0800_0000;
+
+/// Ouvre un fichier avec son application par defaut (comme un double-clic dans l'Explorateur).
+/// ShellExecuteW et non `cmd /C start` : pas de console qui s'ouvre, et un nom de fichier contenant
+/// `&`, `^` ou `%` n'est jamais interprete comme une commande. Verbe nul = action par defaut du type
+/// (pas forcement « open »). Sans application associee, on propose « Ouvrir avec… » comme l'Explorateur.
+pub fn shell_open(path: &Path) {
+    let path = path.to_path_buf();
+    std::thread::spawn(move || unsafe {
+        use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE, CoInitializeEx};
+        use windows::Win32::UI::Shell::ShellExecuteW;
+        use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+        use windows::core::PCWSTR;
+        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        let wide: Vec<u16> = path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+        let h = ShellExecuteW(None, PCWSTR::null(), PCWSTR(wide.as_ptr()), PCWSTR::null(), PCWSTR::null(), SW_SHOWNORMAL);
+        // Valeur <= 32 : echec (SE_ERR_NOASSOC, ...).
+        if h.0 as isize <= 32 {
+            let _ = std::process::Command::new("rundll32.exe").arg("shell32.dll,OpenAs_RunDLL").arg(&path).spawn();
+        }
+    });
+}
 
 /// Onglets fermes recemment (pile), pour « Rouvrir l'onglet ferme ».
 static CLOSED: Mutex<Vec<(PathBuf, ViewMode)>> = Mutex::new(Vec::new());

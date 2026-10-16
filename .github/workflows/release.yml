@@ -12,16 +12,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release
-      - name: Package
+      - name: Installer
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item target/release/WindowsFinder.exe dist/
-          Copy-Item LICENSE dist/
-          Compress-Archive -Path dist/* -DestinationPath "WindowsFinder-${{ github.ref_name }}-windows-x64.zip"
+          choco install innosetup -y --no-progress
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" installer\WindowsFinder.iss
+      - name: Portable zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force portable | Out-Null
+          Copy-Item target/release/WindowsFinder.exe portable/
+          Copy-Item LICENSE portable/
+          Compress-Archive -Path portable/* -DestinationPath "dist/WindowsFinder-windows-x64-portable.zip"
       - name: Publish
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (-not (gh release view "${{ github.ref_name }}" 2>$null)) { gh release create "${{ github.ref_name }}" "WindowsFinder-${{ github.ref_name }}-windows-x64.zip" --title "Windows Finder ${{ github.ref_name }}" --generate-notes }
+          $files = Get-ChildItem dist | ForEach-Object { $_.FullName }
+          if (gh release view "${{ github.ref_name }}" 2>$null) { gh release upload "${{ github.ref_name }}" $files --clobber }
+          else { gh release create "${{ github.ref_name }}" $files --title "Windows Finder ${{ github.ref_name }}" --generate-notes }

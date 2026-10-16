@@ -2,3 +2,4 @@
 reference/
 
 tools/**/node_modules/
+dist/

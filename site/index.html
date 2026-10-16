@@ -191,18 +191,20 @@
     <div class="wrap split">
       <div class="sec-head" style="margin:0">
         <p class="eyebrow">Install</p>
-        <h2 id="i-h">Build it in two minutes.</h2>
-        <p class="lead">No installer yet. You need Windows 10 or 11, Rust and the Visual Studio C++ build tools.</p>
+        <h2 id="i-h">Download, double-click, done.</h2>
+        <p class="lead">Windows 10 or 11, 64-bit. No administrator rights, nothing else to install.</p>
         <ol class="steps" style="padding:0;margin:8px 0 0">
-          <li><span>Clone the repository.</span></li>
-          <li><span>Run <code>cargo build --release</code>.</span></li>
-          <li><span>Launch <code>WindowsFinder.exe</code>. Press <span class="kbd">Ctrl</span>+<span class="kbd">,</span> for settings.</span></li>
+          <li><span>Download the installer.</span></li>
+          <li><span>Run it. If Windows SmartScreen warns you (the app is not code-signed yet), choose <em>More info</em>, then <em>Run anyway</em>.</span></li>
+          <li><span>Open <em>Windows Finder</em> from the Start menu. Press <span class="kbd">Ctrl</span>+<span class="kbd">,</span> for settings.</span></li>
         </ol>
+        <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe">Download for Windows</a><a class="btn" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-windows-x64-portable.zip">Portable .zip</a></div>
       </div>
-<pre><code>git clone https://github.com/EvanPluchart/windows-finder.git
+<pre><code># or build it yourself (Rust + Visual Studio C++ build tools)
+git clone https://github.com/EvanPluchart/windows-finder.git
 cd windows-finder
 cargo build --release
-.\target\release\WindowsFinder.exe</code></pre>
+.	argeteleaseWindowsFinder.exe</code></pre>
     </div>
   </section>
 

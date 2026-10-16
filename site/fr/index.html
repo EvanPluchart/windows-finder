@@ -191,18 +191,20 @@
     <div class="wrap split">
       <div class="sec-head" style="margin:0">
         <p class="eyebrow">Installer</p>
-        <h2 id="i-h">Compilez-le en deux minutes.</h2>
-        <p class="lead">Pas encore d'installeur. Il faut Windows 10 ou 11, Rust et les outils de build C++ de Visual Studio.</p>
+        <h2 id="i-h">Téléchargez, double-cliquez, c'est prêt.</h2>
+        <p class="lead">Windows 10 ou 11, 64 bits. Pas besoin des droits administrateur, rien d'autre à installer.</p>
         <ol class="steps" style="padding:0;margin:8px 0 0">
-          <li><span>Clonez le dépôt.</span></li>
-          <li><span>Lancez <code>cargo build --release</code>.</span></li>
-          <li><span>Lancez <code>WindowsFinder.exe</code>. <span class="kbd">Ctrl</span>+<span class="kbd">,</span> ouvre les réglages.</span></li>
+          <li><span>Téléchargez l'installeur.</span></li>
+          <li><span>Lancez-le. Si Windows SmartScreen vous avertit (l'app n'est pas encore signée), choisissez <em>Informations complémentaires</em>, puis <em>Exécuter quand même</em>.</span></li>
+          <li><span>Ouvrez <em>Windows Finder</em> depuis le menu Démarrer. <span class="kbd">Ctrl</span>+<span class="kbd">,</span> ouvre les réglages.</span></li>
         </ol>
+        <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe">Télécharger pour Windows</a><a class="btn" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-windows-x64-portable.zip">Version portable .zip</a></div>
       </div>
-<pre><code>git clone https://github.com/EvanPluchart/windows-finder.git
+<pre><code># ou compilez-le vous-même (Rust + outils de build C++ de Visual Studio)
+git clone https://github.com/EvanPluchart/windows-finder.git
 cd windows-finder
 cargo build --release
-.\target\release\WindowsFinder.exe</code></pre>
+.	argeteleaseWindowsFinder.exe</code></pre>
     </div>
   </section>
 

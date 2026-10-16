@@ -41,7 +41,7 @@ Windows File Explorer is capable, but if you live on a Mac (or just prefer the F
 
 ## Install
 
-**Download** the latest `WindowsFinder-…-windows-x64.zip` from the [Releases](https://github.com/EvanPluchart/windows-finder/releases) page, unzip it and run `WindowsFinder.exe`. No installer, nothing to build. (Windows may show a SmartScreen warning because the exe is not code-signed yet: *More info → Run anyway*.)
+**Download** [`WindowsFinder-Setup.exe`](https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe) from the [latest release](https://github.com/EvanPluchart/windows-finder/releases/latest), run it, done. It installs for your user only (no administrator rights), adds a Start menu entry and an uninstaller. Prefer no installer? Grab the [portable .zip](https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-windows-x64-portable.zip) and run `WindowsFinder.exe`. Windows may show a SmartScreen warning because the exe is not code-signed yet: *More info → Run anyway*.
 
 **Build it yourself** (about two minutes):
 
@@ -81,7 +81,8 @@ The design and behaviour come from a reverse-engineering study of the macOS Find
 ## Roadmap
 
 - [ ] Open icon set to replace the Apple-derived artwork (blocking a public release, see [`assets/NOTICE.md`](assets/NOTICE.md))
-- [ ] Signed installer / winget / Scoop packages
+- [x] Installer (per-user, no admin) and portable zip
+- [ ] Code signing, winget / Scoop packages
 - [ ] Column and gallery inspectors with more quick actions
 - [x] Reorder tabs by dragging
 - [x] Dragging a tab out into a window (drop it on the content area)

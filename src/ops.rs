@@ -11,6 +11,46 @@ use windows::Win32::UI::Shell::{
 };
 use windows::core::PCWSTR;
 
+/// Etat d'un fichier (taille, date de modification), pour savoir si un autre programme l'a change depuis.
+pub fn stamp(path: &Path) -> Option<(u64, std::time::SystemTime)> {
+    let m = std::fs::metadata(path).ok()?;
+    Some((m.len(), m.modified().ok()?))
+}
+
+/// Ecrit un fichier sans jamais le laisser a moitie ecrit (cle retiree, reseau coupe) : fichier temporaire
+/// dans le meme dossier, puis ReplaceFileW, qui garde les attributs, les droits et la marque Internet de
+/// l'original. Un fichier en lecture seule est refuse (erreur, rien n'est ecrit).
+pub fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
+    use std::io::Write;
+    use windows::Win32::Storage::FileSystem::{REPLACEFILE_IGNORE_MERGE_ERRORS, REPLACEFILE_WRITE_THROUGH, ReplaceFileW};
+    let dir = path.parent().ok_or_else(|| io::Error::other("dossier inconnu"))?;
+    let name = path.file_name().ok_or_else(|| io::Error::other("nom inconnu"))?.to_string_lossy();
+    let tmp = dir.join(format!(".{name}.{}.wf-tmp", std::process::id()));
+    let written = (|| {
+        let mut f = std::fs::File::create(&tmp)?;
+        f.write_all(bytes)?;
+        f.sync_all()
+    })();
+    if let Err(e) = written {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e);
+    }
+    if !path.exists() {
+        return std::fs::rename(&tmp, path).inspect_err(|_| {
+            let _ = std::fs::remove_file(&tmp);
+        });
+    }
+    let wide = |p: &Path| p.as_os_str().encode_wide().chain(std::iter::once(0)).collect::<Vec<u16>>();
+    let (to, from) = (wide(path), wide(&tmp));
+    let replaced = unsafe {
+        ReplaceFileW(PCWSTR(to.as_ptr()), PCWSTR(from.as_ptr()), PCWSTR::null(), REPLACEFILE_WRITE_THROUGH | REPLACEFILE_IGNORE_MERGE_ERRORS, None, None)
+    };
+    replaced.map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        io::Error::from_raw_os_error(e.code().0 & 0xFFFF)
+    })
+}
+
 /// "nom", puis "nom 2", "nom 3"... (l'extension reste a la fin pour les fichiers).
 pub fn unique_path(dir: &Path, name: &str) -> PathBuf {
     let first = dir.join(name);
@@ -174,7 +214,30 @@ pub fn rename(path: &Path, new_name: &str) -> Result<PathBuf, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::validate_name;
+    use super::{validate_name, write_atomic};
+
+    #[test]
+    fn atomic_write_replaces_content_and_keeps_streams() {
+        let dir = std::env::temp_dir().join(format!("wf-test-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let f = dir.join("note.txt");
+        std::fs::write(&f, b"old content").unwrap();
+        let zone = format!("{}:Zone.Identifier", f.display());
+        std::fs::write(&zone, b"[ZoneTransfer]\r\nZoneId=3\r\n").unwrap();
+        write_atomic(&f, b"new").unwrap();
+        assert_eq!(std::fs::read(&f).unwrap(), b"new");
+        assert!(std::fs::read_to_string(&zone).unwrap().contains("ZoneId=3"), "mark of the web kept");
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "no temp file left");
+        // Lecture seule : refuse, le contenu ne change pas.
+        let mut perm = std::fs::metadata(&f).unwrap().permissions();
+        perm.set_readonly(true);
+        std::fs::set_permissions(&f, perm.clone()).unwrap();
+        assert!(write_atomic(&f, b"x").is_err());
+        assert_eq!(std::fs::read(&f).unwrap(), b"new");
+        perm.set_readonly(false);
+        std::fs::set_permissions(&f, perm).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn reserved_device_names_are_refused() {

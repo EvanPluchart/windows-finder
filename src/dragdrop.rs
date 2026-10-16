@@ -142,7 +142,9 @@ impl Finder {
         let saved = self.layouts.get(&self.cwd);
         let mut out: Vec<Option<(f32, f32)>> =
             self.entries.iter().map(|e| saved.and_then(|l| l.get(e.name.as_ref()).copied())).collect();
-        let mut used: Vec<(f32, f32)> = out.iter().flatten().copied().collect();
+        // Cases de la grille deja prises (ensemble : un dossier de 50 000 elements reste lineaire).
+        let cell_of = |p: (f32, f32)| ((p.0 / cell_w).round() as i64, (p.1 / cell_h).round() as i64);
+        let mut used: std::collections::HashSet<(i64, i64)> = out.iter().flatten().map(|&p| cell_of(p)).collect();
         let mut next = 0usize;
         for (i, slot) in out.iter_mut().enumerate() {
             if slot.is_some() {
@@ -154,12 +156,12 @@ impl Finder {
                 loop {
                     let p = ((next % cols) as f32 * cell_w, (next / cols) as f32 * cell_h);
                     next += 1;
-                    if !used.iter().any(|u| (u.0 - p.0).abs() < cell_w / 2.0 && (u.1 - p.1).abs() < cell_h / 2.0) {
+                    if !used.contains(&cell_of(p)) {
                         break p;
                     }
                 }
             };
-            used.push(pos);
+            used.insert(cell_of(pos));
             *slot = Some(pos);
         }
         out.into_iter().map(|p| p.unwrap_or((0.0, 0.0))).collect()
@@ -187,8 +189,8 @@ impl Finder {
                 *pos = ((pos.0 + dx).max(0.0), (pos.1 + dy).max(0.0));
             }
         }
+        layout::save_dir(&self.cwd, Some(&lay));
         self.layouts.insert(self.cwd.clone(), lay);
-        layout::save(&self.layouts);
         self.marked =
             self.entries.iter().enumerate().filter(|(_, e)| d.paths.contains(&e.path)).map(|(i, _)| i).collect();
         self.selected = self.marked.iter().next_back().copied();
@@ -198,7 +200,7 @@ impl Finder {
     /// Retour a la grille automatique du dossier courant ("Ranger").
     pub fn clean_up(&mut self, cx: &mut Context<Self>) {
         if self.layouts.remove(&self.cwd).is_some() {
-            layout::save(&self.layouts);
+            layout::save_dir(&self.cwd, None);
         }
         cx.notify();
     }

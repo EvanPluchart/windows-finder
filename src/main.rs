@@ -165,7 +165,14 @@ impl Finder {
             while done_rx.recv_async().await.is_ok() {
                 cx.background_executor().timer(std::time::Duration::from_millis(40)).await;
                 while done_rx.try_recv().is_ok() {}
-                if this.update(cx, |_, cx| cx.notify()).is_err() {
+                // Les images oubliees par le cache quittent aussi la memoire du GPU.
+                let alive = this.update(cx, |f, cx| {
+                    for old in f.icons.take_evicted() {
+                        cx.drop_image(old, None);
+                    }
+                    cx.notify()
+                });
+                if alive.is_err() {
                     break;
                 }
             }
@@ -971,13 +978,15 @@ fn square_dwm_frame() {
     /// Icone de la fenetre (gestionnaire des taches, Alt+Tab) : la ressource n°1 de l'executable, le logo de l'app.
     unsafe fn set_window_icon(hwnd: HWND) {
         use windows::Win32::System::LibraryLoader::GetModuleHandleW;
-        use windows::Win32::UI::WindowsAndMessaging::{IMAGE_ICON, LR_DEFAULTCOLOR, LoadImageW, SendMessageW, WM_SETICON};
+        use windows::Win32::UI::WindowsAndMessaging::{IMAGE_ICON, LR_DEFAULTCOLOR, LR_SHARED, LoadImageW, SendMessageW, WM_SETICON};
         use windows::core::PCWSTR;
         unsafe {
             let Ok(module) = GetModuleHandleW(None) else { return };
             for (kind, size) in [(1usize, 32), (0usize, 16)] {
                 // kind : ICON_BIG = 1, ICON_SMALL = 0 ; la ressource n°1 s'ecrit comme un identifiant entier.
-                if let Ok(icon) = LoadImageW(Some(module.into()), PCWSTR(1usize as *const u16), IMAGE_ICON, size, size, LR_DEFAULTCOLOR) {
+                // LR_SHARED : une seule icone par taille pour tout le processus (sans, chaque nouvelle fenetre
+                // rechargeait l'icone de toutes les fenetres, sans jamais les liberer).
+                if let Ok(icon) = LoadImageW(Some(module.into()), PCWSTR(1usize as *const u16), IMAGE_ICON, size, size, LR_DEFAULTCOLOR | LR_SHARED) {
                     SendMessageW(hwnd, WM_SETICON, Some(windows::Win32::Foundation::WPARAM(kind)), Some(windows::Win32::Foundation::LPARAM(icon.0 as isize)));
                 }
             }

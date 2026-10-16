@@ -353,9 +353,9 @@ impl Finder {
                             .gap(px(8.))
                             .child(button("st-reset-views", crate::i18n::t("R\u{e9}initialiser les options d'affichage"), cx, |this, cx| {
                                 this.prefs = crate::prefs::Store::default();
-                                this.prefs.save();
+                                this.prefs.save_replace();
                                 this.layouts.clear();
-                                crate::layout::save(&this.layouts);
+                                crate::layout::clear_all();
                                 this.reload();
                                 this.show_notice(crate::i18n::t("Options d'affichage r\u{e9}initialis\u{e9}es."), cx);
                             }))

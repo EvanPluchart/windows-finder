@@ -324,7 +324,7 @@ fn write_saved(list: &[Saved]) {
         .iter()
         .map(|s| format!("{}\t{}\t{}\t{}\t{}\n", s.name.replace('\t', " "), s.root.display(), s.query.replace('\t', " "), u8::from(s.content), s.kind))
         .collect();
-    let _ = std::fs::write(file, text);
+    crate::layout::write_settings_file(&file, &text);
 }
 
 /// Numero de la recherche enregistree designee par un emplacement `::search:N` de la barre laterale.

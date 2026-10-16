@@ -35,6 +35,27 @@ pub struct CsvTable {
     pub error: Option<String>,
     editing: Option<CellEdit>,
     focus: FocusHandle,
+    format: CsvFormat,
+}
+
+/// Ce qu'il faut retablir a l'enregistrement pour reecrire le fichier a l'identique hors cellules modifiees.
+#[derive(Default)]
+struct CsvFormat {
+    delim: u8,
+    bom: bool,
+    crlf: bool,
+    /// Longueur d'origine de chaque ligne (le tableau complete les lignes courtes pour l'affichage).
+    widths: Vec<usize>,
+    /// Colonnes ajoutees par l'utilisateur : toutes les lignes gardent alors la largeur complete.
+    widened: bool,
+    /// Fichier illisible ou pas en UTF-8 : affiche, jamais reecrit.
+    read_only: bool,
+    stamp: Option<(u64, std::time::SystemTime)>,
+}
+
+struct Loaded {
+    rows: Vec<Vec<String>>,
+    format: CsvFormat,
 }
 
 impl EventEmitter<CsvEvent> for CsvTable {}
@@ -47,17 +68,28 @@ impl Focusable for CsvTable {
 
 impl CsvTable {
     pub fn new(path: PathBuf, cx: &mut Context<Self>) -> Self {
-        let (rows, error) = match Self::load(&path) {
-            Ok(r) => (r, None),
-            Err(e) => (vec![vec![String::new()]], Some(crate::i18n::tf(crate::i18n::t("Lecture impossible : {e}"), &[("e", (e).to_string())]))),
+        let (rows, error, format) = match Self::load(&path) {
+            Ok(l) => {
+                let error = l.format.read_only.then(|| crate::i18n::t("Lecture seule : ce fichier n'est pas en UTF-8.").to_string());
+                (l.rows, error, l.format)
+            }
+            Err(e) => (
+                vec![vec![String::new()]],
+                Some(crate::i18n::tf(crate::i18n::t("Lecture impossible : {e}"), &[("e", (e).to_string())])),
+                CsvFormat { read_only: true, ..Default::default() },
+            ),
         };
-        Self { path, rows, dirty: false, error, editing: None, focus: cx.focus_handle() }
+        Self { path, rows, dirty: false, error, editing: None, focus: cx.focus_handle(), format }
     }
 
-    fn load(path: &PathBuf) -> Result<Vec<Vec<String>>, String> {
+    fn load(path: &PathBuf) -> Result<Loaded, String> {
+        let stamp = crate::ops::stamp(path);
         let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
-        let text = String::from_utf8_lossy(&bytes);
-        let text = text.trim_start_matches('\u{feff}');
+        let bom = bytes.starts_with(b"\xEF\xBB\xBF");
+        let body = if bom { &bytes[3..] } else { &bytes[..] };
+        let read_only = std::str::from_utf8(body).is_err();
+        let text = String::from_utf8_lossy(body);
+        let crlf = text.contains("\r\n");
         // Separateur : ';' si la premiere ligne en contient plus que de ',' (CSV francais).
         let first = text.lines().next().unwrap_or("");
         let delim = if first.matches(';').count() > first.matches(',').count() { b';' } else { b',' };
@@ -69,11 +101,12 @@ impl CsvTable {
         if rows.is_empty() {
             rows.push(vec![String::new()]);
         }
-        let width = rows.iter().map(Vec::len).max().unwrap_or(1);
+        let widths: Vec<usize> = rows.iter().map(Vec::len).collect();
+        let width = widths.iter().copied().max().unwrap_or(1).max(1);
         for r in &mut rows {
             r.resize(width, String::new());
         }
-        Ok(rows)
+        Ok(Loaded { rows, format: CsvFormat { delim, bom, crlf, widths, widened: false, read_only, stamp } })
     }
 
     pub fn is_editing(&self) -> bool {
@@ -82,31 +115,52 @@ impl CsvTable {
 
     pub fn save(&mut self, cx: &mut Context<Self>) {
         self.commit_edit(cx);
-        let first = std::fs::read_to_string(&self.path).unwrap_or_default();
-        let first = first.lines().next().unwrap_or("").to_owned();
-        let delim = if first.matches(';').count() > first.matches(',').count() { b';' } else { b',' };
-        let mut writer = csv::WriterBuilder::new().delimiter(delim).from_writer(Vec::new());
-        for row in &self.rows {
-            if writer.write_record(row).is_err() {
+        if self.format.read_only || !self.dirty {
+            return;
+        }
+        if self.format.stamp.is_some() && crate::ops::stamp(&self.path) != self.format.stamp {
+            self.error = Some(crate::i18n::tf(crate::i18n::t("Enregistrement impossible : {e}"), &[("e", crate::i18n::t("le fichier a \u{e9}t\u{e9} modifi\u{e9} par un autre programme").to_string())]));
+            cx.notify();
+            return;
+        }
+        let terminator = if self.format.crlf { csv::Terminator::CRLF } else { csv::Terminator::Any(b'\n') };
+        let mut writer = csv::WriterBuilder::new().delimiter(self.format.delim).flexible(true).terminator(terminator).from_writer(Vec::new());
+        for (i, row) in self.rows.iter().enumerate() {
+            // Longueur d'origine retablie (les cellules ajoutees pour l'affichage ne sont pas ecrites), sauf si
+            // l'utilisateur a ajoute une colonne ou rempli une cellule au-dela.
+            let filled = row.iter().rposition(|c| !c.is_empty()).map(|p| p + 1).unwrap_or(0);
+            let len = match self.format.widths.get(i) {
+                Some(&w) if !self.format.widened => w.max(filled).min(row.len()),
+                _ => row.len(),
+            };
+            if writer.write_record(&row[..len.max(1).min(row.len())]).is_err() {
                 self.error = Some(crate::i18n::t("Ecriture impossible").into());
                 return;
             }
         }
-        match writer.into_inner().map_err(|e| e.to_string()).and_then(|b| std::fs::write(&self.path, b).map_err(|e| e.to_string())) {
+        let mut bytes = if self.format.bom { b"\xEF\xBB\xBF".to_vec() } else { Vec::new() };
+        match writer.into_inner().map_err(|e| e.to_string()).and_then(|b| {
+            bytes.extend(b);
+            crate::ops::write_atomic(&self.path, &bytes).map_err(|e| e.to_string())
+        }) {
             Ok(()) => {
                 self.dirty = false;
                 self.error = None;
+                self.format.stamp = crate::ops::stamp(&self.path);
             }
             Err(e) => self.error = Some(crate::i18n::tf(crate::i18n::t("Enregistrement impossible : {e}"), &[("e", (e).to_string())])),
         }
         cx.notify();
     }
 
-    /// Applique la saisie en cours a la cellule.
+    /// Applique la saisie en cours a la cellule (seulement si elle a vraiment ete modifiee).
     fn commit_edit(&mut self, cx: &mut Context<Self>) {
         if let Some(edit) = self.editing.take() {
-            let value = edit.editor.read(cx).text();
-            if self.rows[edit.row][edit.col] != value {
+            let (value, changed) = {
+                let e = edit.editor.read(cx);
+                (e.text(), e.dirty)
+            };
+            if changed && self.rows[edit.row][edit.col] != value {
                 self.rows[edit.row][edit.col] = value;
                 self.dirty = true;
                 cx.emit(CsvEvent::Changed);
@@ -117,6 +171,10 @@ impl CsvTable {
     fn start_edit(&mut self, row: usize, col: usize, window: &mut Window, cx: &mut Context<Self>) {
         self.commit_edit(cx);
         let text = self.rows[row][col].clone();
+        // L'editeur d'une ligne remplacerait sauts de ligne et tabulations : ces cellules restent intactes.
+        if self.format.read_only || text.contains('\n') || text.contains('\r') || text.contains('\t') {
+            return;
+        }
         let editor = cx.new(|cx| Editor::new(&text, true, cx));
         let sub = cx.subscribe_in(&editor, window, |this, _, ev: &EditorEvent, window, cx| {
             let Some((r, c)) = this.editing.as_ref().map(|e| (e.row, e.col)) else { return };
@@ -164,6 +222,9 @@ impl CsvTable {
     }
 
     fn add_row(&mut self, cx: &mut Context<Self>) {
+        if self.format.read_only {
+            return;
+        }
         let width = self.rows[0].len();
         self.rows.push(vec![String::new(); width]);
         self.dirty = true;
@@ -171,9 +232,13 @@ impl CsvTable {
     }
 
     fn add_col(&mut self, cx: &mut Context<Self>) {
+        if self.format.read_only {
+            return;
+        }
         for r in &mut self.rows {
             r.push(String::new());
         }
+        self.format.widened = true;
         self.dirty = true;
         cx.notify();
     }

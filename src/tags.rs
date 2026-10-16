@@ -39,24 +39,59 @@ pub fn color_hex(color: u8) -> u32 {
 
 type Map = HashMap<PathBuf, Vec<Tag>>;
 
-fn store() -> &'static Mutex<Map> {
-    static S: OnceLock<Mutex<Map>> = OnceLock::new();
-    S.get_or_init(|| Mutex::new(load()))
+/// Etiquettes en memoire, et date du fichier quand on l'a lu : un autre processus (une fenetre ouverte depuis
+/// l'Explorateur) a pu le modifier ; on le relit avant chaque changement pour ne pas effacer ses etiquettes.
+struct Tags {
+    map: Map,
+    stamp: Option<std::time::SystemTime>,
+}
+
+fn store() -> &'static Mutex<Tags> {
+    static S: OnceLock<Mutex<Tags>> = OnceLock::new();
+    S.get_or_init(|| Mutex::new(Tags { stamp: stamp(), map: load() }))
 }
 
 fn file() -> Option<PathBuf> {
     Some(PathBuf::from(std::env::var_os("APPDATA")?).join("winfinder").join("tags.tsv"))
 }
 
+fn stamp() -> Option<std::time::SystemTime> {
+    std::fs::metadata(file()?).and_then(|m| m.modified()).ok()
+}
+
+/// Relit le fichier s'il a change depuis la derniere lecture ou ecriture.
+fn refresh(t: &mut Tags) {
+    let s = stamp();
+    if s != t.stamp {
+        t.map = load();
+        t.stamp = s;
+    }
+}
+
+/// Un nom d'etiquette peut contenir `;` ou `%` : ils sont echappes dans le fichier.
+fn escape(name: &str) -> String {
+    name.replace('%', "%25").replace(';', "%3B").replace('\t', "%09").replace('\n', "%0A").replace('\r', "%0D")
+}
+
+fn unescape(name: &str) -> String {
+    name.replace("%3B", ";").replace("%09", "\t").replace("%0A", "\n").replace("%0D", "\r").replace("%25", "%")
+}
+
 fn load() -> Map {
     let mut m = Map::new();
-    let Some(text) = file().and_then(|f| std::fs::read_to_string(f).ok()) else { return m };
-    for line in text.lines() {
+    let Some(f) = file() else { return m };
+    let Ok(bytes) = std::fs::read(&f) else { return m };
+    // Fichier abime (modifie a la main dans un autre encodage) : copie de securite avant toute reecriture.
+    if std::str::from_utf8(&bytes).is_err() {
+        let _ = std::fs::copy(&f, f.with_extension("tsv.bak"));
+    }
+    let text = String::from_utf8_lossy(&bytes);
+    for line in text.trim_start_matches('\u{feff}').lines() {
         let Some((path, rest)) = line.split_once('\t') else { continue };
         let tags: Vec<Tag> = rest
             .split(';')
             .filter_map(|t| t.rsplit_once(':'))
-            .map(|(n, c)| Tag { name: n.to_string(), color: c.parse().unwrap_or(0) })
+            .map(|(n, c)| Tag { name: unescape(n), color: c.parse().unwrap_or(0) })
             .collect();
         if !tags.is_empty() {
             m.insert(PathBuf::from(path), tags);
@@ -65,29 +100,29 @@ fn load() -> Map {
     m
 }
 
-fn save(m: &Map) {
+fn save(t: &mut Tags) {
     let Some(f) = file() else { return };
-    if let Some(dir) = f.parent() {
-        let _ = std::fs::create_dir_all(dir);
-    }
     let mut out = String::new();
-    for (p, tags) in m {
+    for (p, tags) in &t.map {
         if tags.is_empty() {
             continue;
         }
-        let list: Vec<String> = tags.iter().map(|t| format!("{}:{}", t.name, t.color)).collect();
+        let list: Vec<String> = tags.iter().map(|t| format!("{}:{}", escape(&t.name), t.color)).collect();
         out.push_str(&format!("{}\t{}\n", p.display(), list.join(";")));
     }
-    let _ = std::fs::write(f, out);
+    crate::layout::write_settings_file(&f, &out);
+    t.stamp = stamp();
 }
 
 pub fn get(path: &Path) -> Vec<Tag> {
-    store().lock().unwrap().get(path).cloned().unwrap_or_default()
+    store().lock().unwrap_or_else(|e| e.into_inner()).map.get(path).cloned().unwrap_or_default()
 }
 
 /// Ajoute `tag` a tous les chemins, ou le retire de tous s'ils l'ont deja tous.
 pub fn toggle(paths: &[PathBuf], tag: &Tag) {
-    let mut m = store().lock().unwrap();
+    let mut t = store().lock().unwrap_or_else(|e| e.into_inner());
+    refresh(&mut t);
+    let m = &mut t.map;
     let all = paths.iter().all(|p| m.get(p).map(|t| t.iter().any(|x| x.name == tag.name)).unwrap_or(false));
     for p in paths {
         let list = m.entry(p.clone()).or_default();
@@ -98,12 +133,14 @@ pub fn toggle(paths: &[PathBuf], tag: &Tag) {
         }
     }
     m.retain(|_, v| !v.is_empty());
-    save(&m);
+    save(&mut t);
 }
 
 /// Les etiquettes suivent un fichier ou un dossier renomme / deplace (et son contenu).
 pub fn rename_path(old: &Path, new: &Path) {
-    let mut m = store().lock().unwrap();
+    let mut t = store().lock().unwrap_or_else(|e| e.into_inner());
+    refresh(&mut t);
+    let m = &mut t.map;
     let moved: Vec<(PathBuf, PathBuf)> = m
         .keys()
         .filter(|k| k.starts_with(old))
@@ -113,17 +150,19 @@ pub fn rename_path(old: &Path, new: &Path) {
         return;
     }
     for (from, to) in moved {
-        if let Some(t) = m.remove(&from) {
-            m.insert(to, t);
+        if let Some(tags) = m.remove(&from) {
+            m.insert(to, tags);
         }
     }
-    save(&m);
+    save(&mut t);
 }
 
 /// Fichiers portant l'etiquette `name` (qui existent encore), comme elements de dossier.
 pub fn entries(name: &str) -> Vec<Entry> {
-    let m = store().lock().unwrap();
-    let mut out: Vec<Entry> = m
+    let mut t = store().lock().unwrap_or_else(|e| e.into_inner());
+    refresh(&mut t);
+    let mut out: Vec<Entry> = t
+        .map
         .iter()
         .filter(|(_, tags)| tags.iter().any(|t| t.name == name))
         .filter_map(|(p, _)| {

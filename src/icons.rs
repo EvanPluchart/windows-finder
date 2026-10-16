@@ -31,10 +31,50 @@ struct Request {
     key: Key,
 }
 
+/// Memoire maximale des images gardees (RGBA decode). Au-dela, les moins recemment affichees sont oubliees.
+const BUDGET: usize = 160 * 1024 * 1024;
+
 #[derive(Default)]
 struct State {
-    ready: HashMap<Key, Option<Arc<RenderImage>>>,
+    /// Image (ou None si le shell n'en a pas) et date du dernier usage.
+    ready: HashMap<Key, (Option<Arc<RenderImage>>, u64)>,
     pending: HashSet<Key>,
+    bytes: usize,
+    tick: u64,
+    /// Images oubliees : leur texture doit etre retiree de l'atlas du GPU (`take_evicted`).
+    evicted: Vec<Arc<RenderImage>>,
+}
+
+fn image_bytes(img: &Option<Arc<RenderImage>>) -> usize {
+    img.as_ref().map(|i| {
+        let s = i.size(0);
+        (s.width.0.max(0) as usize) * (s.height.0.max(0) as usize) * 4
+    }).unwrap_or(0)
+}
+
+impl State {
+    fn insert(&mut self, key: Key, image: Option<Arc<RenderImage>>) {
+        self.tick += 1;
+        self.bytes += image_bytes(&image);
+        if let Some((old, _)) = self.ready.insert(key, (image, self.tick)) {
+            self.bytes = self.bytes.saturating_sub(image_bytes(&old));
+            self.evicted.extend(old);
+        }
+        if self.bytes > BUDGET {
+            // Oublie les plus anciennes jusqu'aux trois quarts du budget.
+            let mut by_age: Vec<(u64, Key)> = self.ready.iter().map(|(k, (_, t))| (*t, k.clone())).collect();
+            by_age.sort_unstable_by_key(|(t, _)| *t);
+            for (_, k) in by_age {
+                if self.bytes <= BUDGET / 4 * 3 {
+                    break;
+                }
+                if let Some((img, _)) = self.ready.remove(&k) {
+                    self.bytes = self.bytes.saturating_sub(image_bytes(&img));
+                    self.evicted.extend(img);
+                }
+            }
+        }
+    }
 }
 
 /// Cache d'icones partage entre l'UI et les threads de chargement.
@@ -62,7 +102,7 @@ impl IconCache {
                         .or_else(|| shell_image(&req.key.path, req.key.px, req.key.thumbnail));
                     let mut s = state.lock().unwrap();
                     s.pending.remove(&req.key);
-                    s.ready.insert(req.key, image);
+                    s.insert(req.key, image);
                     drop(s);
                     let _ = done.send(());
                 }
@@ -74,14 +114,25 @@ impl IconCache {
     /// Oublie toutes les images (apres modification de fichiers).
     pub fn clear_all(&self) {
         let mut s = self.state.lock().unwrap();
-        s.ready.clear();
+        let old: Vec<_> = s.ready.drain().filter_map(|(_, (img, _))| img).collect();
+        s.evicted.extend(old);
+        s.bytes = 0;
+    }
+
+    /// Images oubliees depuis le dernier appel : l'appelant les retire de l'atlas du GPU (`cx.drop_image`),
+    /// sinon leurs textures resteraient en memoire video.
+    pub fn take_evicted(&self) -> Vec<Arc<RenderImage>> {
+        std::mem::take(&mut self.state.lock().unwrap().evicted)
     }
 
     /// Retourne l'image si elle est prete ; sinon la demande en arriere-plan et retourne None.
     pub fn get(&self, path: &Path, px: i32, thumbnail: bool) -> Option<Arc<RenderImage>> {
         let key = Key { path: path.to_path_buf(), px, thumbnail };
         let mut s = self.state.lock().unwrap();
-        if let Some(img) = s.ready.get(&key) {
+        s.tick += 1;
+        let now = s.tick;
+        if let Some((img, used)) = s.ready.get_mut(&key) {
+            *used = now;
             return img.clone();
         }
         if s.pending.insert(key.clone()) {
@@ -103,8 +154,9 @@ fn shell_image(path: &Path, px: i32, thumbnail: bool) -> Option<Arc<RenderImage>
 
         let mut bm = BITMAP::default();
         GetObjectW(HGDIOBJ(hbmp.0), size_of::<BITMAP>() as i32, Some(&mut bm as *mut _ as *mut c_void));
-        let (w, h) = (bm.bmWidth, bm.bmHeight.abs());
-        if w <= 0 || h <= 0 {
+        let (w, h) = (bm.bmWidth, bm.bmHeight.saturating_abs());
+        // Taille plausible seulement : le calcul du tampon ne doit jamais deborder.
+        if w <= 0 || h <= 0 || w > 4096 || h > 4096 {
             let _ = DeleteObject(HGDIOBJ(hbmp.0));
             return None;
         }
@@ -119,7 +171,7 @@ fn shell_image(path: &Path, px: i32, thumbnail: bool) -> Option<Arc<RenderImage>
             biCompression: BI_RGB.0,
             ..Default::default()
         };
-        let mut buf = vec![0u8; (w * h * 4) as usize];
+        let mut buf = vec![0u8; (w as usize) * (h as usize) * 4];
         let hdc = GetDC(None);
         let lines = GetDIBits(hdc, hbmp, 0, h as u32, Some(buf.as_mut_ptr() as *mut c_void), &mut info, DIB_RGB_COLORS);
         ReleaseDC(None, hdc);

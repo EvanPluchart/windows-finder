@@ -99,6 +99,12 @@ impl Finder {
             let opened = cx.open_window(options, move |window, cx| {
                 let view = cx.new(|cx| QuickLook::new(finder, cx));
                 window.focus(&view.focus_handle(cx));
+                // Bouton de fermeture, Alt+F4 : les modifications sont enregistrees comme avec Echap.
+                let weak = view.downgrade();
+                window.on_window_should_close(cx, move |_, cx| {
+                    let _ = weak.update(cx, |ql, cx| ql.save_body(cx));
+                    true
+                });
                 view
             });
             if let Ok(handle) = opened {
@@ -110,7 +116,13 @@ impl Finder {
     /// Ferme la fenetre Quick Look ; retourne true si elle etait ouverte.
     pub fn close_quick_look(&mut self, cx: &mut Context<Self>) -> bool {
         match self.ql.take() {
-            Some(handle) => handle.update(cx, |_, window, _| window.remove_window()).is_ok(),
+            // Espace depuis la fenetre du Finder : enregistre d'abord le texte ou le tableau modifie.
+            Some(handle) => handle
+                .update(cx, |ql, window, cx| {
+                    ql.save_body(cx);
+                    window.remove_window();
+                })
+                .is_ok(),
             None => false,
         }
     }
@@ -151,6 +163,47 @@ pub struct QuickLook {
     last_move: std::time::Instant,
     subs: Vec<Subscription>,
     _observe: Subscription,
+    /// Images de l'apercu : cache propre a la fenetre, vide a chaque changement de fichier (le cache global de
+    /// GPUI garderait chaque photo decodee jusqu'a la fin du programme).
+    images: Entity<gpui::RetainAllImageCache>,
+    /// Faux si l'image est trop grande pour etre decodee sans risque (icone a la place).
+    image_ok: bool,
+    /// Debut du texte, lu une fois par fichier (et non a chaque image affichee).
+    preview_text: Option<gpui::SharedString>,
+    /// Format du texte en cours d'edition, retabli a l'enregistrement.
+    text_fmt: TextFormat,
+}
+
+/// Ce que l'editeur ne garde pas (il travaille en UTF-8 avec des fins de ligne `\n`) : BOM, CRLF, et l'etat du
+/// fichier a l'ouverture pour ne pas ecraser une version modifiee entre-temps par un autre programme.
+#[derive(Default, Clone, Copy)]
+struct TextFormat {
+    bom: bool,
+    crlf: bool,
+    stamp: Option<(u64, std::time::SystemTime)>,
+}
+
+/// Texte modifiable dans l'apercu seulement s'il peut etre reecrit a l'identique : UTF-8 valide, sans octet
+/// nul ni tabulation (l'editeur les remplacerait), et de taille raisonnable. Sinon, apercu en lecture seule.
+fn editable_text(bytes: &[u8]) -> Option<(String, TextFormat)> {
+    const BOM: &[u8] = b"\xEF\xBB\xBF";
+    if bytes.len() > 256 * 1024 {
+        return None;
+    }
+    let bom = bytes.starts_with(BOM);
+    let body = if bom { &bytes[BOM.len()..] } else { bytes };
+    let text = std::str::from_utf8(body).ok()?;
+    if text.contains('\0') || text.contains('\t') {
+        return None;
+    }
+    let crlf = text.contains("\r\n");
+    Some((text.to_owned(), TextFormat { bom, crlf, stamp: None }))
+}
+
+/// Image raisonnable a decoder : un GIF de quelques Ko peut annoncer 10 000 x 10 000 px et 50 images (~20 Go).
+fn image_is_safe(path: &std::path::Path) -> bool {
+    let limit: u64 = if fs::extension(path) == "gif" { 16_000_000 } else { 120_000_000 };
+    image::image_dimensions(path).map(|(w, h)| (w as u64) * (h as u64) <= limit).unwrap_or(true)
 }
 
 impl QuickLook {
@@ -169,6 +222,10 @@ impl QuickLook {
             body_path: None,
             subs: Vec::new(),
             _observe: observe,
+            images: gpui::RetainAllImageCache::new(cx),
+            image_ok: true,
+            preview_text: None,
+            text_fmt: TextFormat::default(),
         }
     }
 
@@ -180,8 +237,29 @@ impl QuickLook {
                     let e = ed.read(cx);
                     (e.text(), e.dirty)
                 };
-                if dirty && std::fs::write(path, text).is_ok() {
-                    ed.update(cx, |e, _| e.dirty = false);
+                if !dirty {
+                    return;
+                }
+                let fmt = self.text_fmt;
+                let result = if fmt.stamp.is_some() && crate::ops::stamp(path) != fmt.stamp {
+                    Err(crate::i18n::t("le fichier a \u{e9}t\u{e9} modifi\u{e9} par un autre programme").to_string())
+                } else {
+                    let mut bytes = if fmt.bom { b"\xEF\xBB\xBF".to_vec() } else { Vec::new() };
+                    bytes.extend(if fmt.crlf { text.replace('\n', "\r\n") } else { text }.into_bytes());
+                    crate::ops::write_atomic(path, &bytes).map_err(|e| e.to_string())
+                };
+                match result {
+                    Ok(()) => {
+                        self.text_fmt.stamp = crate::ops::stamp(path);
+                        ed.update(cx, |e, _| e.dirty = false);
+                    }
+                    // Jamais d'echec silencieux : le Finder affiche pourquoi les modifications n'ont pas ete ecrites.
+                    // Differe : save_body peut etre appele pendant une mise a jour du Finder (fermeture).
+                    Err(e) => {
+                        let msg = crate::i18n::tf(crate::i18n::t("Enregistrement impossible : {e}"), &[("e", e)]);
+                        let finder = self.finder.clone();
+                        cx.defer(move |cx| finder.update(cx, |f, cx| f.show_notice(msg, cx)));
+                    }
                 }
             }
             (Body::Csv(table), _) => {
@@ -213,8 +291,15 @@ impl QuickLook {
     fn load_body(&mut self, entry: Option<&Entry>, window: &mut Window, cx: &mut Context<Self>) {
         self.save_body(cx);
         self.subs.clear();
-        self.body = Body::None;
+        // L'image video ou PDF du fichier precedent quitte l'atlas du GPU.
+        match std::mem::replace(&mut self.body, Body::None) {
+            Body::Video(VideoState { image: Some(old), .. }) | Body::Pdf(PdfState { image: Some(old), .. }) => cx.drop_image(old, Some(window)),
+            _ => {}
+        }
+        self.images.update(cx, |c, cx| c.clear(window, cx));
         self.body_path = entry.map(|e| e.path.clone());
+        self.image_ok = entry.map(|e| !e.is_image() || image_is_safe(&e.path)).unwrap_or(true);
+        self.preview_text = entry.filter(|e| e.is_text()).map(|e| fs::read_text_preview(&e.path).into());
         let Some(e) = entry else { return };
         if e.is_video() {
             self.video_gen += 1;
@@ -245,8 +330,13 @@ impl QuickLook {
             }));
             self.subs.push(cx.observe(&table, |_, _, cx| cx.notify()));
             self.body = Body::Csv(table);
-        } else if e.is_text() && e.size <= 2_000_000 {
-            let text = String::from_utf8_lossy(&std::fs::read(&e.path).unwrap_or_default()).into_owned();
+        } else if e.is_text() && e.size <= 256 * 1024 {
+            // Illisible ou pas reecrivable a l'identique : apercu en lecture seule (jamais d'editeur vide qui
+            // remplacerait le fichier par la seule saisie).
+            let Ok(bytes) = std::fs::read(&e.path) else { return };
+            let Some((text, mut fmt)) = editable_text(&bytes) else { return };
+            fmt.stamp = crate::ops::stamp(&e.path);
+            self.text_fmt = fmt;
             let editor = cx.new(|cx| Editor::new(&text, false, cx));
             self.subs.push(cx.subscribe_in(&editor, window, |this, _, ev: &EditorEvent, window, cx| {
                 match ev {
@@ -281,10 +371,15 @@ impl QuickLook {
                             px[3] = 255;
                         }
                         if let Some(buf) = image::RgbaImage::from_raw(frame.width, frame.height, data) {
-                            v.image = Some(std::sync::Arc::new(gpui::RenderImage::new(vec![image::Frame::new(buf)])));
+                            let new = std::sync::Arc::new(gpui::RenderImage::new(vec![image::Frame::new(buf)]));
+                            // Chaque image est une nouvelle texture : l'ancienne quitte l'atlas du GPU, sinon
+                            // une video 1080p y accumulerait ~250 Mo par seconde.
+                            if let Some(old) = v.image.replace(new) {
+                                cx.drop_image(old, None);
+                            }
+                            cx.notify();
                         }
                     }
-                    cx.notify();
                     true
                 })
                 .unwrap_or(false);
@@ -308,7 +403,9 @@ impl QuickLook {
                 if let Body::Pdf(s) = &mut ql.body {
                     if s.path == path && s.page == page {
                         if let Some((image, count)) = result {
-                            s.image = Some(image);
+                            if let Some(old) = s.image.replace(image) {
+                                cx.drop_image(old, None);
+                            }
                             s.count = count;
                         }
                         s.loading = false;
@@ -622,10 +719,10 @@ impl Render for QuickLook {
                 )
             }
             Body::None => entry.as_ref().map(|e| {
-                if e.is_image() {
+                if e.is_image() && self.image_ok {
                     div()
                         .size_full()
-                        .child(img(e.path.clone()).size_full().object_fit(ObjectFit::Contain).rounded(px(6.)))
+                        .child(img(e.path.clone()).image_cache(&self.images).size_full().object_fit(ObjectFit::Contain).rounded(px(6.)))
                         .into_any_element()
                 } else if e.is_text() {
                     div()
@@ -634,7 +731,7 @@ impl Render for QuickLook {
                         .overflow_y_scroll()
                         .p_4()
                         .text_size(px(12.))
-                        .child(fs::read_text_preview(&e.path))
+                        .child(self.preview_text.clone().unwrap_or_default())
                         .into_any_element()
                 } else if e.is_video() {
                     let f = self.finder.read(cx);
@@ -771,5 +868,22 @@ impl Render for QuickLook {
                     .when(matches!(self.body, Body::Text(_) | Body::Csv(_)), |d| d.bg(rgb(0xffffff)))
                     .children(body),
             )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::editable_text;
+
+    #[test]
+    fn only_round_trippable_text_is_editable() {
+        let (t, f) = editable_text(b"\xEF\xBB\xBFa\r\nb").unwrap();
+        assert!(f.bom && f.crlf);
+        assert_eq!(t, "a\r\nb");
+        assert!(editable_text(b"caf\xE9").is_none(), "CP1252 stays read-only");
+        assert!(editable_text(b"a\tb").is_none(), "tabs would be replaced");
+        assert!(editable_text(b"a\0b").is_none(), "binary");
+        assert!(editable_text(&vec![b'x'; 300 * 1024]).is_none(), "too big");
+        assert!(!editable_text(b"plain\n").unwrap().1.crlf);
     }
 }

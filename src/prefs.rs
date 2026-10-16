@@ -72,9 +72,11 @@ impl Prefs {
                 "sort" => p.sort = v.parse().unwrap_or(0),
                 "grp" => p.group = v.parse().unwrap_or(0),
                 "asc" => p.asc = b,
-                "icon" => p.icon_size = v.parse().unwrap_or(64),
-                "space" => p.spacing = v.parse().unwrap_or(0),
-                "text" => p.text = v.parse().unwrap_or(13),
+                // Bornes des curseurs des options d'affichage : un fichier modifie a la main ne peut pas
+                // demander une miniature de 65 535 px.
+                "icon" => p.icon_size = v.parse().unwrap_or(64u16).clamp(16, 256),
+                "space" => p.spacing = v.parse().unwrap_or(0u8).min(3),
+                "text" => p.text = v.parse().unwrap_or(13u8).clamp(9, 20),
                 "info" => p.item_info = b,
                 "rel" => p.rel_dates = b,
                 "pv" => p.preview = b,
@@ -131,10 +133,30 @@ pub fn view_name(v: ViewMode) -> &'static str {
 pub struct Store {
     pub defaults: Prefs,
     pub folders: HashMap<PathBuf, Prefs>,
+    /// Le fichier tel qu'on l'a lu ou ecrit la derniere fois (valeurs encodees). Chaque fenetre a sa copie des
+    /// options : a l'enregistrement, seules nos modifications depuis ce point sont reportees sur la version du
+    /// disque, pour ne pas effacer celles d'une autre fenetre ou d'un autre processus.
+    base: (String, HashMap<PathBuf, String>),
 }
 
 fn file() -> Option<PathBuf> {
     Some(PathBuf::from(std::env::var_os("APPDATA")?).join("winfinder").join("folders.tsv"))
+}
+
+/// Contenu brut de folders.tsv : options par defaut (`*`) et par dossier, encodees.
+fn read_raw() -> (Option<String>, HashMap<PathBuf, String>) {
+    let mut defaults = None;
+    let mut folders = HashMap::new();
+    let text = file().and_then(|f| std::fs::read_to_string(f).ok()).unwrap_or_default();
+    for line in text.trim_start_matches('\u{feff}').lines() {
+        let Some((path, rest)) = line.split_once('\t') else { continue };
+        if path == "*" {
+            defaults = Some(rest.to_string());
+        } else {
+            folders.insert(PathBuf::from(path), rest.to_string());
+        }
+    }
+    (defaults, folders)
 }
 
 impl Store {
@@ -144,29 +166,51 @@ impl Store {
         if let Some(v) = crate::layout::load_view() {
             s.defaults.view = v;
         }
-        let Some(text) = file().and_then(|f| std::fs::read_to_string(f).ok()) else { return s };
-        for line in text.lines() {
-            let Some((path, rest)) = line.split_once('\t') else { continue };
-            let prefs = Prefs::decode(rest);
-            if path == "*" {
-                s.defaults = prefs;
-            } else {
-                s.folders.insert(PathBuf::from(path), prefs);
-            }
+        let (defaults, folders) = read_raw();
+        if let Some(d) = &defaults {
+            s.defaults = Prefs::decode(d);
         }
+        s.folders = folders.iter().map(|(p, v)| (p.clone(), Prefs::decode(v))).collect();
+        s.base = (s.defaults.encode(), folders);
         s
     }
 
-    pub fn save(&self) {
-        let Some(f) = file() else { return };
-        if let Some(dir) = f.parent() {
-            let _ = std::fs::create_dir_all(dir);
+    /// Enregistre nos changements par-dessus la version actuelle du fichier, puis adopte le resultat.
+    pub fn save(&mut self) {
+        let (disk_defaults, mut disk) = read_raw();
+        let (base_defaults, base) = std::mem::take(&mut self.base);
+        let ours = self.defaults.encode();
+        let defaults = if ours != base_defaults { ours } else { disk_defaults.unwrap_or(base_defaults) };
+        let keys: std::collections::HashSet<PathBuf> = self.folders.keys().chain(base.keys()).cloned().collect();
+        for k in keys {
+            let mine = self.folders.get(&k).map(Prefs::encode);
+            if mine.as_ref() != base.get(&k) {
+                match mine {
+                    Some(v) => disk.insert(k, v),
+                    None => disk.remove(&k),
+                };
+            }
         }
-        let mut out = format!("*\t{}\n", self.defaults.encode());
-        for (p, prefs) in &self.folders {
-            out.push_str(&format!("{}\t{}\n", p.display(), prefs.encode()));
+        self.write(defaults, disk);
+    }
+
+    /// Remplace tout le fichier par nos options (reinitialisation).
+    pub fn save_replace(&mut self) {
+        let folders = self.folders.iter().map(|(p, v)| (p.clone(), v.encode())).collect();
+        self.write(self.defaults.encode(), folders);
+    }
+
+    fn write(&mut self, defaults: String, folders: HashMap<PathBuf, String>) {
+        let mut out = format!("*\t{defaults}\n");
+        for (p, prefs) in &folders {
+            out.push_str(&format!("{}\t{}\n", p.display(), prefs));
         }
-        let _ = std::fs::write(f, out);
+        if let Some(f) = file() {
+            crate::layout::write_settings_file(&f, &out);
+        }
+        self.defaults = Prefs::decode(&defaults);
+        self.folders = folders.iter().map(|(p, v)| (p.clone(), Prefs::decode(v))).collect();
+        self.base = (defaults, folders);
     }
 }
 

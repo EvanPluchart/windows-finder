@@ -267,7 +267,7 @@
     el.setAttribute('role', 'application');
     el.setAttribute('aria-roledescription', T('file manager demo', 'démo de gestionnaire de fichiers'));
     el.setAttribute('aria-label', this.o.label || T('Windows Finder demo window', 'Fenêtre de démo de Windows Finder'));
-    var side = '<div class="fw-lights" aria-hidden="true"><i></i><i></i><i></i></div>';
+    var lights = '<div class="fw-lights" aria-hidden="true"><i></i><i></i><i></i></div>', side = '';
     SIDE.forEach(function (sec) {
       side += '<div class="fw-sec"><h6>' + S[sec[0]] + '</h6>';
       sec[1].forEach(function (it) {
@@ -277,7 +277,8 @@
       side += '</div>';
     });
     el.innerHTML =
-      '<aside class="fw-side">' + side + '</aside>' +
+      // Pastilles hors de la zone qui defile : elles restent en place quand on fait defiler la barre laterale.
+      '<aside class="fw-side">' + lights + '<div class="fw-side-list">' + side + '</div></aside>' +
       '<div class="fw-main">' +
       '<div class="fw-bar">' +
       '<button type="button" class="fw-cap fw-sbtn" data-act="side" aria-label="' + S.sidebar + '">' + ico('side') + '</button>' +

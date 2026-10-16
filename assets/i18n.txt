@@ -219,7 +219,7 @@ Réinitialiser tous les réglages ::: Reset all settings ::: Restablecer todos l
 Réglages réinitialisés. ::: Settings reset. ::: Ajustes restablecidos. ::: Einstellungen zurückgesetzt.
 Ouvrir le dossier des données ::: Open data folder ::: Abrir la carpeta de datos ::: Datenordner öffnen
 À propos ::: About ::: Acerca de ::: Über
-Windows Finder 0.1.0 — un Finder pour Windows, écrit en Rust. ::: Windows Finder 0.1.0 — a Finder for Windows, written in Rust. ::: Windows Finder 0.1.0: un Finder para Windows, escrito en Rust. ::: Windows Finder 0.1.0 – ein Finder für Windows, geschrieben in Rust.
+Windows Finder {v} — un Finder pour Windows, écrit en Rust. ::: Windows Finder {v} — a Finder for Windows, written in Rust. ::: Windows Finder {v}: un Finder para Windows, escrito en Rust. ::: Windows Finder {v} – ein Finder für Windows, geschrieben in Rust.
 Réglages ::: Settings ::: Ajustes ::: Einstellungen
 Musique ::: Music ::: Música ::: Musik
 Vidéos ::: Videos ::: Vídeos ::: Videos

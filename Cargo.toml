@@ -1,6 +1,6 @@
 [package]
 name = "winfinder"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Windows Finder: a macOS Finder-style file manager for Windows, written in Rust"
 license = "MIT"

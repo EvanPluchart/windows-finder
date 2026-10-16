@@ -1,5 +1,5 @@
 ; Inno Setup script for Windows Finder. Per-user install: no administrator rights, no UAC prompt.
-; Build: iscc /DAppVersion=0.1.0 installer\WindowsFinder.iss   (expects target\release\WindowsFinder.exe)
+; Build: iscc /DAppVersion=0.1.1 installer\WindowsFinder.iss   (expects target\release\WindowsFinder.exe)
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif

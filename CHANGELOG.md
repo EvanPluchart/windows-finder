@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 (2026-10-16)
 
 Security
 * PowerShell scripts no longer embed file names: a name containing a typographic apostrophe (`’`) could run commands (compress, extract, alias, rotate, undo, eject). Paths now travel in environment variables; system tools are called by their full System32 path.
@@ -21,7 +21,7 @@ Performance
 * Folders are read in the background; icon view only builds visible cells; sorting, selection and dragging no longer re-read the disk or copy the selection per item.
 * Search is debounced and cancels the previous walk; GPU textures of video frames, PDF pages and evicted icons are released; the icon cache is bounded.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-10-16)
 
 First public-ready state.
 

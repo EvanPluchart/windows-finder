@@ -383,7 +383,7 @@ impl Finder {
                     .child(note(crate::i18n::t("Options d'affichage, \u{e9}tiquettes et r\u{e9}glages sont dans %APPDATA%\\winfinder.")))
                     .child(sep())
                     .child(header(crate::i18n::t("\u{c0} propos")))
-                    .child(div().text_size(px(13.)).text_color(rgb(theme::TEXT)).child(crate::i18n::t("Windows Finder 0.1.0 \u{2014} un Finder pour Windows, \u{e9}crit en Rust.")));
+                    .child(div().text_size(px(13.)).text_color(rgb(theme::TEXT)).child(crate::i18n::tf(crate::i18n::t("Windows Finder {v} \u{2014} un Finder pour Windows, \u{e9}crit en Rust."), &[("v", env!("CARGO_PKG_VERSION").to_string())])));
             }
         }
 

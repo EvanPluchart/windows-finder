@@ -66,12 +66,14 @@ impl Finder {
     pub fn open_menu(&mut self, pos: Point<Pixels>, on_item: bool, cx: &mut Context<Self>) {
         self.commit_rename(cx);
         self.menu = Some(MenuState { pos, on_item, kind: 0 });
+        self.shell_more = None;
         cx.notify();
     }
 
     pub fn open_toolbar_menu(&mut self, pos: Point<Pixels>, kind: u8, cx: &mut Context<Self>) {
         self.commit_rename(cx);
         self.menu = Some(MenuState { pos, on_item: false, kind });
+        self.shell_more = None;
         cx.notify();
     }
 
@@ -215,7 +217,7 @@ impl Finder {
             MenuAction::RotateLeft => self.rotate_images(false, cx),
             MenuAction::RotateRight => self.rotate_images(true, cx),
             MenuAction::RunAdmin => self.run_as_admin(),
-            MenuAction::MoreOptions => self.native_menu(window, cx),
+            MenuAction::MoreOptions => self.open_shell_more(cx),
             MenuAction::GoTo => self.open_goto(window, cx),
             MenuAction::Trash => self.trash_selection(cx),
             MenuAction::NewFolder => self.new_folder(window, cx),
@@ -233,58 +235,225 @@ impl Finder {
 
     pub fn render_menu(&self, window: &Window, cx: &mut Context<Self>) -> Option<AnyElement> {
         let state = self.menu.as_ref()?;
-        let items = self.menu_items(state.on_item);
-        let height: f32 = items.iter().map(|i| if i.is_some() { 26.0 } else { 9.0 }).sum::<f32>() + 12.0;
-        // Reste dans la fenetre meme pres des bords.
+        // Les actions propres a un type de fichier disparaissent quand elles ne s'appliquent pas (menu plus court).
+        let items: Vec<_> = self
+            .menu_items(state.on_item)
+            .into_iter()
+            .filter(|i| {
+                !matches!(
+                    i,
+                    Some((
+                        _,
+                        MenuAction::OpenWith
+                            | MenuAction::ShowOriginal
+                            | MenuAction::Extract
+                            | MenuAction::Wallpaper
+                            | MenuAction::RotateLeft
+                            | MenuAction::RotateRight
+                            | MenuAction::RunAdmin
+                            | MenuAction::Pin
+                            | MenuAction::OpenInTab
+                            | MenuAction::PutBack,
+                        false
+                    ))
+                )
+            })
+            .collect();
         let vp = window.viewport_size();
-        let x = f32::from(state.pos.x).min(f32::from(vp.width) - 230.0).max(4.0);
-        let y = f32::from(state.pos.y).min(f32::from(vp.height) - height - 4.0).max(4.0);
+        let (vw, vh) = (f32::from(vp.width), f32::from(vp.height));
+        let height: f32 = items.iter().map(|i| if i.is_some() { 26.0 } else { 9.0 }).sum::<f32>() + 12.0;
+        let panel_h = height.min(vh - 8.0);
+        // Reste dans la fenetre meme pres des bords.
+        let x = f32::from(state.pos.x).min(vw - 230.0).max(4.0);
+        let y = f32::from(state.pos.y).min(vh - panel_h - 4.0).max(4.0);
+
+        let mut more_row_y = y + 6.0;
+        for item in &items {
+            match item {
+                Some((_, MenuAction::MoreOptions, _)) => break,
+                Some(_) => more_row_y += 26.0,
+                None => more_row_y += 9.0,
+            }
+        }
 
         let rows = items.into_iter().enumerate().map(|(i, item)| match item {
             None => div().h(px(9.)).flex().items_center().child(div().h(px(1.)).w_full().bg(rgb(0xd9d9de))).into_any_element(),
-            Some((label, action, enabled)) => div()
-                .id(("menu-item", i))
-                .h(px(26.))
-                .px(px(10.))
-                .flex()
-                .items_center()
-                .rounded(px(6.))
-                .text_size(px(13.))
-                .text_color(rgb(if enabled { theme::TEXT } else { 0xa8a8ae }))
-                .when(enabled, |d| d.hover(|s| s.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe))))
-                .child(label)
-                .when(enabled, |d| d.cursor_pointer().on_click(cx.listener(move |this, _, window, cx| this.run_menu(action, window, cx))))
-                .into_any_element(),
+            Some((label, action, enabled)) => {
+                let more = action == MenuAction::MoreOptions;
+                let label = if more { label.trim_end_matches('\u{2026}') } else { label };
+                div()
+                    .id(("menu-item", i))
+                    .h(px(26.))
+                    .px(px(10.))
+                    .flex()
+                    .items_center()
+                    .justify_between()
+                    .rounded(px(6.))
+                    .text_size(px(13.))
+                    .text_color(rgb(if enabled { theme::TEXT } else { 0xa8a8ae }))
+                    .when(enabled, |d| d.hover(|s| s.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe))))
+                    .when(more && self.shell_more.is_some(), |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe)))
+                    .child(label)
+                    .when(more, |d| d.child(crate::symbols::sym("chevron.right-medium", 9., 0x8e8e93)))
+                    .on_hover(cx.listener(move |this, hovered: &bool, _, cx| {
+                        if !*hovered {
+                            return;
+                        }
+                        if more {
+                            this.open_shell_more(cx);
+                        } else if this.shell_more.take().is_some() {
+                            cx.notify();
+                        }
+                    }))
+                    .when(enabled, |d| d.cursor_pointer().on_click(cx.listener(move |this, _, window, cx| {
+                        if more {
+                            this.open_shell_more(cx);
+                        } else {
+                            this.run_menu(action, window, cx)
+                        }
+                    })))
+                    .into_any_element()
+            }
         });
 
         let close = |this: &mut Finder, cx: &mut Context<Finder>| {
             this.menu = None;
+            this.shell_more = None;
             cx.notify();
         };
-        Some(
-            div()
-                .id("menu-backdrop")
-                .absolute()
-                .inset_0()
-                .on_mouse_down(MouseButton::Left, cx.listener(move |this, _, _, cx| close(this, cx)))
-                .on_mouse_down(MouseButton::Right, cx.listener(move |this, _, _, cx| close(this, cx)))
-                .child(
-                    div()
-                        .absolute()
-                        .left(px(x))
-                        .top(px(y))
-                        .w(px(220.))
-                        .p(px(6.))
-                        .rounded(px(10.))
-                        .bg(rgba(0xfafafaf2))
-                        .border_1()
-                        .border_color(rgb(0xd9d9de))
-                        .shadow_lg()
-                        .occlude()
-                        .children(rows),
-                )
-                .into_any_element(),
-        )
+        let mut root = div()
+            .id("menu-backdrop")
+            .absolute()
+            .inset_0()
+            .on_mouse_down(MouseButton::Left, cx.listener(move |this, _, _, cx| close(this, cx)))
+            .on_mouse_down(MouseButton::Right, cx.listener(move |this, _, _, cx| close(this, cx)))
+            .child(
+                div()
+                    .id("menu-main")
+                    .absolute()
+                    .left(px(x))
+                    .top(px(y))
+                    .w(px(220.))
+                    .max_h(px(panel_h))
+                    .overflow_y_scroll()
+                    .p(px(6.))
+                    .rounded(px(10.))
+                    .bg(rgba(0xfafafaf2))
+                    .border_1()
+                    .border_color(rgb(0xd9d9de))
+                    .shadow_lg()
+                    .occlude()
+                    .children(rows),
+            );
+        if let Some(more) = &self.shell_more {
+            for panel in self.render_shell_panels(more, x, 220.0, more_row_y, vw, vh, cx) {
+                root = root.child(panel);
+            }
+        }
+        Some(root.into_any_element())
+    }
+
+    /// Volets des options natives : un volet par niveau, chacun colle au bord du precedent (a gauche s'il manque de la place).
+    fn render_shell_panels(
+        &self,
+        more: &crate::shellmore::ShellMore,
+        mut prev_left: f32,
+        mut prev_w: f32,
+        mut row_y: f32,
+        vw: f32,
+        vh: f32,
+        cx: &mut Context<Self>,
+    ) -> Vec<AnyElement> {
+        use crate::shellmore::ShellItem;
+        const W: f32 = 250.0;
+        let mut panels = Vec::new();
+        let placeholder;
+        let mut level: &[ShellItem] = match &more.items {
+            Some(v) => v,
+            None => {
+                placeholder = Vec::new();
+                &placeholder
+            }
+        };
+        let loading = more.items.is_none();
+        let empty_text = if loading { crate::i18n::t("Chargement\u{2026}") } else { crate::i18n::t("Aucune option") };
+        for depth in 0..=more.path.len() {
+            let h: f32 = if level.is_empty() { 38.0 } else { level.iter().map(|i| if i.sep { 9.0 } else { 26.0 }).sum::<f32>() + 12.0 };
+            let ph = h.min(vh - 8.0);
+            let left = if prev_left + prev_w - 4.0 + W <= vw { prev_left + prev_w - 4.0 } else { (prev_left - W + 4.0).max(4.0) };
+            let top = (row_y - 6.0).min(vh - ph - 4.0).max(4.0);
+            let open_idx = more.path.get(depth).copied();
+            let rows: Vec<AnyElement> = if level.is_empty() {
+                vec![div().h(px(26.)).px(px(10.)).flex().items_center().text_size(px(13.)).text_color(rgb(0xa8a8ae)).child(empty_text).into_any_element()]
+            } else {
+                level
+                    .iter()
+                    .enumerate()
+                    .map(|(i, it)| {
+                        if it.sep {
+                            return div().h(px(9.)).flex().items_center().child(div().h(px(1.)).w_full().bg(rgb(0xd9d9de))).into_any_element();
+                        }
+                        let has_sub = !it.children.is_empty();
+                        let id = it.id;
+                        let enabled = it.enabled;
+                        let opened = open_idx == Some(i);
+                        div()
+                            .id(("shell-item", depth * 1000 + i))
+                            .h(px(26.))
+                            .px(px(10.))
+                            .flex()
+                            .items_center()
+                            .justify_between()
+                            .rounded(px(6.))
+                            .text_size(px(13.))
+                            .text_color(rgb(if enabled { theme::TEXT } else { 0xa8a8ae }))
+                            .when(enabled, |d| d.hover(|s| s.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe))))
+                            .when(opened, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(0xfffffe)))
+                            .child(div().overflow_hidden().whitespace_nowrap().child(it.label.clone()))
+                            .when(has_sub, |d| d.child(crate::symbols::sym("chevron.right-medium", 9., 0x8e8e93)))
+                            .on_hover(cx.listener(move |this, hovered: &bool, _, cx| {
+                                if !*hovered {
+                                    return;
+                                }
+                                if let Some(m) = this.shell_more.as_mut() {
+                                    m.path.truncate(depth);
+                                    if has_sub {
+                                        m.path.push(i);
+                                    }
+                                    cx.notify();
+                                }
+                            }))
+                            .when(enabled && !has_sub, |d| d.cursor_pointer().on_click(cx.listener(move |this, _, _, cx| this.shell_invoke(id, cx))))
+                            .into_any_element()
+                    })
+                    .collect()
+            };
+            panels.push(
+                div()
+                    .id(("shell-panel", depth))
+                    .absolute()
+                    .left(px(left))
+                    .top(px(top))
+                    .w(px(W))
+                    .max_h(px(ph))
+                    .overflow_y_scroll()
+                    .p(px(6.))
+                    .rounded(px(10.))
+                    .bg(rgba(0xfafafaf2))
+                    .border_1()
+                    .border_color(rgb(0xd9d9de))
+                    .shadow_lg()
+                    .occlude()
+                    .children(rows)
+                    .into_any_element(),
+            );
+            let Some(idx) = open_idx else { break };
+            row_y = top + 6.0 + level[..idx].iter().map(|i| if i.sep { 9.0 } else { 26.0 }).sum::<f32>();
+            prev_left = left;
+            prev_w = W;
+            level = &level[idx].children;
+        }
+        panels
     }
 
     // -----------------------------------------------------------------------------------------

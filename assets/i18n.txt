@@ -338,3 +338,5 @@ Enregistrer ::: Save ::: Guardar ::: Sichern
 Recherche enregistrée dans la barre latérale ::: Search saved in the sidebar ::: Búsqueda guardada en la barra lateral ::: Suche in der Seitenleiste gesichert
 Le dossier de cette recherche n'existe plus. ::: This search's folder no longer exists. ::: La carpeta de esta búsqueda ya no existe. ::: Der Ordner dieser Suche existiert nicht mehr.
 Actions rapides ::: Quick Actions ::: Acciones rápidas ::: Schnellaktionen
+Chargement… ::: Loading… ::: Cargando… ::: Wird geladen…
+Aucune option ::: No options ::: Sin opciones ::: Keine Optionen

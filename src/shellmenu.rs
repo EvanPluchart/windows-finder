@@ -25,11 +25,11 @@ use windows::Win32::UI::WindowsAndMessaging::{
 use crate::Finder;
 
 thread_local! {
-    static MENU3: RefCell<Option<IContextMenu3>> = const { RefCell::new(None) };
-    static MENU2: RefCell<Option<IContextMenu2>> = const { RefCell::new(None) };
+    pub static MENU3: RefCell<Option<IContextMenu3>> = const { RefCell::new(None) };
+    pub static MENU2: RefCell<Option<IContextMenu2>> = const { RefCell::new(None) };
 }
 
-unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
+pub unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     if matches!(msg, WM_INITMENUPOPUP | WM_DRAWITEM | WM_MEASUREITEM | WM_MENUCHAR) {
         if let Some(m3) = MENU3.with(|m| m.borrow().clone()) {
             let mut result = LRESULT(0);
@@ -55,27 +55,26 @@ fn run_menu(paths: Vec<PathBuf>) -> bool {
     }
 }
 
-unsafe fn run_menu_inner(paths: &[PathBuf]) -> bool {
+pub unsafe fn context_menu(paths: &[PathBuf]) -> Option<IContextMenu> {
     let mut pidls: Vec<*mut ITEMIDLIST> = Vec::new();
     for p in paths {
-        let wide: Vec<u16> = p.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+        let norm = PathBuf::from(p.to_string_lossy().replace('/', "\\"));
+        let wide: Vec<u16> = norm.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
         let mut pidl: *mut ITEMIDLIST = std::ptr::null_mut();
         if unsafe { SHParseDisplayName(PCWSTR(wide.as_ptr()), None, &mut pidl, 0, None) }.is_ok() && !pidl.is_null() {
             pidls.push(pidl);
         }
     }
     if pidls.is_empty() {
-        return false;
+        return None;
     }
     let consts: Vec<*const ITEMIDLIST> = pidls.iter().map(|p| *p as *const ITEMIDLIST).collect();
-    let array: IShellItemArray = match unsafe { SHCreateShellItemArrayFromIDLists(&consts) } {
-        Ok(a) => a,
-        Err(_) => return false,
-    };
-    let menu: IContextMenu = match unsafe { array.BindToHandler(None, &BHID_SFUIObject) } {
-        Ok(m) => m,
-        Err(_) => return false,
-    };
+    let array: IShellItemArray = unsafe { SHCreateShellItemArrayFromIDLists(&consts) }.ok()?;
+    unsafe { array.BindToHandler(None, &BHID_SFUIObject) }.ok()
+}
+
+unsafe fn run_menu_inner(paths: &[PathBuf]) -> bool {
+    let Some(menu) = (unsafe { context_menu(paths) }) else { return false };
     MENU3.with(|m| *m.borrow_mut() = menu.cast::<IContextMenu3>().ok());
     MENU2.with(|m| *m.borrow_mut() = menu.cast::<IContextMenu2>().ok());
 

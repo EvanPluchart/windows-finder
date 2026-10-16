@@ -4,6 +4,7 @@ mod i18n;
 mod extras;
 mod recents;
 mod shellmenu;
+mod shellmore;
 mod palette;
 mod editor;
 mod selection;
@@ -96,6 +97,7 @@ pub struct Finder {
     pub clipboard: Option<fileops::Clip>,
     pub rename: Option<fileops::Rename>,
     pub menu: Option<overlays::MenuState>,
+    pub shell_more: Option<shellmore::ShellMore>,
     pub goto: Option<overlays::GoTo>,
     pub palette: Option<palette::Palette>,
     pub last_size: (i32, i32),
@@ -201,6 +203,7 @@ impl Finder {
             clipboard: None,
             rename: None,
             menu: None,
+            shell_more: None,
             goto: None,
             palette: None,
             last_size: (0, 0),

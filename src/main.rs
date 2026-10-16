@@ -104,6 +104,8 @@ pub struct Finder {
     pub focus: FocusHandle,
     pub list_scroll: UniformListScrollHandle,
     pub icons: icons::IconCache,
+    /// Cette fenetre, pour ce qui doit relire son etat plus tard (debut d'un glisser).
+    pub this: gpui::WeakEntity<Finder>,
     // Operations sur fichiers et fenetres superposees (voir fileops.rs et overlays.rs).
     pub clipboard: Option<fileops::Clip>,
     pub rename: Option<fileops::Rename>,
@@ -149,6 +151,10 @@ pub struct Finder {
     pub icon_scroll: gpui::ScrollHandle,
     pub search: Option<overlays::Search>,
     pub search_gen: u64,
+    /// Generation de lecture du dossier : un resultat en retard (dossier quitte entre-temps) est ignore.
+    pub list_gen: u64,
+    /// Generation de recherche lue par le parcours en arriere-plan : il s'arrete des qu'elle change.
+    pub search_live: std::sync::Arc<std::sync::atomic::AtomicU64>,
     pub notice: Option<(u64, String)>,
     pub notice_id: u64,
     /// Rendre le focus a la fenetre principale au prochain rendu (apres une saisie en ligne).
@@ -218,6 +224,7 @@ impl Finder {
             focus: cx.focus_handle(),
             list_scroll: UniformListScrollHandle::new(),
             icons,
+            this: cx.weak_entity(),
             clipboard: None,
             rename: None,
             menu: None,
@@ -262,6 +269,8 @@ impl Finder {
             icon_scroll: gpui::ScrollHandle::new(),
             search: None,
             search_gen: 0,
+            list_gen: 0,
+            search_live: Default::default(),
             notice: None,
             notice_id: 0,
             needs_focus: false,
@@ -281,16 +290,57 @@ impl Finder {
     /// Relit le dossier courant ; selectionne le premier element.
     pub fn reload(&mut self) {
         self.apply_folder_prefs();
-        self.entries = self.load_entries();
-        match self.entries.is_empty() {
-            true => self.clear_selection(),
-            false => self.set_single(0),
+        self.list_gen += 1;
+        let entries = self.load_entries();
+        self.apply_listing(entries, None);
+    }
+
+    /// Met en place la liste lue : selectionne `select` s'il y figure, sinon le premier element.
+    fn apply_listing(&mut self, entries: Vec<fs::Entry>, select: Option<&std::path::Path>) {
+        self.entries = entries;
+        match select.and_then(|p| self.entries.iter().position(|e| e.path == p)) {
+            Some(i) => self.set_single(i),
+            None if self.entries.is_empty() => self.clear_selection(),
+            None => self.set_single(0),
         }
         self.rebuild_columns();
     }
 
+    /// Ouverture d'un dossier : la lecture se fait dans un thread de fond. Finie en moins de 150 ms (disque local,
+    /// cas courant), elle s'affiche tout de suite comme avant ; sinon (partage reseau lent, lecteur deconnecte)
+    /// la fenetre reste utilisable et le contenu apparait des qu'il est lu, si on n'est pas alle ailleurs entre-temps.
+    fn reload_in_background(&mut self, select: Option<PathBuf>, cx: &mut Context<Self>) {
+        self.apply_folder_prefs();
+        self.list_gen += 1;
+        let generation = self.list_gen;
+        let (cwd, hidden, as_tree, expanded) = (self.cwd.clone(), self.show_hidden, self.view == ViewMode::List, self.expanded.clone());
+        let (tx, rx) = flume::bounded(1);
+        std::thread::spawn(move || {
+            let _ = tx.send(tree::list(&cwd, hidden, as_tree, &expanded));
+        });
+        match rx.recv_timeout(std::time::Duration::from_millis(150)) {
+            Ok(entries) => self.apply_listing(entries, select.as_deref()),
+            Err(_) => {
+                self.apply_listing(Vec::new(), None);
+                cx.spawn(async move |this, cx| {
+                    if let Ok(entries) = rx.recv_async().await {
+                        this.update(cx, |f, cx| {
+                            if f.list_gen == generation {
+                                f.apply_listing(entries, select.as_deref());
+                                cx.notify();
+                            }
+                        })
+                        .ok();
+                    }
+                })
+                .detach();
+            }
+        }
+    }
+
     /// Relit le dossier et selectionne les elements dont le chemin est dans `paths`.
     pub fn reload_select(&mut self, paths: &[PathBuf]) {
+        self.list_gen += 1;
         self.entries = self.load_entries();
         self.marked = self.entries.iter().enumerate().filter(|(_, e)| paths.contains(&e.path)).map(|(i, _)| i).collect();
         self.selected = self.marked.iter().next_back().copied();
@@ -313,11 +363,24 @@ impl Finder {
     }
 
     pub fn rebuild_columns(&mut self) {
+        // Les colonnes ne servent qu'en vue Colonnes (set_view les reconstruit) : ailleurs, ni copie de tous les
+        // elements ni lecture du dossier selectionne a chaque clic ou fleche.
+        if self.view != ViewMode::Columns {
+            self.columns.clear();
+            return;
+        }
         self.columns = vec![Column { entries: self.entries.clone(), selected: self.selected }];
     }
 
     pub fn navigate(&mut self, path: PathBuf, record: bool, cx: &mut Context<Self>) {
-        if !(fs::is_virtual(&path) || path.is_dir()) {
+        self.navigate_selecting(path, record, None, cx);
+    }
+
+    /// Comme `navigate`, en selectionnant `select` une fois le dossier lu (retour au dossier parent).
+    pub fn navigate_selecting(&mut self, path: PathBuf, record: bool, select: Option<PathBuf>, cx: &mut Context<Self>) {
+        // Reseau : pas de verification ici (elle bloquerait si le serveur ne repond pas), la lecture en arriere-plan
+        // donnera simplement un dossier vide.
+        if !(fs::is_virtual(&path) || fs::is_remote(&path) || path.is_dir()) {
             return;
         }
         self.cancel_rename_silent();
@@ -332,7 +395,7 @@ impl Finder {
             layout::set_setting("lastdir", &path.to_string_lossy());
         }
         self.cwd = path;
-        self.reload();
+        self.reload_in_background(select, cx);
         cx.notify();
     }
 
@@ -362,8 +425,7 @@ impl Finder {
         if let Some(p) = self.cwd.parent().map(|p| p.to_path_buf()) {
             // On reselectionne le dossier qu'on quitte, comme le Finder.
             let from = self.cwd.clone();
-            self.navigate(p, true, cx);
-            self.reload_select(&[from]);
+            self.navigate_selecting(p, true, Some(from), cx);
         }
     }
 
@@ -402,11 +464,13 @@ impl Finder {
         if ix < self.entries.len() {
             self.commit_rename(cx);
             self.set_single(ix);
-            self.rebuild_columns();
-            if let Some(Column { selected, .. }) = self.columns.first_mut() {
-                *selected = Some(ix);
+            if self.view == ViewMode::Columns {
+                self.rebuild_columns();
+                if let Some(Column { selected, .. }) = self.columns.first_mut() {
+                    *selected = Some(ix);
+                }
+                self.expand_columns(0);
             }
-            self.expand_columns(0);
             cx.notify();
         }
     }
@@ -555,7 +619,8 @@ impl Finder {
     pub fn open_selection(&mut self, cx: &mut Context<Self>) {
         let Some(e) = self.selected_entry().cloned() else { return };
         if e.is_dir {
-            if let Err(err) = std::fs::read_dir(&e.path) {
+            // Dossier refuse (droits) : message clair. Pas sur le reseau, ou la verification peut bloquer.
+            if let Err(err) = (!fs::is_remote(&e.path)).then(|| std::fs::read_dir(&e.path)).transpose() {
                 self.show_notice(crate::i18n::tf(crate::i18n::t("Impossible d'ouvrir \u{ab} {0} \u{bb} \u{2014} {err}"), &[("0", (e.name).to_string()), ("err", (err).to_string())]), cx);
                 return;
             }
@@ -576,8 +641,10 @@ impl Finder {
 
     /// Retrie les elements affiches selon le tri courant en gardant la selection.
     pub fn resort_in_place(&mut self) {
-        let keep: Vec<PathBuf> = self.marked.iter().filter_map(|&i| self.entries.get(i)).map(|e| e.path.clone()).collect();
-        if self.search_query().is_some() {
+        let keep: std::collections::HashSet<PathBuf> = self.marked.iter().filter_map(|&i| self.entries.get(i)).map(|e| e.path.clone()).collect();
+        // Retrier en memoire suffit, sauf avec des dossiers deplies dans la liste (l'arbre est reconstruit).
+        let flat = self.entries.iter().all(|e| e.depth == 0) && (self.view != ViewMode::List || self.expanded.is_empty());
+        if self.search_query().is_some() || flat {
             fs::resort(&mut self.entries);
         } else {
             self.entries = self.load_entries();
@@ -738,7 +805,7 @@ impl Render for Finder {
                 let p = ev.event.position;
                 let vp = window.viewport_size();
                 if p.x < px(0.) || p.y < px(0.) || p.x > vp.width || p.y > vp.height {
-                    let paths = ev.drag(cx).paths.clone();
+                    let paths = ev.drag(cx).paths().to_vec();
                     cx.stop_active_drag(window);
                     let this = cx.entity();
                     cx.defer(move |app| {
@@ -852,6 +919,7 @@ fn main() {
     crate::i18n::apply();
     settings::apply_theme();
     if let Some(dark) = forced {
+        theme::set_forced(true);
         theme::set_dark(dark);
     }
     Application::new().run(move |cx: &mut App| {
@@ -939,19 +1007,13 @@ fn main() {
         })
         .detach();
         square_dwm_frame();
+        // Le changement de theme de Windows arrive par WM_SETTINGCHANGE (voir open_finder_window). Filet de
+        // securite toutes les 30 s : une lecture directe du registre, sans lancer de processus.
         if forced.is_none() {
             cx.spawn(async move |cx| loop {
-                cx.background_executor().timer(std::time::Duration::from_secs(3)).await;
-                let setting = layout::get_setting("theme");
-                let dark = cx.background_executor().spawn(async move { theme::resolve_dark(setting.as_deref()) }).await;
-                if dark != theme::is_dark() {
-                    theme::set_dark(dark);
-                    cx.update(|app| {
-                        for w in app.windows() {
-                            let _ = w.update(app, |_, window, _| window.refresh());
-                        }
-                    })
-                    .ok();
+                cx.background_executor().timer(std::time::Duration::from_secs(30)).await;
+                if cx.update(follow_system_theme).is_err() {
+                    break;
                 }
             })
             .detach();
@@ -1016,6 +1078,18 @@ fn square_dwm_frame() {
     }
 }
 
+/// Applique le theme de Windows (si le reglage est « Systeme » et qu'aucun theme n'est impose) et repeint.
+fn follow_system_theme(cx: &mut App) {
+    if theme::is_forced() {
+        return;
+    }
+    let dark = theme::resolve_dark(layout::get_setting("theme").as_deref());
+    if dark != theme::is_dark() {
+        theme::set_dark(dark);
+        cx.refresh_windows();
+    }
+}
+
 /// Ouvre une fenetre du Finder (sur `start` ou le dossier d'ouverture) et retire le cadre DWM de Windows.
 fn open_finder_window(cx: &mut App, start: Option<PathBuf>) -> gpui::WindowHandle<Finder> {
     // Decale legerement les fenetres suivantes pour qu'elles ne se superposent pas exactement.
@@ -1041,6 +1115,8 @@ fn open_finder_window(cx: &mut App, start: Option<PathBuf>) -> gpui::WindowHandl
             move |window, cx| {
                 let view = cx.new(|cx| Finder::new_at(cx, start));
                 window.focus(&view.focus_handle(cx));
+                // Windows passe du mode clair au mode sombre : on suit immediatement.
+                window.observe_window_appearance(|_, cx| follow_system_theme(cx)).detach();
                 view
             },
         )

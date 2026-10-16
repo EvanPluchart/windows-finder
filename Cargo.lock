@@ -6697,6 +6697,7 @@ dependencies = [
  "flume",
  "gpui",
  "image",
+ "raw-window-handle",
  "windows 0.61.3",
  "windows-core 0.61.2",
 ]

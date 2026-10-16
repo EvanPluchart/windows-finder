@@ -29,7 +29,7 @@ pub fn write_settings_file(f: &Path, text: &str) {
     if let Some(parent) = f.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
-    let _ = crate::ops::write_atomic(f, text.as_bytes());
+    let _ = crate::ops::write_atomic_fast(f, text.as_bytes());
 }
 
 /// Position plausible : un fichier modifie a la main ne doit pas envoyer NaN ou l'infini a la mise en page.

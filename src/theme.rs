@@ -88,15 +88,32 @@ pub fn rgba(c: u32) -> gpui::Rgba {
     gpui::rgba((map(c >> 8) << 8) | (c & 0xff))
 }
 
-/// Mode d'applications de Windows (sombre = `AppsUseLightTheme` a 0).
+#[link(name = "advapi32")]
+unsafe extern "system" {
+    fn RegGetValueW(hkey: isize, subkey: *const u16, value: *const u16, flags: u32, kind: *mut u32, data: *mut u32, len: *mut u32) -> i32;
+}
+
+/// Mode d'applications de Windows (sombre = `AppsUseLightTheme` a 0). Lecture directe du registre (quelques
+/// microsecondes) : plus de `reg.exe` lance toutes les 3 secondes.
 pub fn system_is_dark() -> bool {
-    use std::os::windows::process::CommandExt;
-    std::process::Command::new("reg")
-        .args(["query", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "/v", "AppsUseLightTheme"])
-        .creation_flags(0x0800_0000)
-        .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).contains("0x0"))
-        .unwrap_or(false)
+    const HKEY_CURRENT_USER: isize = 0x8000_0001u32 as i32 as isize;
+    const RRF_RT_REG_DWORD: u32 = 0x10;
+    let wide = |s: &str| s.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
+    let (key, name) = (wide(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"), wide("AppsUseLightTheme"));
+    let (mut value, mut len) = (1u32, 4u32);
+    let status = unsafe { RegGetValueW(HKEY_CURRENT_USER, key.as_ptr(), name.as_ptr(), RRF_RT_REG_DWORD, std::ptr::null_mut(), &mut value, &mut len) };
+    status == 0 && value == 0
+}
+
+/// Vrai si le theme a ete impose au lancement (--dark / --light) : il ne suit plus Windows.
+static FORCED: AtomicBool = AtomicBool::new(false);
+
+pub fn set_forced(on: bool) {
+    FORCED.store(on, Ordering::Relaxed);
+}
+
+pub fn is_forced() -> bool {
+    FORCED.load(Ordering::Relaxed)
 }
 
 /// Couleurs d'accentuation : (code, libelle, selection clair, selection sombre, icones clair, icones sombre).

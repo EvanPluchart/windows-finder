@@ -275,7 +275,7 @@ impl Finder {
                 d.child(div().w(px(COL_SIZE)).flex_none().px_2().flex().justify_end().text_color(rgb(sub)).child(fs::format_size(e)))
             })
             .when(pr.col_kind, |d| d.child(div().w(px(COL_KIND)).flex_none().px_2().text_color(rgb(sub)).child(label(e.kind.clone()))))
-            .on_drag(crate::dragdrop::DragPaths::new(self, e, self.marked.contains(&i)), |d, off, _, cx| cx.new(|_| d.view(off)))
+            .on_drag(crate::dragdrop::DragPaths::new(self, e, self.marked.contains(&i)), |d, off, _, cx| { let v = d.view(off, cx); cx.new(|_| v) })
             .when(e.is_dir, |d| {
                 let target = e.path.clone();
                 d.drag_over::<crate::dragdrop::DragPaths>(|s, _, _, _| s.bg(rgb(0xcfe2fb))).on_drop(cx.listener(
@@ -315,7 +315,17 @@ impl Finder {
         let positions = self.icon_positions(cols);
         let headers = self.icon_headers(cols);
         let content_h = positions.iter().map(|p| p.1).fold(0.0f32, f32::max) + cell_h + 2.0 * PAD;
-        let cells = self.entries.iter().enumerate().map(|(i, e)| {
+        // Seules les cellules visibles (plus une marge) sont construites : un dossier de 10 000 elements ne cree
+        // plus 10 000 elements d'interface ni 10 000 demandes de miniature a chaque image. La hauteur totale ne
+        // change pas, la barre de defilement reste juste.
+        let view_h = f32::from(self.icon_scroll.bounds().size.height);
+        let view_h = if view_h < 1.0 { f32::from(window.viewport_size().height) } else { view_h };
+        let top = -f32::from(self.icon_scroll.offset().y) - 2.0 * cell_h;
+        let bottom = top + view_h + 4.0 * cell_h;
+        let cells = self.entries.iter().enumerate().filter(|(i, _)| {
+            let y = positions[*i].1 + PAD;
+            y + cell_h >= top && y <= bottom
+        }).map(|(i, e)| {
             let selected = self.marked.contains(&i);
             let renaming = self.rename.as_ref().map(|r| r.path == e.path).unwrap_or(false);
             let (x, y) = positions[i];
@@ -370,7 +380,7 @@ impl Finder {
                         div().text_size(px((pr.text as f32 - 2.0).max(9.0))).text_color(rgb(theme::TEXT_SECONDARY)).child(if e.is_dir { SharedString::from(crate::i18n::t("Dossier")) } else { SharedString::from(fs::format_size(e)) }),
                     )
                 })
-                .on_drag(drag, |d, off, _, cx| cx.new(|_| d.view(off)))
+                .on_drag(drag, |d, off, _, cx| { let v = d.view(off, cx); cx.new(|_| v) })
                 .when(e.is_dir, |d| {
                     d.on_drop(cx.listener(move |this, p: &DragPaths, window, cx| {
                         this.drop_into(p, target.clone(), window.modifiers().control, cx);
@@ -463,7 +473,7 @@ impl Finder {
                     .rounded(px(6.))
                     .when(self.is_cut(&e.path), |d| d.opacity(0.45))
                     .when(selected, |d| d.bg(rgb(theme::SELECTION)).text_color(rgb(theme::SELECTION_TEXT)))
-                    .on_drag(crate::dragdrop::DragPaths::new(self, e, false), |d, off, _, cx| cx.new(|_| d.view(off)))
+                    .on_drag(crate::dragdrop::DragPaths::new(self, e, false), |d, off, _, cx| { let v = d.view(off, cx); cx.new(|_| v) })
                     .when(e.is_dir, |d| {
                         let target = e.path.clone();
                         d.drag_over::<crate::dragdrop::DragPaths>(|s, _, _, _| s.bg(rgb(0xcfe2fb))).on_drop(cx.listener(

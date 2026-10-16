@@ -601,17 +601,27 @@ fn suggestions_for(text: &str) -> Vec<PathBuf> {
     if dir.as_os_str().is_empty() {
         return Vec::new();
     }
-    let mut found: Vec<PathBuf> = std::fs::read_dir(&dir)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-        .filter(|e| {
-            let n = e.file_name().to_string_lossy().to_lowercase();
-            !n.starts_with('.') && n.starts_with(&prefix)
-        })
-        .map(|e| e.path())
-        .collect();
+    // Sous-dossiers du dernier dossier lu, gardes quelques secondes : taper la suite d'un nom ne relit pas le
+    // disque a chaque lettre (sur un partage reseau, chaque lecture est un aller-retour).
+    use std::sync::Mutex;
+    use std::time::{Duration, Instant};
+    type Listing = (PathBuf, Instant, Vec<(String, PathBuf)>);
+    static LAST: Mutex<Option<Listing>> = Mutex::new(None);
+    let mut last = LAST.lock().unwrap_or_else(|e| e.into_inner());
+    let fresh = last.as_ref().is_some_and(|(d, t, _)| *d == dir && t.elapsed() < Duration::from_secs(5));
+    if !fresh {
+        let subdirs: Vec<(String, PathBuf)> = std::fs::read_dir(&dir)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+            .map(|e| (e.file_name().to_string_lossy().to_lowercase(), e.path()))
+            .filter(|(n, _)| !n.starts_with('.'))
+            .collect();
+        *last = Some((dir.clone(), Instant::now(), subdirs));
+    }
+    let subdirs = last.as_ref().map(|(_, _, s)| s.as_slice()).unwrap_or_default();
+    let mut found: Vec<PathBuf> = subdirs.iter().filter(|(n, _)| n.starts_with(&prefix)).map(|(_, p)| p.clone()).collect();
     found.sort_by_key(|p| p.to_string_lossy().to_lowercase());
     found.truncate(8);
     found
@@ -866,6 +876,8 @@ impl Finder {
         s.query = query.clone();
         self.search_gen += 1;
         let generation = self.search_gen;
+        // Le parcours precedent (frappe precedente) s'arrete a son prochain dossier.
+        self.search_live.store(generation, std::sync::atomic::Ordering::Relaxed);
         if query.is_empty() {
             self.entries = self.load_entries();
             self.clear_selection();
@@ -876,8 +888,20 @@ impl Finder {
         let root = self.cwd.clone();
         let hidden = self.show_hidden;
         let (content, kind) = (self.search_content, self.search_kind);
+        let live = self.search_live.clone();
         cx.spawn(async move |this, cx| {
-            let results = cx.background_executor().spawn(async move { fs::search(&root, &query, hidden, 3000, content, kind) }).await;
+            // Attente courte : une saisie rapide ne lance qu'un seul parcours, pour le dernier texte.
+            cx.background_executor().timer(std::time::Duration::from_millis(180)).await;
+            if live.load(std::sync::atomic::Ordering::Relaxed) != generation {
+                return;
+            }
+            let results = cx
+                .background_executor()
+                .spawn(async move {
+                    let alive = || live.load(std::sync::atomic::Ordering::Relaxed) == generation;
+                    fs::search(&root, &query, hidden, 3000, content, kind, &alive)
+                })
+                .await;
             this.update(cx, |f, cx| {
                 if f.search_gen == generation && f.search.is_some() {
                     f.entries = results;

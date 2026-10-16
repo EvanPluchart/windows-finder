@@ -113,6 +113,25 @@ impl Finder {
         self.commit_rename(cx);
         let Some(e) = self.selected_entry().cloned() else { return };
         self.info = Some(self.build_info(&e, window, cx));
+        // Taille d'un dossier : jusqu'a 50 000 elements parcourus, hors du thread d'interface.
+        if e.is_dir {
+            let path = e.path.clone();
+            cx.spawn(async move |this, cx| {
+                let p = path.clone();
+                let (bytes, count, complete) = cx.background_executor().spawn(async move { dir_size(&p) }).await;
+                this.update(cx, |f, cx| {
+                    if let Some(info) = f.info.as_mut().filter(|i| i.path == path) {
+                        let more = if complete { "" } else { crate::i18n::t(" (partiel)") };
+                        let n = crate::i18n::tf(crate::i18n::t("{count} \u{e9}l\u{e9}ment{0}"), &[("count", (count).to_string()), ("0", (if count > 1 { "s" } else { "" }).to_string())]);
+                        info.size = format!("{}{more}, {n}", format_bytes(bytes));
+                        info.size_short = format_bytes(bytes);
+                        cx.notify();
+                    }
+                })
+                .ok();
+            })
+            .detach();
+        }
         cx.notify();
     }
 
@@ -120,10 +139,7 @@ impl Finder {
         let meta = std::fs::metadata(&e.path).ok();
         let when = |t: Option<std::io::Result<SystemTime>>| fs::format_date(t.and_then(|r| r.ok()));
         let (size, size_short) = if e.is_dir {
-            let (bytes, count, complete) = dir_size(&e.path);
-            let more = if complete { "" } else { crate::i18n::t(" (partiel)") };
-            let n = crate::i18n::tf(crate::i18n::t("{count} \u{e9}l\u{e9}ment{0}"), &[("count", (count).to_string()), ("0", (if count > 1 { "s" } else { "" }).to_string())]);
-            (format!("{}{more}, {n}", format_bytes(bytes)), format_bytes(bytes))
+            (crate::i18n::t("Calcul\u{2026}").to_string(), String::new())
         } else {
             let on_disk = e.size.div_ceil(4096) * 4096;
             let full = if e.size >= 1000 {

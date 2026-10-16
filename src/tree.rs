@@ -1,34 +1,39 @@
 //! Vue Liste hierarchique : les dossiers se deplient en place (triangle ou fleche droite), comme sur le Finder.
 
-use std::path::PathBuf;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use gpui::Context;
 
 use crate::fs::{self, Entry};
 use crate::{Finder, ViewMode};
 
+/// Elements de `cwd` ; avec `tree` (vue Liste), les dossiers de `expanded` montrent leur contenu juste en
+/// dessous. Sans etat de fenetre : peut tourner dans un thread de fond.
+pub fn list(cwd: &Path, show_hidden: bool, tree: bool, expanded: &HashSet<PathBuf>) -> Vec<Entry> {
+    let mut entries = fs::read_dir(cwd, show_hidden);
+    if !tree || fs::is_virtual(cwd) || expanded.is_empty() {
+        return entries;
+    }
+    let mut i = 0;
+    while i < entries.len() {
+        if entries[i].is_dir && entries[i].depth < 8 && expanded.contains(&entries[i].path) {
+            let depth = entries[i].depth + 1;
+            let mut children = fs::read_dir(&entries[i].path, show_hidden);
+            for c in &mut children {
+                c.depth = depth;
+            }
+            entries.splice(i + 1..i + 1, children);
+        }
+        i += 1;
+    }
+    entries
+}
+
 impl Finder {
     /// Elements du dossier courant ; en vue Liste, les dossiers depliés montrent leur contenu juste en dessous.
     pub fn load_entries(&self) -> Vec<Entry> {
-        let mut entries = fs::read_dir(&self.cwd, self.show_hidden);
-        if self.view != ViewMode::List || fs::is_virtual(&self.cwd) || self.expanded.is_empty() {
-            return entries;
-        }
-        let mut i = 0;
-        while i < entries.len() {
-            if entries[i].is_dir && entries[i].depth < 8 && self.expanded.contains(&entries[i].path) {
-                let depth = entries[i].depth + 1;
-                let mut children = fs::read_dir(&entries[i].path, self.show_hidden);
-                for c in &mut children {
-                    c.depth = depth;
-                }
-                let n = children.len();
-                entries.splice(i + 1..i + 1, children);
-                let _ = n;
-            }
-            i += 1;
-        }
-        entries
+        list(&self.cwd, self.show_hidden, self.view == ViewMode::List, &self.expanded)
     }
 
     /// Plie ou deplie le dossier `ix` (vue Liste).

@@ -12,10 +12,8 @@ use windows::Win32::System::Com::{COINIT_MULTITHREADED, CoInitializeEx};
 use windows::core::HSTRING;
 
 fn render(path: &Path, index: u32, width: u32) -> Result<(Arc<RenderImage>, u32), String> {
-    let full = std::fs::canonicalize(path).map_err(|e| format!("chemin : {e}"))?;
-    // canonicalize ajoute le prefixe \?\ que StorageFile n'accepte pas.
-    let lossy = full.to_string_lossy().into_owned();
-    let text = lossy.strip_prefix(r"\\?\").unwrap_or(&lossy).to_string();
+    // Sans le prefixe \\?\ que StorageFile refuse (partages reseau compris).
+    let text = crate::fs::plain_path(path).map_err(|e| format!("chemin : {e}"))?;
     let err = |what: &str| {
         let what = what.to_string();
         move |e: windows::core::Error| format!("{what} : {e}")

@@ -299,7 +299,8 @@ impl QuickLook {
         self.images.update(cx, |c, cx| c.clear(window, cx));
         self.body_path = entry.map(|e| e.path.clone());
         self.image_ok = entry.map(|e| !e.is_image() || image_is_safe(&e.path)).unwrap_or(true);
-        self.preview_text = entry.filter(|e| e.is_text()).map(|e| fs::read_text_preview(&e.path).into());
+        // Lecture seule (trop gros, pas en UTF-8, tabulations) : les 64 premiers Ko.
+        self.preview_text = entry.filter(|e| e.is_text()).map(|e| fs::read_text_head(&e.path, 64 * 1024).into());
         let Some(e) = entry else { return };
         if e.is_video() {
             self.video_gen += 1;

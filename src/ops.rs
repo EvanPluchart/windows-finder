@@ -19,17 +19,28 @@ pub fn stamp(path: &Path) -> Option<(u64, std::time::SystemTime)> {
 
 /// Ecrit un fichier sans jamais le laisser a moitie ecrit (cle retiree, reseau coupe) : fichier temporaire
 /// dans le meme dossier, puis ReplaceFileW, qui garde les attributs, les droits et la marque Internet de
-/// l'original. Un fichier en lecture seule est refuse (erreur, rien n'est ecrit).
+/// l'original. Un fichier en lecture seule est refuse (erreur, rien n'est ecrit). Les donnees sont forcees sur le
+/// disque avant le remplacement (fichiers de l'utilisateur).
 pub fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
+    replace_file(path, bytes, true)
+}
+
+/// Comme `write_atomic`, sans attendre l'ecriture physique : pour les petits fichiers de reglages ecrits a chaque
+/// navigation (le remplacement reste atomique, seul le vidage du cache disque est laisse a Windows).
+pub fn write_atomic_fast(path: &Path, bytes: &[u8]) -> io::Result<()> {
+    replace_file(path, bytes, false)
+}
+
+fn replace_file(path: &Path, bytes: &[u8], flush: bool) -> io::Result<()> {
     use std::io::Write;
-    use windows::Win32::Storage::FileSystem::{REPLACEFILE_IGNORE_MERGE_ERRORS, REPLACEFILE_WRITE_THROUGH, ReplaceFileW};
+    use windows::Win32::Storage::FileSystem::{REPLACE_FILE_FLAGS, REPLACEFILE_IGNORE_MERGE_ERRORS, REPLACEFILE_WRITE_THROUGH, ReplaceFileW};
     let dir = path.parent().ok_or_else(|| io::Error::other("dossier inconnu"))?;
     let name = path.file_name().ok_or_else(|| io::Error::other("nom inconnu"))?.to_string_lossy();
     let tmp = dir.join(format!(".{name}.{}.wf-tmp", std::process::id()));
     let written = (|| {
         let mut f = std::fs::File::create(&tmp)?;
         f.write_all(bytes)?;
-        f.sync_all()
+        if flush { f.sync_all() } else { Ok(()) }
     })();
     if let Err(e) = written {
         let _ = std::fs::remove_file(&tmp);
@@ -43,7 +54,8 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
     let wide = |p: &Path| p.as_os_str().encode_wide().chain(std::iter::once(0)).collect::<Vec<u16>>();
     let (to, from) = (wide(path), wide(&tmp));
     let replaced = unsafe {
-        ReplaceFileW(PCWSTR(to.as_ptr()), PCWSTR(from.as_ptr()), PCWSTR::null(), REPLACEFILE_WRITE_THROUGH | REPLACEFILE_IGNORE_MERGE_ERRORS, None, None)
+        let through = if flush { REPLACEFILE_WRITE_THROUGH } else { REPLACE_FILE_FLAGS(0) };
+        ReplaceFileW(PCWSTR(to.as_ptr()), PCWSTR(from.as_ptr()), PCWSTR::null(), through | REPLACEFILE_IGNORE_MERGE_ERRORS, None, None)
     };
     replaced.map_err(|e| {
         let _ = std::fs::remove_file(&tmp);

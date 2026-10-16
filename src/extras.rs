@@ -274,7 +274,10 @@ impl Finder {
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(std::time::Duration::from_millis(600)).await;
             this.update(cx, |f, _| {
-                layout::set_setting("win_size", &format!("{}x{}", f.last_size.0, f.last_size.1));
+                // Seule la derniere taille est ecrite (un redimensionnement produit des dizaines d'images).
+                if f.last_size == now {
+                    layout::set_setting("win_size", &format!("{}x{}", now.0, now.1));
+                }
             })
             .ok();
         })

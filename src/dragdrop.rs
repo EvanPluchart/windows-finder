@@ -15,11 +15,15 @@ use crate::layout::{self, PAD};
 use crate::{theme, Finder};
 
 /// Valeur portee par le glisser : les elements deplaces et celui saisi.
+/// Creee pour chaque element a chaque rendu : rien de couteux ici. La selection et l'icone ne sont lues qu'au
+/// debut du glisser (avant, chaque element selectionne copiait toute la selection : quadratique apres Ctrl+A).
 pub struct DragPaths {
-    pub paths: Vec<PathBuf>,
+    paths: std::cell::RefCell<Arc<Vec<PathBuf>>>,
     pub primary: PathBuf,
     label: SharedString,
-    icon: Option<Arc<RenderImage>>,
+    in_selection: bool,
+    finder: gpui::WeakEntity<Finder>,
+    icons: crate::icons::IconCache,
     /// Position du curseur dans l'element saisi (remplie au debut du glisser).
     pub grab: Cell<(f32, f32)>,
 }
@@ -64,19 +68,32 @@ impl Render for DragView {
 impl DragPaths {
     /// Ce que l'on emporte en saisissant `e` : toute la selection si `e` en fait partie, sinon `e` seul.
     pub fn new(finder: &Finder, e: &Entry, in_selection: bool) -> Self {
-        let paths = if in_selection && finder.marked.len() > 1 { finder.selected_paths() } else { vec![e.path.clone()] };
         Self {
-            paths,
+            paths: std::cell::RefCell::new(Arc::new(vec![e.path.clone()])),
             primary: e.path.clone(),
             label: e.name.clone(),
-            icon: finder.icons.get(&e.path, 128, true),
+            in_selection: in_selection && finder.marked.len() > 1,
+            finder: finder.this.clone(),
+            icons: finder.icons.clone(),
             grab: Cell::new((finder.cell().0 / 2.0, 46.0)),
         }
     }
 
-    pub fn view(&self, offset: Point<Pixels>) -> DragView {
+    /// Elements emportes (fixes au debut du glisser).
+    pub fn paths(&self) -> Arc<Vec<PathBuf>> {
+        self.paths.borrow().clone()
+    }
+
+    /// Debut du glisser : lit la selection et l'icone, puis construit l'apercu qui suit le curseur.
+    pub fn view(&self, offset: Point<Pixels>, cx: &gpui::App) -> DragView {
         self.grab.set((f32::from(offset.x), f32::from(offset.y)));
-        DragView { label: self.label.clone(), count: self.paths.len(), icon: self.icon.clone() }
+        if self.in_selection {
+            if let Some(f) = self.finder.upgrade() {
+                *self.paths.borrow_mut() = Arc::new(f.read(cx).selected_paths());
+            }
+        }
+        let count = self.paths.borrow().len();
+        DragView { label: self.label.clone(), count, icon: self.icons.get(&self.primary, 128, true) }
     }
 }
 
@@ -88,10 +105,10 @@ fn same_drive(a: &Path, b: &Path) -> bool {
 impl Finder {
     /// Deplace (ou copie, avec Ctrl ou entre deux disques) les elements dans `target`.
     pub fn drop_into(&mut self, d: &DragPaths, target: PathBuf, copy: bool, cx: &mut Context<Self>) {
-        let any_other_drive = d.paths.iter().any(|s| !same_drive(s, &target));
+        let any_other_drive = d.paths().iter().any(|s| !same_drive(s, &target));
         let mode = if copy || any_other_drive { crate::transfer::Mode::Copy } else { crate::transfer::Mode::Move };
         // Une copie vers le dossier d'origine n'a pas de sens ici (Ctrl + glisser dans le meme dossier).
-        let items: Vec<PathBuf> = d.paths.iter().filter(|s| s.parent() != Some(target.as_path())).cloned().collect();
+        let items: Vec<PathBuf> = d.paths().iter().filter(|s| s.parent() != Some(target.as_path())).cloned().collect();
         self.start_transfer(items, target, mode, cx);
     }
 
@@ -184,7 +201,7 @@ impl Finder {
         let name_of = |p: &Path| p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let Some(&(ox, oy)) = lay.get(&name_of(&d.primary)) else { return };
         let (dx, dy) = (nx - ox, ny - oy);
-        for p in d.paths.iter().filter(|p| p.parent() == Some(self.cwd.as_path())) {
+        for p in d.paths().iter().filter(|p| p.parent() == Some(self.cwd.as_path())) {
             if let Some(pos) = lay.get_mut(&name_of(p)) {
                 *pos = ((pos.0 + dx).max(0.0), (pos.1 + dy).max(0.0));
             }
@@ -192,7 +209,7 @@ impl Finder {
         layout::save_dir(&self.cwd, Some(&lay));
         self.layouts.insert(self.cwd.clone(), lay);
         self.marked =
-            self.entries.iter().enumerate().filter(|(_, e)| d.paths.contains(&e.path)).map(|(i, _)| i).collect();
+            self.entries.iter().enumerate().filter(|(_, e)| d.paths().contains(&e.path)).map(|(i, _)| i).collect();
         self.selected = self.marked.iter().next_back().copied();
         cx.notify();
     }

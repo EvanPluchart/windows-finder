@@ -171,7 +171,8 @@ impl Store {
             s.defaults = Prefs::decode(d);
         }
         s.folders = folders.iter().map(|(p, v)| (p.clone(), Prefs::decode(v))).collect();
-        s.base = (s.defaults.encode(), folders);
+        // Base en forme reencodee (comme nos valeurs) : un ancien format ne passe pas pour une modification.
+        s.base = (s.defaults.encode(), s.folders.iter().map(|(p, v)| (p.clone(), v.encode())).collect());
         s
     }
 

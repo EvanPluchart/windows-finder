@@ -95,9 +95,7 @@ impl Video {
         unsafe {
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         }
-        let full = std::fs::canonicalize(path).map_err(|e| e.to_string())?;
-        let lossy = full.to_string_lossy().into_owned();
-        let text = lossy.strip_prefix(r"\\?\").unwrap_or(&lossy).to_string();
+        let text = crate::fs::plain_path(path).map_err(|e| e.to_string())?;
         let file = StorageFile::GetFileFromPathAsync(&HSTRING::from(text))
             .and_then(|a| a.get())
             .map_err(|e| format!("fichier : {e}"))?;

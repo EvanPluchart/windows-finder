@@ -63,10 +63,20 @@ fn dot(
         .cursor_pointer().on_click(move |_, window, cx| on_click(window, cx))
 }
 
+/// Fenetre Windows de cette fenetre GPUI. Pas GetForegroundWindow : une autre application a pu passer au premier
+/// plan entre le clic et l'action, et c'est elle qui aurait ete deplacee ou redimensionnee.
+fn hwnd_of(window: &Window) -> HWND {
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    match HasWindowHandle::window_handle(window).map(|h| h.as_raw()) {
+        Ok(RawWindowHandle::Win32(h)) => HWND(h.hwnd.get() as *mut _),
+        _ => unsafe { GetForegroundWindow() },
+    }
+}
+
 /// Remet la fenetre a sa taille normale, puis la place dans la zone de travail du moniteur (fractions 0..1).
-pub fn place(fx: f32, fy: f32, fw: f32, fh: f32) {
+pub fn place(window: &Window, fx: f32, fy: f32, fw: f32, fh: f32) {
+    let hwnd = hwnd_of(window);
     unsafe {
-        let hwnd: HWND = GetForegroundWindow();
         let mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
         let mut mi = MONITORINFO { cbSize: size_of::<MONITORINFO>() as u32, ..Default::default() };
         if !GetMonitorInfoW(mon, &mut mi).as_bool() {
@@ -121,7 +131,7 @@ impl Finder {
         let green = dot("tl-zoom", 0x28c840, 0x1aab29, "zoom", |window, _| {
             if window.is_maximized() {
                 unsafe {
-                    let _ = ShowWindow(GetForegroundWindow(), SW_RESTORE);
+                    let _ = ShowWindow(hwnd_of(window), SW_RESTORE);
                 }
             } else {
                 window.zoom_window();
@@ -159,8 +169,8 @@ impl Finder {
                 .rounded(px(8.))
                 .hover(|s| s.bg(rgb(0xe4e4e8)))
                 .child(layout_icon(cell, gray_rest, filled_gray))
-                .cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {
-                    place(target.0, target.1, target.2, target.3);
+                .cursor_pointer().on_click(cx.listener(move |this, _, window, cx| {
+                    place(window, target.0, target.1, target.2, target.3);
                     this.zoom_pop_hover = false;
                     this.zoom_dot_hover = false;
                     cx.notify();

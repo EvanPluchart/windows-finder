@@ -72,6 +72,23 @@ pub fn is_virtual(p: &Path) -> bool {
     p.to_str().map(|s| s.starts_with("::")).unwrap_or(false)
 }
 
+/// Vrai pour un partage reseau ou un lecteur reseau : y verifier l'existence d'un dossier sur le thread
+/// d'interface peut bloquer jusqu'au delai SMB si le serveur est injoignable (GetDriveTypeW, lui, est immediat).
+pub fn is_remote(p: &Path) -> bool {
+    use std::path::{Component, Prefix};
+    match p.components().next() {
+        Some(Component::Prefix(pre)) => match pre.kind() {
+            Prefix::Disk(l) | Prefix::VerbatimDisk(l) => {
+                let root: Vec<u16> = format!("{}:\\", l as char).encode_utf16().chain(std::iter::once(0)).collect();
+                // DRIVE_REMOTE = 4
+                unsafe { windows::Win32::Storage::FileSystem::GetDriveTypeW(windows::core::PCWSTR(root.as_ptr())) == 4 }
+            }
+            _ => true,
+        },
+        _ => false,
+    }
+}
+
 /// Nom affiche pour un emplacement (titre de fenetre, chemin).
 pub fn display_name(p: &Path) -> String {
     match p.to_str() {
@@ -189,10 +206,9 @@ pub fn set_group(g: u8) {
     GROUP.store(g, std::sync::atomic::Ordering::Relaxed);
 }
 
-fn date_bucket(t: Option<SystemTime>) -> (i64, String) {
+fn date_bucket(t: Option<SystemTime>, today: chrono::NaiveDate) -> (i64, String) {
     let Some(t) = t else { return (9, crate::i18n::t("Inconnu").into()) };
     let d = chrono::DateTime::<chrono::Local>::from(t).date_naive();
-    let today = chrono::Local::now().date_naive();
     let days = (today - d).num_days();
     match days {
         i64::MIN..=0 => (0, crate::i18n::t("Aujourd'hui").into()),
@@ -205,14 +221,19 @@ fn date_bucket(t: Option<SystemTime>) -> (i64, String) {
 
 /// (ordre, titre) du groupe d'un element pour le regroupement `g`.
 pub fn group_of(e: &Entry, g: u8) -> (i64, String) {
+    group_at(e, g, chrono::Local::now().date_naive())
+}
+
+/// Comme `group_of`, avec la date du jour deja connue (tri de milliers d'elements).
+fn group_at(e: &Entry, g: u8, today: chrono::NaiveDate) -> (i64, String) {
     match g {
         1 => {
             let c = e.name.chars().next().map(|c| c.to_uppercase().next().unwrap_or(c)).unwrap_or('#');
             if c.is_alphanumeric() { (c as i64, c.to_string()) } else { (0, "#".into()) }
         }
         2 => (0, e.kind.to_string()),
-        3 => date_bucket(e.modified),
-        4 => date_bucket(e.created),
+        3 => date_bucket(e.modified, today),
+        4 => date_bucket(e.created, today),
         5 => {
             if e.is_dir {
                 (0, crate::i18n::t("Dossiers").into())
@@ -232,26 +253,40 @@ pub fn group_of(e: &Entry, g: u8) -> (i64, String) {
     }
 }
 
-/// Trie selon le tri courant : dossiers d'abord, puis la cle choisie, puis le nom.
+/// Cle principale du tri (une seule variante par tri).
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum Primary {
+    Name,
+    Time(Option<SystemTime>),
+    Size(u64),
+    Text(String),
+}
+
+/// Ordre croissant ou decroissant de la cle (meme variante pour tous les elements d'un tri).
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum Ordered<T> {
+    Asc(T),
+    Desc(std::cmp::Reverse<T>),
+}
+
+/// Trie selon le tri courant : groupe, dossiers d'abord, puis la cle choisie, puis le nom.
+/// Les cles sont calculees une fois par element (et non a chaque comparaison : 100 000 elements demandaient
+/// ~3 millions de passages en minuscules).
 pub fn resort(entries: &mut [Entry]) {
     let (key, asc) = sort();
     let grp = group();
-    entries.sort_by(|a, b| {
-        if grp != 0 {
-            let (ka, kb) = (group_of(a, grp), group_of(b, grp));
-            if ka != kb {
-                return ka.cmp(&kb);
-            }
-        }
-        let by_name = || a.name.to_lowercase().cmp(&b.name.to_lowercase());
-        let ord = match key {
-            SortKey::Name => by_name(),
-            SortKey::Modified => a.modified.cmp(&b.modified).then_with(by_name),
-            SortKey::Created => a.created.cmp(&b.created).then_with(by_name),
-            SortKey::Size => a.size.cmp(&b.size).then_with(by_name),
-            SortKey::Kind => a.kind.to_lowercase().cmp(&b.kind.to_lowercase()).then_with(by_name),
+    let today = chrono::Local::now().date_naive();
+    entries.sort_by_cached_key(|e| {
+        let group = (grp != 0).then(|| group_at(e, grp, today));
+        let primary = match key {
+            SortKey::Name => Primary::Name,
+            SortKey::Modified => Primary::Time(e.modified),
+            SortKey::Created => Primary::Time(e.created),
+            SortKey::Size => Primary::Size(e.size),
+            SortKey::Kind => Primary::Text(e.kind.to_lowercase()),
         };
-        b.is_dir.cmp(&a.is_dir).then(if asc { ord } else { ord.reverse() })
+        let ord = (primary, e.name.to_lowercase());
+        (group, !e.is_dir, if asc { Ordered::Asc(ord) } else { Ordered::Desc(std::cmp::Reverse(ord)) })
     });
 }
 
@@ -295,11 +330,37 @@ pub fn format_date_pref(t: Option<SystemTime>, relative: bool) -> String {
     d.format(crate::i18n::date_format()).to_string()
 }
 
+/// Chemin absolu sans le prefixe `\\?\` ajoute par canonicalize, que les API WinRT (PDF, video) refusent :
+/// `\\?\C:\x` devient `C:\x` et `\\?\UNC\serveur\partage` devient `\\serveur\partage` (partages reseau).
+pub fn plain_path(path: &Path) -> std::io::Result<String> {
+    let full = std::fs::canonicalize(path)?.to_string_lossy().into_owned();
+    Ok(if let Some(rest) = full.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{rest}")
+    } else {
+        full.strip_prefix(r"\\?\").unwrap_or(&full).to_string()
+    })
+}
+
 pub fn read_text_preview(path: &Path) -> String {
+    // Le volet de la galerie et des colonnes est redessine a chaque survol : le dernier texte lu est garde.
+    static LAST: std::sync::Mutex<Option<(PathBuf, Option<SystemTime>, String)>> = std::sync::Mutex::new(None);
+    let modified = std::fs::metadata(path).and_then(|m| m.modified()).ok();
+    let mut last = LAST.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((p, m, text)) = last.as_ref() {
+        if p == path && *m == modified {
+            return text.clone();
+        }
+    }
+    let text = read_text_head(path, 8192);
+    *last = Some((path.to_path_buf(), modified, text.clone()));
+    text
+}
+
+/// Les `max` premiers octets d'un fichier, en texte (apercu en lecture seule).
+pub fn read_text_head(path: &Path, max: u64) -> String {
     use std::io::Read;
-    let mut buf = vec![0u8; 8192];
-    let n = std::fs::File::open(path).and_then(|mut f| f.read(&mut buf)).unwrap_or(0);
-    buf.truncate(n);
+    let mut buf = Vec::new();
+    let _ = std::fs::File::open(path).and_then(|f| f.take(max).read_to_end(&mut buf));
     String::from_utf8_lossy(&buf).into_owned()
 }
 
@@ -322,14 +383,15 @@ fn kind_matches(kind: u8, path: &Path, is_dir: bool) -> bool {
 }
 
 /// Recherche recursive par nom (et, si `content`, dans le texte des fichiers de moins de 2 Mo).
-pub fn search(root: &Path, query: &str, show_hidden: bool, max_results: usize, content: bool, kind: u8) -> Vec<Entry> {
+/// `alive` est consulte a chaque dossier : une recherche remplacee (nouvelle frappe) s'arrete aussitot.
+pub fn search(root: &Path, query: &str, show_hidden: bool, max_results: usize, content: bool, kind: u8, alive: &dyn Fn() -> bool) -> Vec<Entry> {
     let needle = query.to_lowercase();
     let mut results: Vec<Entry> = Vec::new();
     let mut stack = vec![root.to_path_buf()];
     let mut visited = 0usize;
     while let Some(dir) = stack.pop() {
         visited += 1;
-        if visited > 100_000 || results.len() >= max_results {
+        if visited > 100_000 || results.len() >= max_results || !alive() {
             break;
         }
         let Ok(read) = std::fs::read_dir(&dir) else { continue };

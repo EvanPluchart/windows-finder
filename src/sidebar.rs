@@ -73,12 +73,16 @@ pub fn default_places() -> Vec<Place> {
     if on("pc") {
         places.push(item(&pc, "laptopcomputer", PathBuf::from(crate::fs::PC)));
     }
-    for letter in b'A'..=b'Z' {
-        let root = PathBuf::from(format!("{}:\\", letter as char));
-        if root.exists() && on("disks") {
-            let (label, removable) = drive_info(&root);
-            places.push(item(&label, if removable { "externaldrive" } else { "internaldrive" }, root));
+    // Lecteurs presents d'apres GetLogicalDrives (aucun acces disque : un lecteur reseau deconnecte ne bloque
+    // plus l'ouverture de la fenetre pendant des secondes).
+    let mask = if on("disks") { unsafe { windows::Win32::Storage::FileSystem::GetLogicalDrives() } } else { 0 };
+    for (i, letter) in (b'A'..=b'Z').enumerate() {
+        if mask & (1 << i) == 0 {
+            continue;
         }
+        let root = PathBuf::from(format!("{}:\\", letter as char));
+        let (label, removable) = drive_info(&root);
+        places.push(item(&label, if removable { "externaldrive" } else { "internaldrive" }, root));
     }
     if on("wsl") {
         for d in crate::netplaces::wsl_distros() {
@@ -92,20 +96,33 @@ pub fn default_places() -> Vec<Place> {
 
     if crate::settings::sidebar_on("tags") {
         places.push(Place::Header(crate::i18n::t("\u{c9}tiquettes").into()));
-        for (name, _, hex) in crate::tags::PALETTE {
-            let glyph: &'static str = Box::leak(format!("dot:{hex:06x}").into_boxed_str());
+        // Noms des pastilles crees une seule fois (la barre laterale est reconstruite a chaque ejection, reglage...).
+        static GLYPHS: std::sync::OnceLock<Vec<&'static str>> = std::sync::OnceLock::new();
+        let glyphs = GLYPHS.get_or_init(|| crate::tags::PALETTE.iter().map(|(_, _, hex)| &*Box::leak(format!("dot:{hex:06x}").into_boxed_str())).collect());
+        for ((name, _, _), glyph) in crate::tags::PALETTE.iter().zip(glyphs) {
             places.push(item(&crate::i18n::td(name), glyph, PathBuf::from(format!("::tag:{name}"))));
         }
     }
     places
 }
 
-/// Espace libre du volume contenant `path`, en octets.
+/// Espace libre du volume contenant `path`, en octets. Demande au plus toutes les 5 s pour un meme dossier : la
+/// barre d'etat est redessinee a chaque survol, et sur un partage reseau chaque appel fait un aller-retour.
 fn free_space(path: &Path) -> Option<u64> {
+    use std::sync::Mutex;
+    use std::time::{Duration, Instant};
+    static LAST: Mutex<Option<(PathBuf, Instant, Option<u64>)>> = Mutex::new(None);
+    let mut last = LAST.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((p, t, v)) = last.as_ref() {
+        if p == path && t.elapsed() < Duration::from_secs(5) {
+            return *v;
+        }
+    }
     let wide: Vec<u16> = path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
     let mut avail = 0u64;
-    unsafe { GetDiskFreeSpaceExW(PCWSTR(wide.as_ptr()), Some(&mut avail), None, None).ok()? };
-    Some(avail)
+    let v = unsafe { GetDiskFreeSpaceExW(PCWSTR(wide.as_ptr()), Some(&mut avail), None, None).ok() }.map(|_| avail);
+    *last = Some((path.to_path_buf(), Instant::now(), v));
+    v
 }
 
 fn format_gb(bytes: u64) -> String {
@@ -378,10 +395,14 @@ pub fn drive_info(root: &Path) -> (String, bool) {
     use windows::Win32::Storage::FileSystem::{GetDriveTypeW, GetVolumeInformationW};
     let wide: Vec<u16> = root.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
     let letter = root.to_string_lossy().chars().next().unwrap_or('C');
-    let mut label = [0u16; 64];
-    let ok = unsafe { GetVolumeInformationW(PCWSTR(wide.as_ptr()), Some(&mut label), None, None, None, None).is_ok() };
     let kind = unsafe { GetDriveTypeW(PCWSTR(wide.as_ptr())) };
     let removable = kind == 2 || kind == 5;
+    // Lecteur reseau (4) : pas d'interrogation du volume, qui bloque des secondes s'il est deconnecte.
+    if kind == 4 {
+        return (format!("{} ({letter}:)", crate::i18n::t("Lecteur r\u{e9}seau")), false);
+    }
+    let mut label = [0u16; 64];
+    let ok = unsafe { GetVolumeInformationW(PCWSTR(wide.as_ptr()), Some(&mut label), None, None, None, None).is_ok() };
     let text = String::from_utf16_lossy(&label).trim_end_matches('\0').to_string();
     let name = if ok && !text.is_empty() { text } else { crate::i18n::t("Disque local").to_string() };
     (format!("{name} ({letter}:)"), removable)

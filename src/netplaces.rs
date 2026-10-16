@@ -32,7 +32,8 @@ pub fn wsl_distros() -> &'static [String] {
 }
 
 pub fn wsl_path(distro: &str) -> PathBuf {
-    PathBuf::from(format!(r"\wsl.localhost\{distro}"))
+    // Chemin UNC : deux barres obliques inverses (une seule designait un dossier a la racine du disque courant).
+    PathBuf::from(format!(r"\\wsl.localhost\{distro}"))
 }
 
 /// Contenu de la page Reseau : distributions Linux et raccourcis reseau.

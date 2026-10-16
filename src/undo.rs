@@ -53,6 +53,29 @@ impl Finder {
             return;
         };
         self.commit_rename(cx);
+        // Restaurer depuis la corbeille passe par PowerShell (0,5 a 3 s) : hors du thread d'interface.
+        if let Op::Trashed(paths) = &op {
+            let paths = paths.clone();
+            cx.spawn(async move |this, cx| {
+                let p = paths.clone();
+                let result = cx.background_executor().spawn(async move { restore_from_bin(&p) }).await;
+                this.update(cx, |f, cx| {
+                    match result {
+                        Ok(()) => {
+                            f.redo_stack.push(op);
+                            f.reload_select(&paths);
+                            let label = crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ment(s) restaur\u{e9}(s)"), &[("0", (paths.len()).to_string())]);
+                            f.show_notice(crate::i18n::tf(crate::i18n::t("Annul\u{e9} : {label}"), &[("label", label)]), cx);
+                        }
+                        Err(e) => f.show_notice(crate::i18n::tf(crate::i18n::t("Annulation impossible \u{2014} {e}"), &[("e", e)]), cx),
+                    }
+                    cx.notify();
+                })
+                .ok();
+            })
+            .detach();
+            return;
+        }
         match self.apply_inverse(&op, cx) {
             Ok((label, select)) => {
                 if !matches!(op, Op::Created(_)) {

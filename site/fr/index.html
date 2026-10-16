@@ -3,52 +3,85 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Windows Finder : le Finder de macOS pour Windows (gratuit, open source)</title>
-<meta name="description" content="Windows Finder apporte le Finder de macOS à Windows 10 et 11 : vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et palette de commandes. Gratuit, open source MIT, écrit en Rust.">
-<meta name="keywords" content="windows finder, finder pour windows, finder macos pour windows, finder windows 11, finder mac sur windows, gestionnaire de fichiers macos pour windows, alternative explorateur de fichiers, aperçu rapide windows, vue colonnes windows, gestionnaire de fichiers rust">
+<title>Windows Finder – Le Finder de macOS pour Windows 10 et 11 (gratuit)</title>
+<meta name="description" content="Le Finder du Mac sur Windows. Windows Finder est un gestionnaire de fichiers gratuit et open source pour Windows 10 et 11 : vue en colonnes, Aperçu rapide, onglets, étiquettes et palette de commandes. Essayez la démo dans votre navigateur.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Evan Pluchart">
 <link rel="canonical" href="https://evanpluchart.github.io/windows-finder/fr/">
 <link rel="alternate" hreflang="en" href="https://evanpluchart.github.io/windows-finder/">
 <link rel="alternate" hreflang="fr" href="https://evanpluchart.github.io/windows-finder/fr/">
 <link rel="alternate" hreflang="x-default" href="https://evanpluchart.github.io/windows-finder/">
-<meta name="theme-color" content="#0a64f0">
+<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#060709" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Windows Finder">
-<meta property="og:title" content="Windows Finder : le Finder de macOS pour Windows">
-<meta property="og:description" content="Un gestionnaire de fichiers gratuit et open source façon Finder pour Windows 10 et 11. Quatre vues, onglets, Aperçu rapide, étiquettes, palette de commandes.">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:title" content="Windows Finder – le Finder de macOS pour Windows">
+<meta property="og:description" content="Un gestionnaire de fichiers façon Finder, gratuit et open source, pour Windows 10 et 11 : vue en colonnes, Aperçu rapide, onglets, étiquettes et palette de commandes. Essayez-le dans votre navigateur.">
 <meta property="og:url" content="https://evanpluchart.github.io/windows-finder/fr/">
 <meta property="og:image" content="https://evanpluchart.github.io/windows-finder/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="L’icône de Windows Finder à côté d’une fenêtre façon Finder sur Windows">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Windows Finder : le Finder de macOS pour Windows">
-<meta name="twitter:description" content="Gratuit, open source, écrit en Rust. Vues icônes / liste / colonnes / galerie, onglets, Aperçu rapide, étiquettes.">
+<meta name="twitter:title" content="Windows Finder – le Finder de macOS pour Windows">
+<meta name="twitter:description" content="Gratuit et open source. Vue en colonnes, Aperçu rapide, onglets, étiquettes et palette de commandes pour Windows 10 et 11.">
 <meta name="twitter:image" content="https://evanpluchart.github.io/windows-finder/assets/og.png">
-<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../assets/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="preload" href="../assets/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../assets/logo-512.webp" as="image" type="image/webp">
 <link rel="stylesheet" href="../assets/style.css">
+<script>(function(){var r=document.documentElement;r.classList.add("js");try{var t=localStorage.getItem("wf-theme");if(t)r.setAttribute("data-theme",t)}catch(e){}})();</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": "SoftwareApplication",
+      "@type": "WebSite",
+      "@id": "https://evanpluchart.github.io/windows-finder/fr/#website",
       "name": "Windows Finder",
-      "alternateName": ["Finder macOS pour Windows", "Finder pour Windows"],
+      "url": "https://evanpluchart.github.io/windows-finder/fr/",
+      "inLanguage": "fr"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://evanpluchart.github.io/windows-finder/fr/#app",
+      "name": "Windows Finder",
+      "alternateName": ["Finder de macOS pour Windows", "Finder pour Windows"],
       "applicationCategory": "UtilitiesApplication",
+      "applicationSubCategory": "Gestionnaire de fichiers",
       "operatingSystem": "Windows 10, Windows 11",
-      "description": "Un gestionnaire de fichiers open source pour Windows qui recrée le Finder de macOS : vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes, Lire les informations et palette de commandes.",
+      "processorRequirements": "x64",
+      "softwareVersion": "0.1.1",
+      "description": "Un gestionnaire de fichiers gratuit et open source pour Windows 10 et 11 qui reprend le Finder de macOS : vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes, Lire les informations et palette de commandes.",
+      "featureList": ["Vues icônes, liste, colonnes et galerie", "Aperçu rapide avec la barre d’espace", "Texte et CSV modifiables dans l’Aperçu rapide", "Onglets", "Étiquettes de couleur", "Fenêtre Lire les informations", "Palette de commandes", "Menu contextuel natif de l’Explorateur", "Modes clair et sombre avec couleurs d’accent", "Anglais, français, espagnol et allemand"],
+      "image": "https://evanpluchart.github.io/windows-finder/assets/logo-512.png",
+      "screenshot": "https://evanpluchart.github.io/windows-finder/assets/og.png",
+      "downloadUrl": "https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe",
+      "installUrl": "https://github.com/EvanPluchart/windows-finder/releases/latest",
       "license": "https://opensource.org/license/mit",
+      "isAccessibleForFree": true,
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
       "url": "https://evanpluchart.github.io/windows-finder/fr/",
-      "codeRepository": "https://github.com/EvanPluchart/windows-finder",
-      "programmingLanguage": "Rust",
-      "inLanguage": ["fr", "en", "es", "de"]
+      "author": { "@type": "Person", "name": "Evan Pluchart", "url": "https://github.com/EvanPluchart" },
+      "inLanguage": ["en", "fr", "es", "de"]
     },
     {
       "@type": "FAQPage",
       "mainEntity": [
-        { "@type": "Question", "name": "Existe-t-il un Finder pour Windows ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Windows Finder est un gestionnaire de fichiers gratuit et open source pour Windows 10 et 11 qui recrée le Finder de macOS : même disposition de fenêtre, vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et Lire les informations." } },
-        { "@type": "Question", "name": "Peut-on avoir le Finder de macOS sur Windows 11 ?", "acceptedAnswer": { "@type": "Answer", "text": "macOS ne tourne pas sur Windows, mais Windows Finder offre un gestionnaire façon Finder qui fonctionne sur vos vrais fichiers, disques, OneDrive, distributions WSL et la Corbeille." } },
-        { "@type": "Question", "name": "Windows Finder est-il gratuit ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui, il est publié sous licence MIT. Vous pouvez l'utiliser, le modifier et contribuer sur GitHub." } },
-        { "@type": "Question", "name": "Remplace-t-il l'Explorateur de fichiers ?", "acceptedAnswer": { "@type": "Answer", "text": "Seulement si vous le souhaitez : un réglage facultatif, propre à votre profil, en fait le gestionnaire de dossiers par défaut et s'annule en un clic. L'Explorateur reste installé et Win+E continue de fonctionner." } },
-        { "@type": "Question", "name": "Est-il affilié à Apple ?", "acceptedAnswer": { "@type": "Answer", "text": "Non. C'est un projet open source indépendant inspiré du Finder de macOS. Finder et macOS sont des marques d'Apple Inc." } }
+        { "@type": "Question", "name": "Existe-t-il un Finder pour Windows ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui, le voici. Windows Finder est un gestionnaire de fichiers gratuit et open source pour Windows 10 et 11 qui reprend le Finder de macOS : même disposition de fenêtre, vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et Lire les informations." } },
+        { "@type": "Question", "name": "Peut-on avoir le Finder de macOS sur Windows 11 ?", "acceptedAnswer": { "@type": "Answer", "text": "macOS ne tourne pas sur Windows, mais Windows Finder vous donne un gestionnaire de fichiers façon Finder qui fonctionne sur vos vrais fichiers Windows, disques, OneDrive, distributions WSL et Corbeille." } },
+        { "@type": "Question", "name": "Comment avoir la vue en colonnes sur Windows ?", "acceptedAnswer": { "@type": "Answer", "text": "L’Explorateur de fichiers n’a pas de vue en colonnes. Installez Windows Finder et appuyez sur Ctrl+3 dans n’importe quel dossier pour le parcourir en colonnes, avec un aperçu du fichier sélectionné dans la dernière colonne." } },
+        { "@type": "Question", "name": "Existe-t-il un Aperçu rapide (Quick Look) pour Windows ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Dans Windows Finder, sélectionnez un fichier et appuyez sur Espace pour prévisualiser images, texte, CSV, PDF et vidéo, sans ouvrir d’autre app. Les fichiers texte et CSV se modifient directement dans l’aperçu." } },
+        { "@type": "Question", "name": "Windows Finder est-il gratuit ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Il est gratuit et publié sous licence MIT. Pas de publicité, pas de compte, pas de télémétrie." } },
+        { "@type": "Question", "name": "Remplace-t-il l’Explorateur de fichiers ?", "acceptedAnswer": { "@type": "Answer", "text": "Seulement si vous le voulez. Un réglage facultatif, par utilisateur, en fait le gestionnaire de dossiers par défaut et s’annule en un clic. L’Explorateur reste sur votre PC et Win+E fonctionne toujours." } },
+        { "@type": "Question", "name": "Pourquoi SmartScreen affiche-t-il un avertissement ?", "acceptedAnswer": { "@type": "Answer", "text": "L’installateur n’est pas encore signé, SmartScreen ne le reconnaît donc pas. Cliquez sur Informations complémentaires, puis Exécuter quand même. Le code source et les versions publiées sont publics sur GitHub." } },
+        { "@type": "Question", "name": "Est-ce sûr pour mes fichiers ?", "acceptedAnswer": { "@type": "Answer", "text": "Supprimer envoie à la Corbeille, les actions irréversibles demandent confirmation, et rien n’est envoyé sur le réseau. Les modifications du registre (seulement si vous les demandez) restent dans votre profil utilisateur." } },
+        { "@type": "Question", "name": "Est-ce affilié à Apple ?", "acceptedAnswer": { "@type": "Answer", "text": "Non. C’est un projet open source indépendant inspiré du Finder de macOS. Finder et macOS sont des marques d’Apple Inc." } }
       ]
     }
   ]
@@ -56,203 +89,458 @@
 </script>
 </head>
 <body>
-<header class="top">
-  <div class="wrap">
-    <a class="brand" href="#top" aria-label="Accueil Windows Finder">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="url(#lg)"/><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ab0ff"/><stop offset="1" stop-color="#0a64f0"/></linearGradient></defs><path d="M16 4v24" stroke="#fff" stroke-width="2" opacity=".9"/><circle cx="11" cy="13" r="2" fill="#fff"/><circle cx="21" cy="13" r="2" fill="#fff"/><path d="M9 20c2 3 5 4 7 4s5-1 7-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
-      Windows Finder
-    </a>
-    <nav aria-label="Principale">
-      <a href="#views">Vues</a>
-      <a href="#features">Fonctions</a>
-      <a href="#compare">Comparer</a>
-      <a href="#faq">FAQ</a>
-      <a href="../">English</a>
-      <button class="theme-toggle" id="theme" aria-label="Basculer entre thème clair et sombre">☾</button>
-      <a class="btn small primary" href="https://github.com/EvanPluchart/windows-finder">GitHub</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 20h16"/></symbol>
+  <symbol id="i-gh" viewBox="0 0 24 24"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></symbol>
+  <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></symbol>
+  <symbol id="i-gallery" viewBox="0 0 24 24"><rect x="3" y="3.5" width="18" height="12" rx="2"/><path d="M4 20h3M10.5 20h3M17 20h3"/></symbol>
+  <symbol id="i-pal" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.7 1.5-1.5 0-1.2-1-1.5-1-2.5s.8-1.5 1.8-1.5H17a4 4 0 0 0 4-4c0-4.7-4-8.5-9-8.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-net" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
+  <symbol id="i-cmd" viewBox="0 0 24 24"><path d="M9 6v12M15 6v12M6 9h12M6 15h12M9 6a3 3 0 1 0-3 3M15 6a3 3 0 1 1 3 3M9 18a3 3 0 1 1-3-3M15 18a3 3 0 1 0 3-3"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-9 6 6 0 0 1 11.5 1.5A3.8 3.8 0 0 1 17.5 18z"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  </defs>
+</svg>
+<a class="skip" href="#main">Aller au contenu</a>
+
+<header class="hd">
+  <div class="wrap hd-in">
+    <a class="brand" href="#top" aria-label="Windows Finder, retour en haut"><img src="../assets/logo-128.webp" width="32" height="32" alt=""><span>Windows Finder</span></a>
+    <nav class="hd-nav" aria-label="Navigation principale">
+      <a href="#demo">Démo</a><a href="#views">Présentations</a><a href="#quick-look">Aperçu rapide</a><a href="#features">Fonctions</a><a href="#compare">Comparatif</a><a href="#faq">FAQ</a>
     </nav>
+    <div class="hd-act">
+      <a class="hd-lang" href="../" hreflang="en" lang="en" aria-label="English version">EN</a>
+      <button class="ib" id="theme" type="button" aria-label="Basculer entre thème clair et sombre"><svg class="i moon"><use href="#i-moon"/></svg><svg class="i sun"><use href="#i-sun"/></svg></button>
+      <a class="ib" href="https://github.com/EvanPluchart/windows-finder" aria-label="Windows Finder sur GitHub"><svg class="i"><use href="#i-gh"/></svg></a>
+      <a class="btn btn-p sm" href="#download">Télécharger</a>
+    </div>
   </div>
 </header>
 
-<main id="top">
-  <section class="hero" aria-labelledby="h1">
-    <div class="wrap">
-      <p class="eyebrow">Gratuit · Open source · Windows 10 &amp; 11</p>
-      <h1 id="h1">Le Finder de macOS, <em>pour Windows.</em></h1>
-      <p class="lead">Windows Finder est un gestionnaire de fichiers rapide, façon Finder, écrit en Rust. Vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et palette de commandes, sur vos vrais fichiers Windows.</p>
-      <div class="cta">
-        <a class="btn primary" href="#install">Obtenir Windows Finder</a>
-        <a class="btn" href="https://github.com/EvanPluchart/windows-finder">★ Voir sur GitHub</a>
+<main id="main">
+  <section class="hero" id="top" aria-labelledby="h1">
+    <div class="hero-bg" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><div class="grid"></div></div>
+    <div class="wrap hero-in">
+      <a class="pill fade-up d0" href="https://github.com/EvanPluchart/windows-finder/releases/latest"><span class="dot" aria-hidden="true"></span><span><b>La v0.1.1 est sortie</b> · gratuite et open source</span><span class="ar" aria-hidden="true">→</span></a>
+      <div class="hero-logo fade-up d0"><picture><source srcset="../assets/logo-512.webp" type="image/webp"><img src="../assets/logo-256.png" width="172" height="172" alt="Icône de Windows Finder : un dossier bleu avec le visage du Finder et le logo Windows" fetchpriority="high"></picture><span class="glow" aria-hidden="true"></span></div>
+      <h1 class="h1" id="h1"><span class="ln"><span>Le Finder du Mac,</span></span> <span class="ln"><em>enfin</em> <span>sur Windows.</span></span></h1>
+      <p class="lead fade-up d1">Vue en colonnes, Aperçu rapide, onglets et étiquettes, dans un gestionnaire de fichiers calme et rapide qui travaille sur vos vrais fichiers Windows. <b>Natif, écrit en Rust, gratuit pour toujours.</b></p>
+      <div class="cta fade-up d2">
+        <a class="btn btn-p lg" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe"><svg class="i"><use href="#i-dl"/></svg>Télécharger pour Windows<small>10 et 11</small></a>
+        <a class="btn btn-g lg" href="#demo">L’essayer dans le navigateur<svg class="i"><use href="#i-down"/></svg></a>
       </div>
-      <div class="badges"><span>Licence MIT</span><span>Rust + GPUI</span><span>Clair &amp; sombre</span><span>EN · FR · ES · DE</span></div>
+      <ul class="ticks fade-up d3">
+        <li><svg class="i"><use href="#i-ok"/></svg>Sans droits administrateur</li>
+        <li><svg class="i"><use href="#i-ok"/></svg>Sans compte, sans télémétrie</li>
+        <li><svg class="i"><use href="#i-ok"/></svg>Open source, licence MIT</li>
+      </ul>
+    </div>
+  </section>
 
-      <div class="stage" id="views">
-        <div class="window" id="mock" data-view="icons" role="img" aria-label="Illustration de la fenêtre Windows Finder qui alterne entre les vues icônes, liste, colonnes et galerie">
-          <aside class="side" aria-hidden="true">
-            <div class="lights"><i></i><i></i><i></i></div>
-            <h6>Favoris</h6>
-            <div class="item on"><span class="gl"></span>Récents</div>
-            <div class="item"><span class="gl"></span>Applications</div>
-            <div class="item"><span class="gl"></span>Bureau</div>
-            <div class="item"><span class="gl"></span>Documents</div>
-            <div class="item"><span class="gl"></span>Téléchargements</div>
-            <h6>Emplacements</h6>
-            <div class="item"><span class="gl"></span>OneDrive</div>
-            <div class="item"><span class="gl"></span>Disque local (C:)</div>
-            <div class="item"><span class="gl"></span>Linux (WSL)</div>
-          </aside>
-          <div class="main">
-            <div class="bar">
-              <div class="cap" aria-hidden="true"><span>‹</span><span>›</span></div>
-              <span class="title">Documents</span>
-              <div class="cap seg" role="group" aria-label="Mode d'affichage">
-                <button data-v="icons" aria-pressed="true">Icônes</button>
-                <button data-v="list" aria-pressed="false">Liste</button>
-                <button data-v="columns" aria-pressed="false">Colonnes</button>
-                <button data-v="gallery" aria-pressed="false">Galerie</button>
-              </div>
-            </div>
-            <div class="content" id="mock-content"></div>
-            <div class="status" id="mock-status">1 sur 8 sélectionné, 295 Go disponibles</div>
-          </div>
+  <section class="demo" id="demo" aria-labelledby="demo-h">
+    <div class="wrap">
+      <div class="demo-head rv">
+        <h2 id="demo-h">Allez-y, cliquez partout.</h2>
+        <p>Voici la vraie disposition de l’app, reconstruite dans votre navigateur. Ouvrez des dossiers, appuyez sur <kbd>Espace</kbd> pour un aperçu, faites un clic droit pour le reste. Rien ici ne touche à vos fichiers.</p>
+      </div>
+      <div class="desk" id="desk">
+        <div id="hero-finder"></div>
+        <noscript><p style="color:#fff;text-align:center;padding:40px">La démo interactive a besoin de JavaScript. Vous pouvez quand même <a href="#download" style="text-decoration:underline">télécharger l’app</a>.</p></noscript>
+      </div>
+      <div class="quests rv" id="quests">
+        <div class="q-ring" aria-hidden="true"><svg viewBox="0 0 54 54"><circle class="bg" cx="27" cy="27" r="24"/><circle class="fg" cx="27" cy="27" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"/></svg><b>0/7</b></div>
+        <div class="q-main">
+          <div class="q-head"><b>À vous de jouer</b> <span>Encore 7</span></div>
+          <ul class="q-list">
+            <li data-q="open"><span class="c"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>Ouvrez un dossier</li>
+            <li data-q="ql"><span class="c"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>Aperçu rapide d’un fichier</li>
+            <li data-q="columns"><span class="c"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>Passez en colonnes</li>
+            <li data-q="tag"><span class="c"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>Étiquetez un fichier</li>
+            <li data-q="rename"><span class="c"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>Renommez quelque chose</li>
+            <li data-q="search"><span class="c"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>Cherchez « facture »</li>
+            <li data-q="move"><span class="c"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>Déplacez ou supprimez un fichier</li>
+          </ul>
+          <div class="q-done"><p>Vous venez d’utiliser Windows Finder. Le vrai est encore plus rapide.</p><a class="btn btn-p sm" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe"><svg class="i"><use href="#i-dl"/></svg>Télécharger pour Windows</a></div>
         </div>
-        <p class="hint">Cliquez sur une vue. C'est la vraie disposition de l'app, redessinée en HTML.</p>
+        <button class="tour-btn" id="tour" type="button"><svg class="i"><use href="#i-play"/></svg>Voir la visite guidée</button>
       </div>
     </div>
   </section>
 
-  <section id="features" aria-labelledby="f-h">
+  <div class="mq" aria-hidden="true"><div class="mq-t">
+    <span>Vue en colonnes</span><i></i><span>Aperçu rapide</span><i></i><span>Onglets</span><i></i><span>Étiquettes</span><i></i><span>Palette de commandes</span><i></i><span>Galerie</span><i></i><span>Lire les informations</span><i></i><span>Dossiers intelligents</span><i></i><span>Mode sombre</span><i></i><span>Tout s’annule</span><i></i>
+    <span>Vue en colonnes</span><i></i><span>Aperçu rapide</span><i></i><span>Onglets</span><i></i><span>Étiquettes</span><i></i><span>Palette de commandes</span><i></i><span>Galerie</span><i></i><span>Lire les informations</span><i></i><span>Dossiers intelligents</span><i></i><span>Mode sombre</span><i></i><span>Tout s’annule</span><i></i>
+  </div></div>
+
+  <section class="sec views" id="views" aria-labelledby="views-h">
     <div class="wrap">
-      <div class="sec-head">
-        <p class="eyebrow">Ce que vous obtenez</p>
-        <h2 id="f-h">Tout ce qui vous manque du Finder du Mac, plus ce dont Windows a besoin.</h2>
-        <p class="lead">Construit à partir d'une étude par rétro-ingénierie du Finder de macOS, puis recoupé avec l'Explorateur de fichiers et l'app Files pour ne rien oublier d'utile.</p>
+      <div class="sh rv">
+        <p class="eyebrow"><span>01</span>Présentations</p>
+        <h2 id="views-h">Une fenêtre. <em>Quatre façons</em> de voir vos fichiers.</h2>
+        <p class="lead">Changez d’une touche. Chaque dossier retient sa présentation, sa taille d’icônes et son tri.</p>
       </div>
-      <div class="grid">
-        <article class="card"><div class="ico">⌘</div><h3>Quatre vues, par dossier</h3><p>Icônes à placement libre, Liste aux dossiers dépliables, Colonnes avec aperçu détaillé, Galerie avec bande de miniatures. Chaque dossier retient sa vue, son tri, son regroupement et la taille de ses icônes.</p></article>
-        <article class="card"><div class="ico">␣</div><h3>Aperçu rapide</h3><p>Appuyez sur Espace pour prévisualiser images, texte, CSV, PDF et vidéo avec commandes de lecture. Modifiez texte et CSV directement dans l'aperçu.</p></article>
-        <article class="card"><div class="ico">⊞</div><h3>Onglets et fenêtres</h3><p>Onglets, vue d'ensemble, onglet fermé rouvrable, dossiers qui s'ouvrent au survol, boutons précédent / suivant de la souris, Aller au dossier et Se connecter au serveur.</p></article>
-        <article class="card"><div class="ico">●</div><h3>Étiquettes et informations</h3><p>Étiquettes de couleur avec leur section dans la barre latérale, et un panneau « Lire les informations » complet : tailles, dates, type, permissions et Ouvrir avec.</p></article>
-        <article class="card"><div class="ico">⌃</div><h3>Palette de commandes</h3><p>Appuyez sur <span class="kbd">Ctrl</span>+<span class="kbd">Maj</span>+<span class="kbd">P</span> pour trouver n'importe quelle commande, avec son raccourci, depuis un seul champ.</p></article>
-        <article class="card"><div class="ico">⊕</div><h3>Vraie intégration à Windows</h3><p>« Plus d'options… » ouvre le vrai menu contextuel de l'Explorateur (Git, 7-Zip, Envoyer vers, Propriétés). Distributions WSL dans la barre latérale, Corbeille, OneDrive, réseau, Terminal et lancement en administrateur.</p></article>
-        <article class="card"><div class="ico">◐</div><h3>Clair, sombre et couleurs d'accent</h3><p>Suit Windows, change en direct, huit couleurs d'accent, fenêtre arrondie avec pastilles rouge / jaune / verte, comme sur le Mac.</p></article>
-        <article class="card"><div class="ico">文</div><h3>Votre langue</h3><p>English, Français, Español et Deutsch, choisis automatiquement d'après la langue de Windows. Ajouter une langue, c'est une colonne dans un fichier texte.</p></article>
+      <div class="vs">
+        <div class="vs-steps">
+          <article class="vs-step on" data-v="icons">
+            <button class="vs-tab" type="button" aria-pressed="true"><span class="n">01</span><span class="t">Icônes</span><kbd>Ctrl 1</kbd></button>
+            <div class="vs-d"><h3>De vraies vignettes.</h3><p>Photos et documents montrent leur contenu. Placez les icônes librement ou alignez-les sur la grille.</p><ul><li>Taille et espacement des icônes par dossier</li><li>Tracez un rectangle de sélection, tapez un nom pour y sauter</li></ul></div>
+          </article>
+          <article class="vs-step" data-v="list">
+            <button class="vs-tab" type="button" aria-pressed="false"><span class="n">02</span><span class="t">Liste</span><kbd>Ctrl 2</kbd></button>
+            <div class="vs-d"><h3>Tous les détails, triables.</h3><p>Nom, date, taille et type dans des colonnes triables. Les dossiers se déplient sur place, vous ne perdez jamais le fil.</p><ul><li>Cliquez sur un en-tête pour trier, encore une fois pour inverser</li><li>→ déplie un dossier, ← le replie</li></ul></div>
+          </article>
+          <article class="vs-step" data-v="columns">
+            <button class="vs-tab" type="button" aria-pressed="false"><span class="n">03</span><span class="t">Colonnes</span><kbd>Ctrl 3</kbd></button>
+            <div class="vs-d"><h3>La meilleure idée du Finder.</h3><p>Parcourez de longues arborescences de gauche à droite et voyez toujours où vous êtes. La dernière colonne affiche un aperçu du fichier sélectionné.</p><ul><li>L’Explorateur de fichiers n’a pas de vue en colonnes</li><li>Les flèches passent d’une colonne à l’autre</li></ul></div>
+          </article>
+          <article class="vs-step" data-v="gallery">
+            <button class="vs-tab" type="button" aria-pressed="false"><span class="n">04</span><span class="t">Galerie</span><kbd>Ctrl 4</kbd></button>
+            <div class="vs-d"><h3>Faite pour les photos.</h3><p>Un grand aperçu, une pellicule en dessous et les détails du fichier sur le côté. Les flèches font défiler le dossier.</p><ul><li>Marche aussi pour les documents et les vidéos</li><li>Espace pour un Aperçu rapide en grand</li></ul></div>
+          </article>
+        </div>
+        <div class="vs-stage"><div class="vs-sticky"><div id="views-finder"></div></div></div>
       </div>
     </div>
   </section>
 
-  <section class="band" aria-labelledby="s-h">
+  <section class="sec qls" id="quick-look" aria-labelledby="ql-h">
     <div class="wrap">
-      <div class="sec-head">
-        <p class="eyebrow">Clavier d'abord</p>
-        <h2 id="s-h">Des raccourcis que vous connaissez déjà.</h2>
+      <div class="sh center rv">
+        <p class="eyebrow"><span>02</span>Aperçu rapide</p>
+        <h2 id="ql-h"><span style="white-space:nowrap">Appuyez sur <kbd>Espace</kbd>.</span> Voyez <em>tout</em>.</h2>
+        <p class="lead">Prévisualisez photos, vidéos, PDF, tableurs et textes sans ouvrir d’autre app. Et oui, vous pouvez corriger cette faute de frappe directement dans l’aperçu.</p>
       </div>
-      <div class="shortcuts">
-        <div>Aperçu rapide <span><span class="kbd">Espace</span></span></div>
-        <div>Lire les informations <span><span class="kbd">Ctrl</span> <span class="kbd">I</span></span></div>
-        <div>Vues <span><span class="kbd">Ctrl</span> <span class="kbd">1</span>–<span class="kbd">4</span></span></div>
-        <div>Aller au dossier <span><span class="kbd">Ctrl</span> <span class="kbd">⇧</span> <span class="kbd">G</span></span></div>
-        <div>Nouvel onglet <span><span class="kbd">Ctrl</span> <span class="kbd">T</span></span></div>
-        <div>Rouvrir l'onglet <span><span class="kbd">Ctrl</span> <span class="kbd">⇧</span> <span class="kbd">T</span></span></div>
-        <div>Palette de commandes <span><span class="kbd">Ctrl</span> <span class="kbd">⇧</span> <span class="kbd">P</span></span></div>
-        <div>Copier le chemin <span><span class="kbd">Ctrl</span> <span class="kbd">⇧</span> <span class="kbd">C</span></span></div>
+      <div class="qls-ui rv">
+        <div class="qls-tabs" role="tablist" aria-label="Choisissez un fichier à prévisualiser">
+          <button type="button" role="tab" data-f="image" aria-selected="true" aria-controls="qls-panel"><span class="ti"></span>Photo<small>.jpg</small></button>
+          <button type="button" role="tab" data-f="video" aria-selected="false" aria-controls="qls-panel" tabindex="-1"><span class="ti"></span>Vidéo<small>.mp4</small></button>
+          <button type="button" role="tab" data-f="pdf" aria-selected="false" aria-controls="qls-panel" tabindex="-1"><span class="ti"></span>PDF<small>.pdf</small></button>
+          <button type="button" role="tab" data-f="csv" aria-selected="false" aria-controls="qls-panel" tabindex="-1"><span class="ti"></span>Tableur<small>.csv</small></button>
+          <button type="button" role="tab" data-f="text" aria-selected="false" aria-controls="qls-panel" tabindex="-1"><span class="ti"></span>Texte<small>.txt</small></button>
+        </div>
+        <div class="qls-stage">
+          <div class="ql" id="qls-panel" role="tabpanel" aria-label="Aperçu rapide"><div class="ql-bar"><span class="ql-x" aria-hidden="true"><svg class="i"><use href="#i-x"/></svg></span><b class="ql-name"></b><span class="ql-st"></span><span class="ql-open"></span></div><div class="ql-body"></div></div>
+        </div>
+      </div>
+      <ul class="qls-points rv">
+        <li><b>Modifiez sur place</b><span>Les fichiers texte et CSV se modifient dans l’aperçu. Essayez le tableur ci-dessus. Dans l’app, Ctrl+S enregistre.</span></li>
+        <li><b>Passez au suivant</b><span>Les flèches passent au fichier suivant sans fermer l’aperçu.</span></li>
+        <li><b>Vidéo avec commandes</b><span>Lecture, déplacement dans la vidéo et coupure du son. Les commandes s’effacent au bout d’un instant.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec" id="features" aria-labelledby="f-h">
+    <div class="wrap">
+      <div class="sh rv">
+        <p class="eyebrow"><span>03</span>Fonctions</p>
+        <h2 id="f-h">Petits détails. <em>Grande</em> différence.</h2>
+        <p class="lead">Conçu à partir d’une étude attentive du Finder de macOS, puis comparé à l’Explorateur de fichiers et à Files pour que rien d’utile ne manque. Toutes les cartes ci-dessous fonctionnent.</p>
+      </div>
+      <div class="bento">
+        <article class="tile w7">
+          <div><h3><span class="badge"><svg class="i"><use href="#i-cmd"/></svg></span>Palette de commandes</h3><p>Appuyez sur <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>P</kbd> et tapez. Toutes les commandes, avec leur raccourci. Essayez : tapez « colon » ou « sombre », puis Entrée.</p></div>
+          <div class="vis">
+            <div class="panel">
+              <label class="pal-q"><svg class="i"><use href="#i-search"/></svg><input id="pal-in" type="text" placeholder="Tapez une commande…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="pal-l" aria-label="Chercher une commande"><kbd>Échap</kbd></label>
+              <ul class="pal-l" id="pal-l" role="listbox" aria-label="Commandes"></ul>
+            </div>
+            <p class="scount" id="pal-note" aria-live="polite">Certaines commandes modifient cette page.</p>
+          </div>
+        </article>
+        <article class="tile w5">
+          <div><h3><span class="badge"><svg class="i"><use href="#i-pal"/></svg></span>Vos couleurs</h3><p>Le clair et le sombre suivent Windows et basculent en direct. Choisissez l’une des huit couleurs d’accent. Allez-y, cette page suit.</p></div>
+          <div class="vis">
+            <div class="swatches" role="group" aria-label="Couleur d’accent">
+              <button type="button" data-accent="blue" aria-label="Bleu"></button><button type="button" data-accent="purple" aria-label="Violet"></button><button type="button" data-accent="pink" aria-label="Rose"></button><button type="button" data-accent="red" aria-label="Rouge"></button><button type="button" data-accent="orange" aria-label="Orange"></button><button type="button" data-accent="yellow" aria-label="Jaune"></button><button type="button" data-accent="green" aria-label="Vert"></button><button type="button" data-accent="graphite" aria-label="Graphite"></button>
+            </div>
+            <div class="seg3" role="group" aria-label="Apparence"><button type="button" data-theme-set="light">Clair</button><button type="button" data-theme-set="dark">Sombre</button><button type="button" data-theme-set="auto">Auto</button></div>
+            <div class="mini-win" aria-hidden="true"><div class="s"><i></i><i></i><i></i><i></i></div><div class="m"><i></i><i class="s"></i><i></i><i></i></div></div>
+          </div>
+        </article>
+        <article class="tile" id="tag-tile">
+          <div><h3><span class="badge"><svg class="i"><use href="#i-tag"/></svg></span>Étiquettes de couleur</h3><p>Étiquetez n’importe quoi, puis retrouvez tout depuis la barre latérale. Cliquez sur une couleur.</p></div>
+          <div class="vis">
+            <div class="chips" role="group" aria-label="Filtrer par étiquette">
+              <button type="button" data-tag="red" style="--c:#f5524f" aria-pressed="false"><i></i>Urgent</button><button type="button" data-tag="orange" style="--c:#f7822b" aria-pressed="false"><i></i>Voyage</button><button type="button" data-tag="green" style="--c:#3fbf5a" aria-pressed="false"><i></i>Budget</button><button type="button" data-tag="blue" style="--c:#2f7df4" aria-pressed="false"><i></i>Travail</button>
+            </div>
+            <ul class="flist panel">
+              <li data-tags="red blue"><span class="fic"><img src="../assets/icons/GenericFolderIcon.png" alt=""></span>Refonte du site<span class="tdots"><i style="background:#f5524f"></i><i style="background:#2f7df4"></i></span></li>
+              <li data-tags="orange"><span class="fic"><img src="../assets/icons/PicturesFolderIcon.png" alt=""></span>Photos de Lisbonne<span class="tdots"><i style="background:#f7822b"></i></span></li>
+              <li data-tags="green"><span class="fic" data-file="Budget.csv"></span>Budget.csv<span class="tdots"><i style="background:#3fbf5a"></i></span></li>
+              <li data-tags="red green"><span class="fic" data-file="Facture 2026-10.pdf"></span>Facture 2026-10.pdf<span class="tdots"><i style="background:#f5524f"></i><i style="background:#3fbf5a"></i></span></li>
+              <li data-tags="blue"><span class="fic" data-file="Feuille de route.txt"></span>Feuille de route.txt<span class="tdots"><i style="background:#2f7df4"></i></span></li>
+            </ul>
+          </div>
+        </article>
+        <article class="tile">
+          <div><h3><span class="badge"><svg class="i"><use href="#i-search"/></svg></span>Une recherche qui trouve</h3><p>Par nom ou par contenu, filtrée par type. Enregistrez une recherche dans la barre latérale, comme un dossier intelligent.</p></div>
+          <div class="vis">
+            <label class="sbox"><svg class="i"><use href="#i-search"/></svg><input id="s-in" type="search" value="fac" aria-label="Chercher dans les fichiers d’exemple" autocomplete="off" spellcheck="false"></label>
+            <ul class="flist" id="s-list">
+              <li><span class="fic" data-file="Facture 2026-08.pdf"></span><span class="nm">Facture 2026-08.pdf</span></li>
+              <li><span class="fic" data-file="Facture 2026-09.pdf"></span><span class="nm">Facture 2026-09.pdf</span></li>
+              <li><span class="fic"><img src="../assets/icons/GenericFolderIcon.png" alt=""></span><span class="nm">Factures</span></li>
+              <li><span class="fic"><img src="../assets/icons/PicturesFolderIcon.png" alt=""></span><span class="nm">Photos d’inventaire</span></li>
+              <li><span class="fic" data-file="Rapport T3.pdf"></span><span class="nm">Rapport T3.pdf</span></li>
+            </ul>
+            <p class="scount" id="s-count" aria-live="polite"></p>
+          </div>
+        </article>
+        <article class="tile">
+          <div><h3><span class="badge"><svg class="i"><use href="#i-copy"/></svg></span>Des opérations fiables</h3><p>Une fenêtre de progression, des choix clairs en cas de conflit et une annulation pour tout. Remettre à sa place depuis la Corbeille. Extraction des ZIP, 7z, RAR et TAR sur place.</p></div>
+          <div class="vis">
+            <div class="sheet"><b>Copie de 128 éléments vers « Projets »</b><small>« Brief.pdf » existe déjà dans ce dossier</small><div class="track"><i></i></div>
+              <div class="conflict" aria-hidden="true"><span>Arrêter</span><span>Ignorer</span><span>Garder les deux</span><span class="p">Remplacer</span></div></div>
+            <div class="ops-row" aria-hidden="true"><span><svg class="i"><use href="#i-undo"/></svg>Annuler</span><span><svg class="i"><use href="#i-trash"/></svg>Remettre à sa place</span><span><svg class="i"><use href="#i-box"/></svg>Extraire ici</span><span><svg class="i"><use href="#i-edit"/></svg>Renommer 12 éléments</span></div>
+          </div>
+        </article>
+        <article class="tile w6">
+          <div><h3><span class="badge"><svg class="i"><use href="#i-columns"/></svg></span>Des onglets bien faits</h3><p><kbd>Ctrl</kbd> <kbd>T</kbd> ouvre un onglet, <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>T</kbd> rouvre celui que vous venez de fermer. Essayez la barre ci-dessous.</p></div>
+          <div class="vis">
+            <div class="tabbar" id="tabbar" role="tablist" aria-label="Onglets d’exemple">
+              <button type="button" class="tab" role="tab" aria-selected="true"><span>Documents</span><i class="x" role="button" aria-label="Fermer l’onglet"><svg class="i"><use href="#i-x"/></svg></i></button>
+              <button type="button" class="tab" role="tab" aria-selected="false"><span>Téléchargements</span><i class="x" role="button" aria-label="Fermer l’onglet"><svg class="i"><use href="#i-x"/></svg></i></button>
+              <button type="button" class="add" aria-label="Nouvel onglet"><svg class="i"><use href="#i-plus"/></svg></button>
+            </div>
+            <div class="tabkeys"><button type="button" class="tour-btn" id="tab-reopen"><svg class="i"><use href="#i-undo"/></svg>Rouvrir l’onglet fermé</button><span>Un clic milieu sur un emplacement de la barre latérale l’ouvre dans un nouvel onglet.</span></div>
+          </div>
+        </article>
+        <article class="tile w6">
+          <div><h3><span class="badge"><svg class="i"><use href="#i-info"/></svg></span>Lire les informations</h3><p><kbd>Ctrl</kbd> <kbd>I</kbd> affiche tailles, dates, type, autorisations, l’app d’ouverture et un aperçu.</p></div>
+          <div class="vis">
+            <div class="infocard">
+              <span class="ic"><img src="../assets/icons/GenericFolderIcon.png" alt=""></span><b>Projets</b><span>Dossier · 3 éléments · 2,8 Mo</span>
+              <dl><dt>Emplacement</dt><dd>C:\Users\alex\Documents</dd><dt>Création</dt><dd>12 mars 2026 à 09:14</dd><dt>Modification</dt><dd>Aujourd’hui à 10:05</dd><dt>Étiquettes</dt><dd>Travail</dd></dl>
+            </div>
+          </div>
+        </article>
       </div>
     </div>
   </section>
 
-  <section id="compare" aria-labelledby="c-h">
-    <div class="wrap">
-      <div class="sec-head">
-        <p class="eyebrow">Comparaison honnête</p>
-        <h2 id="c-h">Windows Finder, Explorateur de fichiers et Files.</h2>
-        <p class="lead">L'Explorateur et Files sont excellents. Windows Finder s'adresse à ceux qui veulent le design et le fonctionnement du Finder. D'après notre propre analyse des deux apps.</p>
+  <section class="sec" id="windows" aria-labelledby="w-h" style="padding-top:0">
+    <div class="wrap split">
+      <div class="sh rv">
+        <p class="eyebrow"><span>04</span>Fait pour Windows</p>
+        <h2 id="w-h">L’allure d’un Mac. <em>Le cœur</em> de Windows.</h2>
+        <p class="lead">Ni un thème, ni une app web. Un vrai gestionnaire de fichiers natif qui connaît vos disques, vos extensions du shell et vos raccourcis.</p>
+        <ul class="checks">
+          <li><span class="badge"><svg class="i"><use href="#i-dots"/></svg></span><div><b>Le vrai menu de l’Explorateur, à un clic</b><span>« Plus d’options… » ouvre le menu contextuel natif : Envoyer vers, Git, 7-Zip, Propriétés et toutes vos extensions.</span></div></li>
+          <li><span class="badge"><svg class="i"><use href="#i-cloud"/></svg></span><div><b>OneDrive, WSL, réseau et Corbeille</b><span>Les distributions Linux s’affichent dans la barre latérale, à côté de vos disques et partages réseau.</span></div></li>
+          <li><span class="badge"><svg class="i"><use href="#i-term"/></svg></span><div><b>Ouvrir dans le Terminal, exécuter en administrateur</b><span>Et aussi : définir comme fond d’écran, faire pivoter les images, copier le chemin, glisser-déposer depuis et vers l’Explorateur.</span></div></li>
+          <li><span class="badge"><svg class="i"><use href="#i-folder"/></svg></span><div><b>Gestionnaire par défaut, si vous le voulez</b><span>Un réglage facultatif, par utilisateur. Annulable en un clic. Win+E fonctionne toujours.</span></div></li>
+        </ul>
       </div>
-      <div class="table-wrap">
+      <div class="menus rv d1" aria-hidden="true">
+        <div class="wf-menu m1">
+          <div class="mi"><span class="ck"></span><span class="ml">Ouvrir</span><kbd>Ctrl O</kbd></div>
+          <div class="mi"><span class="ck"></span><span class="ml">Aperçu rapide</span><kbd>Espace</kbd></div>
+          <div class="sep"></div>
+          <div class="mi"><span class="ck"></span><span class="ml">Lire les informations</span><kbd>Ctrl I</kbd></div>
+          <div class="mi"><span class="ck"></span><span class="ml">Renommer</span><kbd>Entrée</kbd></div>
+          <div class="sep"></div>
+          <div class="tagrow"><span class="tg" style="background:#f5524f"></span><span class="tg" style="background:#f7822b"></span><span class="tg" style="background:#f0b82a"></span><span class="tg" style="background:#3fbf5a"></span><span class="tg" style="background:#2f7df4"></span><span class="tg" style="background:#a550a7"></span><span class="tg" style="background:#8e8e93"></span></div>
+          <div class="sep"></div>
+          <div class="mi hot"><span class="ck"></span><span class="ml">Plus d’options…</span><span class="sa"><svg class="fi" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+        </div>
+        <div class="wf-menu win11 m2">
+          <div class="mh">Menu Windows</div>
+          <div class="mi"><svg class="fi" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="ml">Ouvrir avec</span></div>
+          <div class="mi hot"><svg class="fi" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg><span class="ml">7-Zip</span></div>
+          <div class="mi"><svg class="fi" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 4-6 3-12 7"/></svg><span class="ml">Git Bash Here</span></div>
+          <div class="mi"><svg class="fi" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg><span class="ml">Envoyer vers</span></div>
+          <div class="sep"></div>
+          <div class="mi"><svg class="fi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span class="ml">Propriétés</span><kbd>Alt+Entrée</kbd></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="shortcuts" aria-labelledby="s-h" style="padding-top:0">
+    <div class="wrap">
+      <div class="sh rv">
+        <p class="eyebrow"><span>05</span>Au clavier</p>
+        <h2 id="s-h">Des raccourcis que vos doigts <em>connaissent déjà</em>.</h2>
+        <p class="lead">Les raccourcis du Finder, avec Ctrl à la place de ⌘. Vous en oubliez un ? La palette de commandes les liste tous.</p>
+      </div>
+      <div class="keys rv" id="keys">
+        <div class="key" data-k="space">Aperçu rapide <span><kbd>Espace</kbd></span></div>
+        <div class="key" data-k="ctrl+i">Lire les informations <span><kbd>Ctrl</kbd><kbd>I</kbd></span></div>
+        <div class="key" data-k="ctrl+1 ctrl+2 ctrl+3 ctrl+4">Changer de présentation <span><kbd>Ctrl</kbd><kbd>1</kbd>–<kbd>4</kbd></span></div>
+        <div class="key" data-k="enter f2">Renommer <span><kbd>Entrée</kbd><kbd>F2</kbd></span></div>
+        <div class="key" data-k="ctrl+shift+g">Aller au dossier <span><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>G</kbd></span></div>
+        <div class="key" data-k="ctrl+shift+p">Palette de commandes <span><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>P</kbd></span></div>
+        <div class="key" data-k="ctrl+t">Nouvel onglet <span><kbd>Ctrl</kbd><kbd>T</kbd></span></div>
+        <div class="key" data-k="ctrl+shift+t">Rouvrir l’onglet fermé <span><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>T</kbd></span></div>
+        <div class="key" data-k="delete">Placer dans la corbeille <span><kbd>Suppr</kbd></span></div>
+        <div class="key" data-k="ctrl+z">Annuler <span><kbd>Ctrl</kbd><kbd>Z</kbd></span></div>
+        <div class="key" data-k="ctrl+k">Se connecter au serveur <span><kbd>Ctrl</kbd><kbd>K</kbd></span></div>
+        <div class="key" data-k="ctrl+,">Réglages <span><kbd>Ctrl</kbd><kbd>,</kbd></span></div>
+      </div>
+      <p class="keys-note">Appuyez sur l’une de ces touches tant que cette section est à l’écran.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="compare" aria-labelledby="c-h" style="padding-top:0">
+    <div class="wrap">
+      <div class="sh rv">
+        <p class="eyebrow"><span>06</span>Comparatif honnête</p>
+        <h2 id="c-h">Windows Finder, Explorateur de fichiers ou Files ?</h2>
+        <p class="lead">L’Explorateur et Files sont de bonnes apps. Windows Finder s’adresse à ceux qui veulent le design et les habitudes du Finder sur Windows.</p>
+      </div>
+      <div class="tbl rv">
         <table class="cmp">
-          <thead><tr><th scope="col">Fonction</th><th scope="col" class="us">Windows Finder</th><th scope="col">Explorateur</th><th scope="col">Files</th></tr></thead>
+          <caption class="sr">Comparaison des fonctions de Windows Finder, de l’Explorateur de fichiers et de Files</caption>
+          <thead><tr><th scope="col" style="text-align:left">Fonction</th><th scope="col" class="us">Windows Finder</th><th scope="col">Explorateur de fichiers</th><th scope="col">Files</th></tr></thead>
           <tbody>
-            <tr><td>Look &amp; feel du Finder macOS</td><td class="y">✓</td><td class="n">–</td><td class="n">–</td></tr>
-            <tr><td>Vue colonnes</td><td class="y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
-            <tr><td>Vue galerie avec miniatures</td><td class="y">✓</td><td class="p">partiel</td><td class="p">partiel</td></tr>
-            <tr><td>Aperçu type Aperçu rapide</td><td class="y">✓</td><td class="p">volet</td><td class="y">✓</td></tr>
-            <tr><td>Onglets</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
-            <tr><td>Étiquettes de couleur</td><td class="y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
-            <tr><td>Palette de commandes</td><td class="y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
-            <tr><td>Menu natif des extensions du shell</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
-            <tr><td>Vue mémorisée par dossier</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
-            <tr><td>Open source</td><td class="y">MIT</td><td class="n">–</td><td class="y">MIT</td></tr>
+            <tr><th scope="row">Design du Finder de macOS</th><td class="us y">✓</td><td class="n">–</td><td class="n">–</td></tr>
+            <tr><th scope="row">Vue en colonnes</th><td class="us y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
+            <tr><th scope="row">Galerie avec pellicule</th><td class="us y">✓</td><td class="p">partiel</td><td class="p">partiel</td></tr>
+            <tr><th scope="row">Aperçu rapide avec la barre d’espace</th><td class="us y">✓</td><td class="p">volet d’aperçu</td><td class="y">✓</td></tr>
+            <tr><th scope="row">Étiquettes de couleur</th><td class="us y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
+            <tr><th scope="row">Palette de commandes</th><td class="us y">✓</td><td class="n">–</td><td class="y">✓</td></tr>
+            <tr><th scope="row">Onglets</th><td class="us y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+            <tr><th scope="row">Menu natif des extensions du shell</th><td class="us y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+            <tr><th scope="row">Open source</th><td class="us y">MIT</td><td class="n">–</td><td class="y">MIT</td></tr>
           </tbody>
         </table>
       </div>
+      <p class="foot-n">D’après nos propres essais de l’Explorateur de fichiers (Windows 11) et de Files. Une erreur ? <a href="https://github.com/EvanPluchart/windows-finder/issues">Ouvrez un ticket</a>.</p>
     </div>
   </section>
 
-  <section class="band" id="install" aria-labelledby="i-h">
-    <div class="wrap split">
-      <div class="sec-head" style="margin:0">
-        <p class="eyebrow">Installer</p>
-        <h2 id="i-h">Téléchargez, double-cliquez, c'est prêt.</h2>
-        <p class="lead">Windows 10 ou 11, 64 bits. Pas besoin des droits administrateur, rien d'autre à installer.</p>
-        <ol class="steps" style="padding:0;margin:8px 0 0">
-          <li><span>Téléchargez l'installeur.</span></li>
-          <li><span>Lancez-le. Si Windows SmartScreen vous avertit (l'app n'est pas encore signée), choisissez <em>Informations complémentaires</em>, puis <em>Exécuter quand même</em>.</span></li>
-          <li><span>Ouvrez <em>Windows Finder</em> depuis le menu Démarrer. <span class="kbd">Ctrl</span>+<span class="kbd">,</span> ouvre les réglages.</span></li>
-        </ol>
-        <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe">Télécharger pour Windows</a><a class="btn" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-windows-x64-portable.zip">Version portable .zip</a></div>
+  <section class="sec" id="tech" aria-labelledby="t-h" style="padding-top:0">
+    <div class="wrap">
+      <div class="sh rv">
+        <p class="eyebrow"><span>07</span>Sous le capot</p>
+        <h2 id="t-h">Rapide, parce que <em>natif</em>.</h2>
+        <p class="lead">L’interface est dessinée par la carte graphique avec GPUI, le framework de l’éditeur Zed. Accès disque, recherche et aperçus tournent hors du fil de l’interface : le défilement reste fluide même dans d’énormes dossiers. Disposition, couleurs et comportements ont été mesurés sur le vrai Finder ; les notes d’étude sont dans le dépôt.</p>
       </div>
-<pre><code># ou compilez-le vous-même (Rust + outils de build C++ de Visual Studio)
+      <div class="tech rv">
+        <div class="stat"><b data-count="12" data-prefix="~" data-suffix="k">~12k</b><span>lignes de Rust</span></div>
+        <div class="stat"><b data-count="4">4</b><span>présentations, retenues par dossier</span></div>
+        <div class="stat"><b data-count="4">4</b><span>langues : EN, FR, ES, DE</span></div>
+        <div class="stat"><b>0</b><span>traceur ou télémétrie</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="download" aria-labelledby="d-h" style="padding-top:0">
+    <div class="wrap" id="install">
+      <div class="dl-card rv">
+        <div>
+          <picture><source srcset="../assets/logo-256.webp" type="image/webp"><img class="dl-logo" src="../assets/logo-128.png" width="96" height="96" alt="" loading="lazy"></picture>
+          <h2 id="d-h">Téléchargez Windows Finder.</h2>
+          <p class="lead">Gratuit, pour Windows 10 et 11, 64 bits. S’installe pour votre utilisateur seulement, sans droits administrateur, avec un programme de désinstallation.</p>
+          <div class="cta">
+            <a class="btn btn-p lg" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe"><svg class="i"><use href="#i-dl"/></svg>Télécharger l’installateur</a>
+            <a class="btn lg" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-windows-x64-portable.zip">Version portable .zip</a>
+          </div>
+          <p class="dl-meta">Version 0.1.1, alpha · licence MIT · <a href="https://github.com/EvanPluchart/windows-finder/releases" style="text-decoration:underline">Notes de version</a></p>
+        </div>
+        <div>
+          <ol class="steps">
+            <li><span><b>Téléchargez l’installateur.</b> Ou le .zip portable si vous préférez ne rien installer.</span></li>
+            <li><span><b>Lancez-le.</b> Si SmartScreen s’affiche (l’app n’est pas encore signée), cliquez sur <em>Informations complémentaires</em>, puis <em>Exécuter quand même</em>.</span></li>
+            <li><span><b>Ouvrez Windows Finder</b> depuis le menu Démarrer. <kbd>Ctrl</kbd> <kbd>,</kbd> ouvre les réglages.</span></li>
+          </ol>
+          <dl class="glance">
+            <dt>Système</dt><dd>Windows 10 ou 11, 64 bits</dd>
+            <dt>Installation</dt><dd>Par utilisateur, sans droits administrateur</dd>
+            <dt>Vie privée</dt><dd>Sans compte, rien n’est envoyé sur le réseau</dd>
+            <dt>Langues</dt><dd>English, Français, Español, Deutsch</dd>
+          </dl>
+          <div class="code">
+            <button class="copy" type="button">Copier</button>
+<pre><code><span class="c"># Ou compilez-le (Rust + outils C++ de Visual Studio)</span>
 git clone https://github.com/EvanPluchart/windows-finder.git
 cd windows-finder
 cargo build --release
-.	argeteleaseWindowsFinder.exe</code></pre>
-    </div>
-  </section>
-
-  <section aria-labelledby="how-h">
-    <div class="wrap split">
-      <div class="sec-head" style="margin:0">
-        <p class="eyebrow">Sous le capot</p>
-        <h2 id="how-h">Rust, dessiné par le GPU, rétro-ingénierie.</h2>
-        <p class="lead">L'interface est dessinée par le GPU avec GPUI. Disque, recherche et aperçus tournent hors du thread d'interface. Géométrie, couleurs et comportement viennent de mesures du vrai Finder ; les fonctions ont été recoupées avec l'Explorateur et Files grâce à la boîte à outils de rétro-ingénierie REA. Les rapports sont dans le dépôt.</p>
-      </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr">
-        <div class="card"><h3>~11k</h3><p>lignes de Rust</p></div>
-        <div class="card"><h3>4</h3><p>langues</p></div>
-        <div class="card"><h3>MIT</h3><p>licence</p></div>
-        <div class="card"><h3>0</h3><p>télémétrie</p></div>
+.\target\release\WindowsFinder.exe</code></pre>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="band" id="faq" aria-labelledby="q-h">
-    <div class="wrap" style="max-width:820px">
-      <div class="sec-head"><p class="eyebrow">FAQ</p><h2 id="q-h">Les questions fréquentes.</h2></div>
-      <details><summary>Existe-t-il un Finder pour Windows ?</summary><p>Oui, le voici. Windows Finder est un gestionnaire de fichiers gratuit et open source pour Windows 10 et 11 qui recrée le Finder de macOS : même disposition de fenêtre, vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et « Lire les informations ».</p></details>
-      <details><summary>Peut-on avoir le Finder de macOS sur Windows 11 ?</summary><p>macOS ne tourne pas sur Windows, mais Windows Finder vous offre un gestionnaire façon Finder qui fonctionne sur vos vrais fichiers, disques, OneDrive, distributions WSL et la Corbeille.</p></details>
-      <details><summary>Windows Finder est-il gratuit ?</summary><p>Oui. Il est publié sous licence MIT. Utilisez-le, modifiez-le et contribuez sur GitHub.</p></details>
-      <details><summary>Remplace-t-il l'Explorateur de fichiers ?</summary><p>Seulement si vous le voulez. Un réglage facultatif, propre à votre profil, en fait le gestionnaire de dossiers par défaut et s'annule en un clic. L'Explorateur reste sur votre PC et Win+E continue de fonctionner. « Plus d'options… » affiche même le menu natif de l'Explorateur avec toutes vos extensions du shell.</p></details>
-      <details><summary>Peut-on l'utiliser sans risque sur ses fichiers ?</summary><p>Supprimer envoie les fichiers à la Corbeille, les actions irréversibles demandent confirmation et rien n'est envoyé sur le réseau. Les modifications du registre (uniquement à votre demande) restent dans votre profil utilisateur.</p></details>
-      <details><summary>Est-il affilié à Apple ?</summary><p>Non. C'est un projet open source indépendant inspiré du Finder de macOS. Finder et macOS sont des marques d'Apple Inc.</p></details>
+  <section class="sec" id="faq" aria-labelledby="q-h" style="padding-top:0">
+    <div class="wrap">
+      <div class="sh center rv"><p class="eyebrow"><span>08</span>FAQ</p><h2 id="q-h">Les questions qu’on nous pose.</h2></div>
+      <div class="faq rv">
+        <details><summary>Existe-t-il un Finder pour Windows ?</summary><p>Oui, le voici. Windows Finder est un gestionnaire de fichiers gratuit et open source pour Windows 10 et 11 qui reprend le Finder de macOS : même disposition de fenêtre, vues icônes, liste, colonnes et galerie, onglets, Aperçu rapide, étiquettes et Lire les informations.</p></details>
+        <details><summary>Peut-on avoir le Finder de macOS sur Windows 11 ?</summary><p>macOS ne tourne pas sur Windows, mais Windows Finder vous donne un gestionnaire de fichiers façon Finder qui fonctionne sur vos vrais fichiers Windows, disques, OneDrive, distributions WSL et Corbeille.</p></details>
+        <details><summary>Comment avoir la vue en colonnes sur Windows ?</summary><p>L’Explorateur de fichiers n’a pas de vue en colonnes. Installez Windows Finder et appuyez sur <kbd>Ctrl</kbd> <kbd>3</kbd> dans n’importe quel dossier pour le parcourir en colonnes, avec un aperçu du fichier sélectionné dans la dernière colonne.</p></details>
+        <details><summary>Existe-t-il un Aperçu rapide (Quick Look) pour Windows ?</summary><p>Oui. Dans Windows Finder, sélectionnez un fichier et appuyez sur <kbd>Espace</kbd> pour prévisualiser images, texte, CSV, PDF et vidéo, sans ouvrir d’autre app. Les fichiers texte et CSV se modifient directement dans l’aperçu.</p></details>
+        <details><summary>Windows Finder est-il gratuit ?</summary><p>Oui. Il est gratuit et publié sous licence MIT. Pas de publicité, pas de compte, pas de télémétrie.</p></details>
+        <details><summary>Remplace-t-il l’Explorateur de fichiers ?</summary><p>Seulement si vous le voulez. Un réglage facultatif, par utilisateur, en fait le gestionnaire de dossiers par défaut et s’annule en un clic. L’Explorateur reste sur votre PC et Win+E fonctionne toujours.</p></details>
+        <details><summary>Pourquoi SmartScreen affiche-t-il un avertissement ?</summary><p>L’installateur n’est pas encore signé, SmartScreen ne le reconnaît donc pas. Cliquez sur <em>Informations complémentaires</em>, puis <em>Exécuter quand même</em>. Le code source et les versions publiées sont publics sur GitHub.</p></details>
+        <details><summary>Est-ce sûr pour mes fichiers ?</summary><p>Supprimer envoie à la Corbeille, les actions irréversibles demandent confirmation, et rien n’est envoyé sur le réseau. Les modifications du registre (seulement si vous les demandez) restent dans votre profil utilisateur.</p></details>
+        <details><summary>Est-ce affilié à Apple ?</summary><p>Non. C’est un projet open source indépendant inspiré du Finder de macOS. Finder et macOS sont des marques d’Apple Inc.</p></details>
+      </div>
     </div>
   </section>
 
-  <section aria-labelledby="end-h">
-    <div class="wrap final">
-      <h2 id="end-h">Faites de Windows un chez-vous.</h2>
-      <p class="lead">Mettez une étoile, essayez-le et proposez une pull request. Traductions et idées bienvenues.</p>
-      <div class="cta"><a class="btn primary" href="https://github.com/EvanPluchart/windows-finder">Ouvrir GitHub</a><a class="btn" href="https://github.com/EvanPluchart/windows-finder/blob/main/CONTRIBUTING.md">Comment contribuer</a></div>
+  <section class="final" aria-labelledby="end-h">
+    <div class="wrap rv">
+      <picture><source srcset="../assets/logo-256.webp" type="image/webp"><img src="../assets/logo-256.png" width="150" height="150" alt="" loading="lazy"></picture>
+      <h2 id="end-h">Sentez-vous <em>chez vous</em> sur Windows.</h2>
+      <p class="lead">Installez-le, essayez la vue en colonnes et l’Aperçu rapide pendant une journée, et voyez si vous revenez en arrière.</p>
+      <div class="cta">
+        <a class="btn btn-p lg" href="https://github.com/EvanPluchart/windows-finder/releases/latest/download/WindowsFinder-Setup.exe"><svg class="i"><use href="#i-dl"/></svg>Télécharger pour Windows</a>
+        <a class="btn lg" href="https://github.com/EvanPluchart/windows-finder"><svg class="i"><use href="#i-gh"/></svg>Une étoile sur GitHub</a>
+      </div>
     </div>
   </section>
 </main>
 
-<footer>
+<footer class="ft">
   <div class="wrap">
-    <div><strong>Windows Finder</strong> : le Finder de macOS pour Windows. Licence MIT © 2026 Evan Pluchart.</div>
-    <div>Windows Finder est un projet indépendant, non affilié à Apple Inc. ni approuvé par elle. Finder et macOS sont des marques d'Apple Inc. Windows est une marque de Microsoft Corporation.</div>
-    <div><a href="https://github.com/EvanPluchart/windows-finder">GitHub</a> · <a href="../">English</a> · <a href="https://github.com/EvanPluchart/windows-finder/blob/main/CODE_OF_CONDUCT.md">Code de conduite</a></div>
+    <div class="ft-top">
+      <a class="brand" href="#top"><img src="../assets/logo-128.webp" width="32" height="32" alt="" loading="lazy"><span>Windows Finder</span></a>
+      <nav aria-label="Pied de page">
+        <a href="https://github.com/EvanPluchart/windows-finder">GitHub</a>
+        <a href="https://github.com/EvanPluchart/windows-finder/releases">Versions</a>
+        <a href="https://github.com/EvanPluchart/windows-finder/blob/main/CHANGELOG.md">Journal des modifications</a>
+        <a href="https://github.com/EvanPluchart/windows-finder/blob/main/CONTRIBUTING.md">Contribuer</a>
+        <a href="https://github.com/EvanPluchart/windows-finder/blob/main/CODE_OF_CONDUCT.md">Code de conduite</a>
+        <a href="../" hreflang="en" lang="en">English</a>
+      </nav>
+    </div>
+    <p class="ft-word" aria-hidden="true">Windows <em>Finder</em></p>
+    <p class="legal">Licence MIT © 2026 Evan Pluchart. Windows Finder est un projet indépendant, ni affilié ni approuvé par Apple Inc. Finder et macOS sont des marques d’Apple Inc. Windows est une marque de Microsoft Corporation. La démo ci-dessus tourne entièrement dans votre navigateur, avec des fichiers d’exemple.</p>
   </div>
 </footer>
-<script>window.WF_LABELS={name:"Nom",date:"Date de modification",size:"Taille",kind:"Type",folder:"Dossier",items:"1 sur 8 sélectionné, 295 Go disponibles",preview:"Aperçu"};</script>
-<script src="../assets/app.js"></script>
+<script src="../assets/fs.js" defer></script>
+<script src="../assets/finder.js" defer></script>
+<script src="../assets/site.js" defer></script>
 </body>
 </html>

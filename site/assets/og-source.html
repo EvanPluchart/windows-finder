@@ -1,14 +1,30 @@
-<!doctype html><meta charset="utf-8"><style>
-html,body{margin:0;width:1200px;height:630px;overflow:hidden;font-family:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif}
-body{background:radial-gradient(70% 90% at 15% 10%,#2b6cff 0%,#101a3a 55%,#0b0d14 100%);color:#fff;display:grid;grid-template-columns:1fr 520px;align-items:center;padding:0 70px;gap:30px;box-sizing:border-box}
-h1{font-size:76px;line-height:1.02;letter-spacing:-.04em;margin:0 0 22px;font-weight:800}
-h1 em{font-style:normal;background:linear-gradient(100deg,#7fc0ff,#b79bff 60%,#ff8cc4);-webkit-background-clip:text;color:transparent}
-p{font-size:28px;color:#c4cbe0;margin:0;line-height:1.35}
-.b{display:flex;gap:12px;margin-top:28px;font-size:20px}.b span{border:1px solid #ffffff44;border-radius:99px;padding:6px 16px;color:#e8ecfa}
-.w{background:#1f2024;border-radius:20px;box-shadow:0 40px 90px -20px #000a;border:1px solid #ffffff22;height:360px;display:grid;grid-template-columns:130px 1fr;overflow:hidden}
-.s{background:#26272b;padding:18px 14px;border-right:1px solid #ffffff18}.s i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:7px}
-.s div{height:12px;border-radius:6px;background:#ffffff1f;margin-top:16px}.s div:nth-child(5){width:70%}
-.m{padding:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-content:start}
-.f{height:78px;border-radius:12px;background:linear-gradient(#6cc3ff,#3aa5f7)}.f.d{background:#ffffff22;height:78px}
-</style><body><div><h1>The macOS Finder,<br><em>for Windows.</em></h1><p>Free, open source file manager<br>written in Rust.</p><div class="b"><span>Windows 10 &amp; 11</span><span>MIT</span><span>EN · FR · ES · DE</span></div></div>
-<div class="w"><div class="s"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div></div><div></div><div></div><div></div><div></div></div><div class="m"><div class="f"></div><div class="f"></div><div class="f"></div><div class="f d"></div><div class="f d"></div><div class="f d"></div><div class="f"></div><div class="f d"></div></div></div></body>
+<!doctype html><meta charset="utf-8"><title>og</title><style>
+@font-face{font-family:"Inter var";src:url(fonts/inter-var.woff2) format("woff2");font-weight:100 900}
+@font-face{font-family:"Instrument Serif";src:url(fonts/instrument-serif-italic.woff2) format("woff2");font-style:italic}
+html,body{margin:0;width:1200px;height:630px;overflow:hidden}
+body{font-family:"Inter var",system-ui,sans-serif;color:#0a0c10;background:#f5f6f8;position:relative}
+.b{position:absolute;border-radius:50%;filter:blur(80px)}
+.b1{width:620px;height:620px;left:-160px;top:-260px;background:#5ac8ff;opacity:.6}
+.b2{width:560px;height:560px;right:-120px;top:-200px;background:#5a7bff;opacity:.5}
+.g{position:absolute;inset:0;background-image:linear-gradient(rgba(12,16,24,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(12,16,24,.06) 1px,transparent 1px);background-size:60px 60px;-webkit-mask-image:radial-gradient(70% 70% at 30% 30%,#000,transparent 80%)}
+.t{position:absolute;left:70px;top:62px;width:600px}
+.logo{width:100px;height:100px;filter:drop-shadow(0 18px 26px rgba(0,70,200,.35));margin-bottom:26px}
+h1{margin:0;font-size:70px;line-height:.95;letter-spacing:-.05em;font-weight:680}
+h1 em{font-family:"Instrument Serif",serif;font-weight:400;letter-spacing:-.02em;background:linear-gradient(100deg,#2f7df4,#7c5cff 55%,#ff5fa2);-webkit-background-clip:text;color:transparent}
+p{margin:20px 0 0;font-size:24px;max-width:640px;white-space:nowrap;color:#4a5160;letter-spacing:-.01em}
+.w{position:absolute;right:-80px;top:150px;width:500px;height:390px;border-radius:22px;padding:28px;background:linear-gradient(160deg,#3d9bff,#1f4fe0 60%,#132a8a);box-shadow:0 40px 90px -30px rgba(10,30,80,.6)}
+.win{display:grid;grid-template-columns:130px 1fr;height:100%;border-radius:14px;overflow:hidden;box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 20px 40px -10px rgba(0,0,0,.4)}
+.s{background:rgba(236,236,238,.85);padding:16px 12px}.s i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px}
+.s div{height:10px;border-radius:5px;background:#cfd3da;margin-top:15px}.s div:nth-child(5){background:#2f7df4;width:80%}
+.m{background:#fff;padding:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px 12px;align-content:start}
+.m img{width:76px;height:76px;margin:0 auto}
+.m span{display:block;height:8px;width:60%;margin:8px auto 0;border-radius:4px;background:#d7dbe2}
+.m .sel span{background:#0064e1}
+.pill{position:absolute;left:70px;bottom:58px;display:flex;gap:10px;font-size:19px;font-weight:560;color:#4a5160}
+.pill span{padding:7px 16px;border-radius:99px;background:rgba(255,255,255,.75);border:1px solid rgba(12,16,24,.1)}
+</style><body><i class="b b1"></i><i class="b b2"></i><div class="g"></div>
+<div class="t"><img class="logo" src="logo-256.webp" alt=""><h1>The Mac Finder,<br><em>finally</em> on Windows.</h1><p>Free, open source file manager for Windows 10 &amp; 11.</p></div>
+<div class="w"><div class="win"><div class="s"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div></div><div></div><div></div><div></div><div></div><div></div></div>
+<div class="m"><div><img src="icons/DocumentsFolderIcon.png" alt=""><span></span></div><div class="sel"><img src="icons/PicturesFolderIcon.png" alt=""><span></span></div><div><img src="icons/DownloadsFolder.png" alt=""><span></span></div><div><img src="icons/GenericFolderIcon.png" alt=""><span></span></div><div><img src="icons/MusicFolderIcon.png" alt=""><span></span></div><div><img src="icons/MovieFolderIcon.png" alt=""><span></span></div></div></div></div>
+<div class="pill"><span>Column view</span><span>Quick Look</span><span>Tabs &amp; tags</span><span>MIT</span></div>
+</body>

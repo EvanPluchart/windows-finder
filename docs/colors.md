@@ -12,5 +12,5 @@ Rayons : fenetre ~15 pt | ligne de liste selectionnee ~8 pt (marges laterales ~6
 Police : SF Pro (non disponible sous Windows : utiliser Segoe UI Variable en attendant). 13 pt lignes et barre laterale, 11 pt en-tetes/secondaire,
 titre info galerie 15-16 pt semi-gras, titre Quick Look 13 pt gras, barre d'etat 11 pt (suppose).
 
-Icones de dossiers : PNG macOS (CoreTypes.bundle) dans assets/macicons/ - usage personnel uniquement, a remplacer par un jeu libre (Lucide/Tabler) avant toute distribution.
-Symboles de la barre laterale et de la barre d'outils : SF Symbols en PNG (assets/sf/), meme restriction d'usage (perso uniquement).
+Icones de dossiers : jeu libre dans assets/open/macicons (dessine pour le projet) ; jeu Apple (CoreTypes) dans assets/apple/macicons, usage personnel uniquement (feature `apple-assets`, voir assets/NOTICE.md).
+Symboles de la barre laterale et de la barre d'outils : Lucide (ISC) dans assets/open/sf ; SF Symbols dans assets/apple/sf, usage personnel uniquement.

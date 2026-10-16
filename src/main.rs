@@ -1,4 +1,10 @@
-﻿mod csvview;
+// Jeu d'icones : "apple" (usage personnel, feature par defaut) ou "open" (libre, assets/open).
+#[cfg(feature = "apple-assets")]
+macro_rules! asset_set { () => { "apple" }; }
+#[cfg(not(feature = "apple-assets"))]
+macro_rules! asset_set { () => { "open" }; }
+
+mod csvview;
 mod apps;
 mod i18n;
 mod extras;

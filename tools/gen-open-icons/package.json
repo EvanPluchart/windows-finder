@@ -1,0 +1,13 @@
+{
+  "name": "gen-open-icons",
+  "private": true,
+  "description": "Generates the open icon set (assets/open) from Lucide (ISC) glyphs and hand-drawn folders",
+  "scripts": {
+    "gen": "node gen.mjs"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "lucide-static": "0.468.0",
+    "pngjs": "^7.0.0"
+  }
+}

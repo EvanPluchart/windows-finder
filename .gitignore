@@ -1,2 +1,4 @@
 ﻿target/
 reference/
+
+tools/**/node_modules/

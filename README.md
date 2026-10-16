@@ -25,7 +25,7 @@ Windows File Explorer is capable, but if you live on a Mac (or just prefer the F
 
 **Navigation** — Tabs (reopen closed tab, tab overview), sidebar with Favorites / Locations / Tags, pinnable folders, path bar, *Go to Folder* (`Ctrl+Shift+G`), *Connect to Server* (`Ctrl+K`), spring-loaded folders, back/forward including mouse buttons.
 
-**Look & feel** — Traffic-light buttons, unified toolbar, translucent-style panels, rounded window, light **and** dark mode that follow Windows, accent colours, SF-style symbols.
+**Look & feel** — Traffic-light buttons, unified toolbar, translucent-style panels, rounded window, light **and** dark mode that follow Windows, accent colours, a built-in open icon set.
 
 **Files** — Copy / cut / paste with conflict resolution and a progress sheet, undo / redo, in-app Recycle Bin with *Put Back*, bulk rename, tags (colour labels), aliases (shortcuts), ZIP / 7z / RAR / TAR extraction, drag and drop in and out (to Explorer too).
 
@@ -41,7 +41,9 @@ Windows File Explorer is capable, but if you live on a Mac (or just prefer the F
 
 ## Install
 
-There are no binary releases yet. Build it (about two minutes):
+**Download** the latest `WindowsFinder-…-windows-x64.zip` from the [Releases](https://github.com/EvanPluchart/windows-finder/releases) page, unzip it and run `WindowsFinder.exe`. No installer, nothing to build. (Windows may show a SmartScreen warning because the exe is not code-signed yet: *More info → Run anyway*.)
+
+**Build it yourself** (about two minutes):
 
 ```powershell
 # Requirements: Windows 10/11, Rust stable, Visual Studio Build Tools (C++ workload)

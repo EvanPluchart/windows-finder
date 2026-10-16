@@ -24,3 +24,8 @@ windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dw
 
 [build-dependencies]
 embed-resource = "3"
+
+[features]
+# Apple-derived artwork (assets/apple): personal use only, never in releases. Enable with --features apple-assets; the default build uses the open set in assets/open.
+default = []
+apple-assets = []

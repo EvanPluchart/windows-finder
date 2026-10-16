@@ -145,13 +145,13 @@ fn shell_image(path: &Path, px: i32, thumbnail: bool) -> Option<Arc<RenderImage>
 // ---- Dossiers a la macOS (PNG du Finder, usage personnel) ----
 
 static FOLDER_PNGS: [(&str, &[u8]); 7] = [
-    ("generic", include_bytes!("../assets/macicons/GenericFolderIcon.png")),
-    ("Desktop", include_bytes!("../assets/macicons/DesktopFolderIcon.png")),
-    ("Documents", include_bytes!("../assets/macicons/DocumentsFolderIcon.png")),
-    ("Downloads", include_bytes!("../assets/macicons/DownloadsFolder.png")),
-    ("Videos", include_bytes!("../assets/macicons/MovieFolderIcon.png")),
-    ("Music", include_bytes!("../assets/macicons/MusicFolderIcon.png")),
-    ("Pictures", include_bytes!("../assets/macicons/PicturesFolderIcon.png")),
+    ("generic", include_bytes!(concat!("../assets/", asset_set!(), "/macicons/GenericFolderIcon.png"))),
+    ("Desktop", include_bytes!(concat!("../assets/", asset_set!(), "/macicons/DesktopFolderIcon.png"))),
+    ("Documents", include_bytes!(concat!("../assets/", asset_set!(), "/macicons/DocumentsFolderIcon.png"))),
+    ("Downloads", include_bytes!(concat!("../assets/", asset_set!(), "/macicons/DownloadsFolder.png"))),
+    ("Videos", include_bytes!(concat!("../assets/", asset_set!(), "/macicons/MovieFolderIcon.png"))),
+    ("Music", include_bytes!(concat!("../assets/", asset_set!(), "/macicons/MusicFolderIcon.png"))),
+    ("Pictures", include_bytes!(concat!("../assets/", asset_set!(), "/macicons/PicturesFolderIcon.png"))),
 ];
 
 /// Icone de dossier macOS pour `path` (dossier special du profil, sinon dossier generique) ; None si ce n'est pas un dossier.

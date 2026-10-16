@@ -9,7 +9,7 @@ use image::Frame;
 
 macro_rules! sf {
     ($($n:literal),* $(,)?) => {
-        &[$(($n, include_bytes!(concat!("../assets/sf/", $n, ".png")) as &[u8])),*]
+        &[$(($n, include_bytes!(concat!("../assets/", asset_set!(), "/sf/", $n, ".png")) as &[u8])),*]
     };
 }
 

@@ -69,7 +69,12 @@ pub unsafe fn context_menu(paths: &[PathBuf]) -> Option<IContextMenu> {
         return None;
     }
     let consts: Vec<*const ITEMIDLIST> = pidls.iter().map(|p| *p as *const ITEMIDLIST).collect();
-    let array: IShellItemArray = unsafe { SHCreateShellItemArrayFromIDLists(&consts) }.ok()?;
+    let array = unsafe { SHCreateShellItemArrayFromIDLists(&consts) };
+    // Le tableau copie les listes d'identifiants : on libere les notres dans tous les cas.
+    for p in pidls {
+        unsafe { windows::Win32::System::Com::CoTaskMemFree(Some(p as *const _)) };
+    }
+    let array: IShellItemArray = array.ok()?;
     unsafe { array.BindToHandler(None, &BHID_SFUIObject) }.ok()
 }
 

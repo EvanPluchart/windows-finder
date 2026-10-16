@@ -19,6 +19,7 @@ mod palette;
 mod editor;
 mod selection;
 mod prefs;
+mod ps;
 mod bulk;
 mod archive;
 mod settings;

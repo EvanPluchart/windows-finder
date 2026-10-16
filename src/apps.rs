@@ -155,12 +155,7 @@ pub fn drives() -> Vec<Entry> {
 /// Interroge PowerShell : a appeler hors du thread d'interface.
 pub fn find_uninstall(app: &str) -> Option<String> {
     let script = r#"$k='HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'; Get-ItemProperty $k -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -and $_.UninstallString } | ForEach-Object { "$($_.DisplayName)`t$($_.UninstallString)" }"#;
-    use std::os::windows::process::CommandExt;
-    let out = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", script])
-        .creation_flags(0x0800_0000)
-        .output()
-        .ok()?;
+    let out = crate::ps::command(script, &[]).output().ok()?;
     let text = String::from_utf8_lossy(&out.stdout).into_owned();
     let wanted = app.to_lowercase();
     let mut best: Option<(usize, String)> = None;
@@ -185,6 +180,6 @@ pub fn find_uninstall(app: &str) -> Option<String> {
 /// `cmd` cache (CREATE_NO_WINDOW) : seule la fenetre du desinstalleur apparait, pas de console.
 pub fn launch(cmd: &str) {
     use std::os::windows::process::CommandExt;
-    let _ = std::process::Command::new("cmd").arg("/C").raw_arg(format!("\"{cmd}\"")).creation_flags(0x0800_0000).spawn();
+    let _ = crate::ps::tool("cmd.exe").arg("/C").raw_arg(format!("\"{cmd}\"")).spawn();
 }
 

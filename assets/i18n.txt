@@ -342,3 +342,5 @@ Chargement… ::: Loading… ::: Cargando… ::: Wird geladen…
 Aucune option ::: No options ::: Sin opciones ::: Keine Optionen
 Ouvrir dans Windows Finder ::: Open in Windows Finder ::: Abrir en Windows Finder ::: In Windows Finder öffnen
 Windows Finder s'est arrêté à cause d'une erreur. ::: Windows Finder stopped because of an error. ::: Windows Finder se detuvo por un error. ::: Windows Finder wurde wegen eines Fehlers beendet.
+{0} élément(s) supprimé(s) définitivement ::: {0} item(s) permanently deleted ::: {0} elemento(s) eliminado(s) definitivamente ::: {0} Objekt(e) endgültig gelöscht
+« {0} » est un nom réservé par Windows ::: “{0}” is a name reserved by Windows ::: «{0}» es un nombre reservado por Windows ::: „{0}“ ist ein von Windows reservierter Name

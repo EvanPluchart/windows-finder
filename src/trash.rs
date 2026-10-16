@@ -11,10 +11,14 @@ use crate::{ops, Finder};
 
 pub const TRASH: &str = "::trash";
 
-/// Dossiers de corbeille accessibles a l'utilisateur (un par disque et par compte).
+/// Dossiers de corbeille accessibles a l'utilisateur (un par disque fixe et par compte). Les cles USB et
+/// partages n'ont pas de corbeille Windows : un $Recycle.Bin qui s'y trouve a ete fabrique ailleurs.
 fn bins() -> Vec<PathBuf> {
     let mut out = Vec::new();
     for letter in b'C'..=b'Z' {
+        if !ops::recyclable(Path::new(&format!("{}:\\", letter as char))) {
+            continue;
+        }
         let root = PathBuf::from(format!("{}:\\$Recycle.Bin", letter as char));
         let Ok(read) = std::fs::read_dir(&root) else { continue };
         for e in read.flatten() {
@@ -93,6 +97,15 @@ pub fn entries() -> Vec<Entry> {
 fn restore_one(content: &Path) -> Result<PathBuf, String> {
     let info_file = info_path(content).ok_or("element invalide")?;
     let info = read_info(&info_file).ok_or("informations illisibles")?;
+    // L'emplacement d'origine est ecrit dans le fichier $I : il doit etre absolu et sur le meme disque que la
+    // corbeille, sinon un $I fabrique pourrait faire ecrire un fichier n'importe ou (dossier Demarrage...).
+    let drive = |p: &Path| match p.components().next() {
+        Some(std::path::Component::Prefix(pre)) => Some(pre.as_os_str().to_ascii_uppercase()),
+        _ => None,
+    };
+    if !info.original.is_absolute() || drive(&info.original).is_none() || drive(&info.original) != drive(content) {
+        return Err("emplacement d'origine invalide".into());
+    }
     let dir = info.original.parent().ok_or("emplacement inconnu")?.to_path_buf();
     if !dir.exists() {
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;

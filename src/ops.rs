@@ -6,7 +6,8 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
 use windows::Win32::UI::Shell::{
-    FO_DELETE, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT, SHFILEOPSTRUCTW, SHFileOperationW,
+    FILEOPERATION_FLAGS, FO_DELETE, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT, FOF_WANTNUKEWARNING, SHFILEOPSTRUCTW,
+    SHFileOperationW,
 };
 use windows::core::PCWSTR;
 
@@ -74,8 +75,36 @@ pub fn move_path(src: &Path, dst: &Path) -> io::Result<()> {
     }
 }
 
-/// Envoie les elements a la corbeille Windows (restaurables), sans confirmation ni fenetre.
+/// Vrai si l'element peut aller dans la corbeille : disque fixe local. Cles USB, cartes memoire et partages
+/// reseau n'en ont pas, Windows y supprime definitivement.
+pub fn recyclable(p: &Path) -> bool {
+    use std::path::{Component, Prefix};
+    use windows::Win32::Storage::FileSystem::GetDriveTypeW;
+    let letter = match p.components().next() {
+        Some(Component::Prefix(pre)) => match pre.kind() {
+            Prefix::Disk(l) | Prefix::VerbatimDisk(l) => l,
+            _ => return false, // \\serveur\partage
+        },
+        _ => return false,
+    };
+    let root: Vec<u16> = format!("{}:\\", letter as char).encode_utf16().chain(std::iter::once(0)).collect();
+    // DRIVE_FIXED = 3
+    unsafe { GetDriveTypeW(PCWSTR(root.as_ptr())) == 3 }
+}
+
+/// Envoie les elements a la corbeille Windows (restaurables), sans confirmation ni fenetre. Si Windows doit
+/// supprimer definitivement (cle USB, reseau, element trop gros), il le demande d'abord (FOF_WANTNUKEWARNING).
 pub fn trash(paths: &[PathBuf]) -> Result<(), String> {
+    trash_with(paths, true)
+}
+
+/// Comme `trash`, sans l'avertissement de suppression definitive : pour l'element que l'utilisateur vient de
+/// choisir de remplacer.
+pub fn trash_replaced(path: &Path) -> Result<(), String> {
+    trash_with(&[path.to_path_buf()], false)
+}
+
+fn trash_with(paths: &[PathBuf], warn: bool) -> Result<(), String> {
     if paths.is_empty() {
         return Ok(());
     }
@@ -88,7 +117,7 @@ pub fn trash(paths: &[PathBuf]) -> Result<(), String> {
     let mut op = SHFILEOPSTRUCTW {
         wFunc: FO_DELETE,
         pFrom: PCWSTR(from.as_ptr()),
-        fFlags: (FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI).0 as _,
+        fFlags: (FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI | if warn { FOF_WANTNUKEWARNING } else { FILEOPERATION_FLAGS(0) }).0 as _,
         ..Default::default()
     };
     let code = unsafe { SHFileOperationW(&mut op) };
@@ -116,6 +145,13 @@ pub fn validate_name(name: &str) -> Result<(), String> {
     if name.ends_with('.') || name.ends_with(' ') {
         return Err(crate::i18n::t("Le nom ne peut pas finir par un point ou une espace").into());
     }
+    // Noms de peripheriques reserves par Windows, avec ou sans extension (« nul.txt » aussi).
+    let stem = name.split('.').next().unwrap_or("").trim_end().to_ascii_uppercase();
+    let reserved = matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
+        || ((stem.starts_with("COM") || stem.starts_with("LPT")) && stem.len() == 4 && stem.as_bytes()[3].is_ascii_digit() && stem.as_bytes()[3] != b'0');
+    if reserved {
+        return Err(crate::i18n::tf(crate::i18n::t("\u{ab} {0} \u{bb} est un nom r\u{e9}serv\u{e9} par Windows"), &[("0", stem)]));
+    }
     Ok(())
 }
 
@@ -134,4 +170,19 @@ pub fn rename(path: &Path, new_name: &str) -> Result<PathBuf, String> {
     std::fs::rename(path, &target).map_err(|e| crate::i18n::tf(crate::i18n::t("Renommage impossible : {e}"), &[("e", (e).to_string())]))?;
     crate::tags::rename_path(path, &target);
     Ok(target)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_name;
+
+    #[test]
+    fn reserved_device_names_are_refused() {
+        for bad in ["NUL", "con", "Aux.txt", "com1", "LPT9.log", "a/b", "x:y", "fin."] {
+            assert!(validate_name(bad).is_err(), "{bad} should be refused");
+        }
+        for ok in ["Console.txt", "COM0", "lpt10", "nul2", "Budget 2026.csv"] {
+            assert!(validate_name(ok).is_ok(), "{ok} should be allowed");
+        }
+    }
 }

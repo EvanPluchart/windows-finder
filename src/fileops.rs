@@ -130,12 +130,21 @@ impl Finder {
         }
         // Position a reselectionner apres la suppression : le premier element supprime.
         let first = self.marked.iter().next().copied().unwrap_or(0);
+        // Sans corbeille (cle USB, reseau), Windows supprime definitivement apres avoir demande : rien a annuler.
+        let recycled = paths.iter().all(|p| ops::recyclable(p));
         match ops::trash(&paths) {
             Ok(()) => {
-                self.record(crate::undo::Op::Trashed(paths.clone()));
+                if recycled {
+                    self.record(crate::undo::Op::Trashed(paths.clone()));
+                }
                 self.cancel_rename_silent();
                 self.refresh_after_delete(first, cx);
-                self.show_notice(crate::i18n::tf(crate::i18n::t("{0} \u{e9}l\u{e9}ment(s) d\u{e9}plac\u{e9}(s) dans la corbeille"), &[("0", (paths.len()).to_string())]), cx);
+                let msg = if recycled {
+                    crate::i18n::t("{0} \u{e9}l\u{e9}ment(s) d\u{e9}plac\u{e9}(s) dans la corbeille")
+                } else {
+                    crate::i18n::t("{0} \u{e9}l\u{e9}ment(s) supprim\u{e9}(s) d\u{e9}finitivement")
+                };
+                self.show_notice(crate::i18n::tf(msg, &[("0", (paths.len()).to_string())]), cx);
             }
             Err(e) => self.show_notice(e, cx),
         }

@@ -1,15 +1,12 @@
 //! Integration a Windows : gestionnaire de dossiers par defaut et entree du menu contextuel de l'Explorateur.
 //! Tout est ecrit sous HKEY_CURRENT_USER (aucun droit administrateur), et reversible.
 
-use std::os::windows::process::CommandExt;
-use std::process::Command;
-
 const DIR: &str = r"HKCU\Software\Classes\Directory\shell";
 const DRIVE: &str = r"HKCU\Software\Classes\Drive\shell";
 const BG: &str = r"HKCU\Software\Classes\Directory\Background\shell";
 
 fn reg(args: &[&str]) -> Option<String> {
-    let out = Command::new("reg").args(args).creation_flags(0x0800_0000).output().ok()?;
+    let out = crate::ps::tool("reg.exe").args(args).output().ok()?;
     out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 

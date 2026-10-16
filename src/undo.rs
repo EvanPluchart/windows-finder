@@ -25,21 +25,11 @@ fn name(p: &Path) -> String {
 
 /// Restaure des elements depuis la corbeille Windows (PowerShell, verbe "undelete").
 fn restore_from_bin(paths: &[PathBuf]) -> Result<(), String> {
-    use std::os::windows::process::CommandExt;
-    let list = paths.iter().map(|p| format!("'{}'", p.to_string_lossy().replace('\'', "''"))).collect::<Vec<_>>().join(",");
-    let script = format!(
-        "$t=@({list}); $sh=New-Object -ComObject Shell.Application; $rb=$sh.NameSpace(10); \
-         foreach($i in $rb.Items()){{ $n=$i.Name; $e=[IO.Path]::GetExtension($i.Path); if($e -and -not $n.EndsWith($e)){{$n+=$e}}; \
-         $o=Join-Path ($rb.GetDetailsOf($i,1)) $n; if($t -contains $o){{ $i.InvokeVerb('undelete') }} }}"
-    );
-    let out = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", &script])
-        .creation_flags(0x0800_0000)
-        .output()
-        .map_err(|e| e.to_string())?;
-    if !out.status.success() {
-        return Err(String::from_utf8_lossy(&out.stderr).lines().next().unwrap_or("erreur").to_string());
-    }
+    // Script fixe : les chemins arrivent par $env:WF_LIST (voir ps.rs).
+    const SCRIPT: &str = "$t=@($env:WF_LIST -split \"`n\"); $sh=New-Object -ComObject Shell.Application; $rb=$sh.NameSpace(10); \
+         foreach($i in $rb.Items()){ $n=$i.Name; $e=[IO.Path]::GetExtension($i.Path); if($e -and -not $n.EndsWith($e)){$n+=$e}; \
+         $o=Join-Path ($rb.GetDetailsOf($i,1)) $n; if($t -contains $o){ $i.InvokeVerb('undelete') } }";
+    crate::ps::run(SCRIPT, &[("WF_LIST", &crate::ps::list(paths))])?;
     // Verification : les elements sont revenus.
     if paths.iter().all(|p| p.exists()) { Ok(()) } else { Err("introuvable dans la corbeille".into()) }
 }

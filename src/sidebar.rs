@@ -390,13 +390,9 @@ pub fn drive_info(root: &Path) -> (String, bool) {
 impl Finder {
     /// Ejecte un disque amovible (verbe "Eject" du shell Windows).
     pub fn eject_drive(&mut self, root: PathBuf, cx: &mut Context<Self>) {
-        use std::os::windows::process::CommandExt;
-        let letter = root.to_string_lossy().chars().next().unwrap_or('E');
-        let script = format!("(New-Object -ComObject Shell.Application).Namespace(17).ParseName('{letter}:').InvokeVerb('Eject')");
-        let _ = std::process::Command::new("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
-            .creation_flags(0x0800_0000)
-            .spawn();
+        let letter = root.to_string_lossy().chars().next().filter(char::is_ascii_alphabetic).unwrap_or('E');
+        let drive = std::ffi::OsString::from(format!("{letter}:"));
+        let _ = crate::ps::command("(New-Object -ComObject Shell.Application).Namespace(17).ParseName($env:WF_DRIVE).InvokeVerb('Eject')", &[("WF_DRIVE", &drive)]).spawn();
         self.show_notice(crate::i18n::tf(crate::i18n::t("\u{c9}jection du disque {letter}: demand\u{e9}e"), &[("letter", (letter).to_string())]), cx);
         // La liste des disques est relue peu apres.
         self.places = default_places();

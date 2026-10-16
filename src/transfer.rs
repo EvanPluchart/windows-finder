@@ -360,7 +360,7 @@ impl Finder {
 /// Une operation sur un element, dans un thread de fond. `replace` : l'ancien element va d'abord a la corbeille.
 fn run_one(src: &Path, target: &Path, mode: Mode, replace: bool) -> Result<(), String> {
     if replace && target.exists() {
-        ops::trash(&[target.to_path_buf()])?;
+        ops::trash_replaced(target)?;
     }
     match mode {
         Mode::Copy => ops::copy_recursive(src, target).map_err(|e| e.to_string()),

@@ -1,7 +1,6 @@
 //! Fonctions ajoutees apres l'analyse de l'Explorateur Windows et de Files (docs/research) :
 //! terminal, fond d'ecran, rotation d'images, execution en administrateur, elements epingles, onglets fermes.
 
-use std::os::windows::ffi::OsStrExt;
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -17,20 +16,53 @@ const NO_WINDOW: u32 = 0x0800_0000;
 /// `&`, `^` ou `%` n'est jamais interprete comme une commande. Verbe nul = action par defaut du type
 /// (pas forcement « open »). Sans application associee, on propose « Ouvrir avec… » comme l'Explorateur.
 pub fn shell_open(path: &Path) {
+    shell_execute(path, None);
+}
+
+/// Lance un programme en administrateur (invite UAC de Windows), sans passer par un script.
+pub fn shell_run_as_admin(path: &Path) {
+    shell_execute(path, Some("runas"));
+}
+
+fn shell_execute(path: &Path, verb: Option<&'static str>) {
     let path = path.to_path_buf();
     std::thread::spawn(move || unsafe {
         use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE, CoInitializeEx};
         use windows::Win32::UI::Shell::ShellExecuteW;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-        use windows::core::PCWSTR;
+        use windows::core::{HSTRING, PCWSTR};
         let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-        let wide: Vec<u16> = path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
-        let h = ShellExecuteW(None, PCWSTR::null(), PCWSTR(wide.as_ptr()), PCWSTR::null(), PCWSTR::null(), SW_SHOWNORMAL);
-        // Valeur <= 32 : echec (SE_ERR_NOASSOC, ...).
-        if h.0 as isize <= 32 {
-            let _ = std::process::Command::new("rundll32.exe").arg("shell32.dll,OpenAs_RunDLL").arg(&path).spawn();
+        let file = path.as_os_str().encode_wide_null();
+        let verb_w = verb.map(HSTRING::from);
+        let verb_p = verb_w.as_ref().map(|v| PCWSTR(v.as_ptr())).unwrap_or(PCWSTR::null());
+        let h = ShellExecuteW(None, verb_p, PCWSTR(file.as_ptr()), PCWSTR::null(), PCWSTR::null(), SW_SHOWNORMAL);
+        // Valeur <= 32 : echec (SE_ERR_NOASSOC : aucune application associee...). UAC refusee : rien a faire.
+        if h.0 as isize <= 32 && verb.is_none() {
+            open_with_dialog_now(&path);
         }
     });
+}
+
+/// Boite « Ouvrir avec » de Windows pour un fichier.
+pub fn open_with_dialog(path: &Path) {
+    let path = path.to_path_buf();
+    std::thread::spawn(move || {
+        unsafe {
+            use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
+            let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+        }
+        open_with_dialog_now(&path);
+    });
+}
+
+fn open_with_dialog_now(path: &Path) {
+    use windows::Win32::UI::Shell::{OAIF_ALLOW_REGISTRATION, OAIF_EXEC, OPENASINFO, SHOpenWithDialog};
+    use windows::core::PCWSTR;
+    let file = path.as_os_str().encode_wide_null();
+    let info = OPENASINFO { pcszFile: PCWSTR(file.as_ptr()), pcszClass: PCWSTR::null(), oaifInFlags: OAIF_EXEC | OAIF_ALLOW_REGISTRATION };
+    unsafe {
+        let _ = SHOpenWithDialog(None, &info);
+    }
 }
 
 /// Onglets fermes recemment (pile), pour « Rouvrir l'onglet ferme ».
@@ -108,20 +140,17 @@ impl Finder {
             _ if !crate::fs::is_virtual(&self.cwd) => self.cwd.clone(),
             _ => crate::fs::home_dir(),
         };
-        let wt = std::process::Command::new("wt.exe").arg("-d").arg(&dir).creation_flags(NO_WINDOW).spawn();
+        // Le dossier est le repertoire de travail, jamais un argument : wt.exe decoupe sa ligne de commande
+        // sur `;`, et un dossier nomme `x; new-tab calc` lancerait autre chose.
+        let wt = std::process::Command::new("wt.exe").args(["-d", "."]).current_dir(&dir).creation_flags(NO_WINDOW).spawn();
         if wt.is_err() {
-            let _ = std::process::Command::new("powershell.exe")
-                .arg("-NoExit")
-                .arg("-Command")
-                .arg(format!("Set-Location -LiteralPath '{}'", dir.display().to_string().replace('\'', "''")))
-                .spawn();
+            let _ = std::process::Command::new(crate::ps::system32(r"WindowsPowerShell\v1.0\powershell.exe")).arg("-NoExit").current_dir(&dir).spawn();
         }
     }
 
     pub fn run_as_admin(&mut self) {
         let Some(e) = self.selected_entry().filter(|e| !e.is_dir) else { return };
-        let script = format!("Start-Process -FilePath '{}' -Verb RunAs", e.path.display().to_string().replace('\'', "''"));
-        let _ = std::process::Command::new("powershell.exe").args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &script]).creation_flags(NO_WINDOW).spawn();
+        shell_run_as_admin(&e.path);
     }
 
     /// Image selectionnee comme fond d'ecran.
@@ -151,20 +180,14 @@ impl Finder {
             return;
         }
         let mode = if clockwise { "Rotate90FlipNone" } else { "Rotate270FlipNone" };
-        let list = files.iter().map(|p| format!("'{}'", p.display().to_string().replace('\'', "''"))).collect::<Vec<_>>().join(",");
+        // Script fixe : les chemins arrivent par $env:WF_LIST (voir ps.rs).
         let script = format!(
-            "Add-Type -AssemblyName System.Drawing; foreach($p in @({list})){{ $b=[System.IO.File]::ReadAllBytes($p); $ms=New-Object System.IO.MemoryStream(,$b); $i=[System.Drawing.Image]::FromStream($ms); $f=$i.RawFormat; $i.RotateFlip([System.Drawing.RotateFlipType]::{mode}); $i.Save($p,$f); $i.Dispose(); $ms.Dispose() }}"
+            "Add-Type -AssemblyName System.Drawing; foreach($p in ($env:WF_LIST -split \"`n\")){{ $b=[System.IO.File]::ReadAllBytes($p); $ms=New-Object System.IO.MemoryStream(,$b); $i=[System.Drawing.Image]::FromStream($ms); $f=$i.RawFormat; $i.RotateFlip([System.Drawing.RotateFlipType]::{mode}); $i.Save($p,$f); $i.Dispose(); $ms.Dispose() }}"
         );
+        let list = crate::ps::list(&files);
         let keep = self.selected_paths();
         cx.spawn(async move |this, cx| {
-            let result = cx.background_executor().spawn(async move {
-                std::process::Command::new("powershell.exe")
-                    .args(["-NoProfile", "-NonInteractive", "-Command", &script])
-                    .creation_flags(NO_WINDOW)
-                    .output()
-                    .map(|o| o.status.success())
-                    .unwrap_or(false)
-            }).await;
+            let result = cx.background_executor().spawn(async move { crate::ps::run(&script, &[("WF_LIST", &list)]).is_ok() }).await;
             this.update(cx, |f, cx| {
                 f.icons.clear_all();
                 f.reload_select(&keep);

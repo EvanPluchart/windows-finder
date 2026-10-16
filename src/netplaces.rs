@@ -14,7 +14,7 @@ pub const NET: &str = "::net";
 pub fn wsl_distros() -> &'static [String] {
     static CACHE: OnceLock<Vec<String>> = OnceLock::new();
     CACHE.get_or_init(|| {
-        let out = std::process::Command::new("reg")
+        let out = crate::ps::tool("reg.exe")
             .args(["query", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss", "/s", "/v", "DistributionName"])
             .creation_flags(0x0800_0000)
             .output();

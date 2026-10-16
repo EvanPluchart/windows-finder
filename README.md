@@ -80,7 +80,7 @@ The design and behaviour come from a reverse-engineering study of the macOS Find
 
 ## Roadmap
 
-- [ ] Open icon set to replace the Apple-derived artwork (blocking a public release, see [`assets/NOTICE.md`](assets/NOTICE.md))
+- [x] Open icon set (Lucide symbols and drawn folders, see [`assets/NOTICE.md`](assets/NOTICE.md))
 - [x] Installer (per-user, no admin) and portable zip
 - [ ] Code signing, winget / Scoop packages
 - [ ] Column and gallery inspectors with more quick actions

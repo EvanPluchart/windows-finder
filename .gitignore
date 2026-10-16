@@ -3,3 +3,12 @@ reference/
 
 tools/**/node_modules/
 dist/
+
+# Personal Apple-derived icons for --features apple-assets (never distributed)
+assets/apple/
+
+# Local AI tooling
+.agents/
+.claude/
+agent/
+skills-lock.json

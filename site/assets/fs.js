@@ -90,7 +90,7 @@
     },
     aurora: function () {
       return svg('<defs>' + lg('a', [[0, '#050816'], [1, '#14244a']]) + lg('g', [[0, '#5dffb0'], [.6, '#3ad6c6'], [1, '#7a5cff']], 1, 0) +
-        '<filter id="f"><feGaussianBlur stdDeviation="18"/></filter></defs><rect width="600" height="400" fill="url(#a)"/>' + stars(70, 7, 260) +
+        '<filter id="f" filterUnits="userSpaceOnUse" x="-200" y="-200" width="1000" height="800"><feGaussianBlur stdDeviation="18"/></filter></defs><rect width="600" height="400" fill="url(#a)"/>' + stars(70, 7, 260) +
         '<g filter="url(#f)" opacity=".85"><path d="M-20 200 C120 60 260 220 380 110 S560 80 640 150" stroke="url(#g)" stroke-width="46" fill="none"/>' +
         '<path d="M-20 250 C140 150 280 260 420 170 S580 160 640 210" stroke="#b05cff" stroke-width="26" fill="none" opacity=".6"/></g>' +
         '<path d="M0 330 L80 280 L150 310 L230 260 L320 320 L400 270 L500 300 L600 260 L600 400 L0 400Z" fill="#05070f"/>');
